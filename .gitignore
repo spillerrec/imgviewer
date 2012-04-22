@@ -1,0 +1,10 @@
+
+/debug
+/release
+/Makefile.Release
+/Makefile.Debug
+/ui_*.h
+/Makefile
+*.Debug
+*.Release
+/test_files

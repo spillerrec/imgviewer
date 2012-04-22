@@ -1,0 +1,11 @@
+<RCC>
+  <qresource prefix="main">
+    <file>fullscreen.png</file>
+    <file>next.png</file>
+    <file>pause.png</file>
+    <file>prev.png</file>
+    <file>small_next.png</file>
+    <file>small_prev.png</file>
+    <file>start.png</file>
+  </qresource>
+</RCC>
