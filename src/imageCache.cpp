@@ -16,9 +16,11 @@
 */
 
 #include "imageCache.h"
+#include "meta.h"
 
 #include <QSize>
 #include <QImage>
+#include <QTransform>
 #include <QImageReader>
 #include <QPainter>
 #include <QTime>
@@ -90,6 +92,31 @@ void imageCache::read( QString filename ){
 		else
 			loop_amount = -1;
 		
+		//Try to get orientation info
+		meta rotation( filename );
+		int rot = rotation.get_orientation();
+		QTransform trans;
+		//Rotate image
+		switch( rot ){
+			case 3:
+			case 4:
+					//Flip upside down
+					trans.rotate( 180 );
+				break;
+			
+			case 5:
+			case 6:
+					//90 degs to the left
+					trans.rotate( 90 );
+				break;
+			
+			case 7:
+			case 8:
+					//90 degs to the right
+					trans.rotate( -90 );
+				break;
+		}
+		
 		emit info_loaded();
 		
 		if( frame_amount > 0 ){	//Make sure frames are readable
@@ -104,6 +131,22 @@ void imageCache::read( QString filename ){
 			for( int i=0; i<frame_amount; i++ ){
 				frames[i] = new QImage();
 				image_reader.read( frames[i] );
+				
+				//Orient image
+				if( rot != 1 ){
+					//Mirror
+					switch( rot ){
+						case 2:
+						case 4:
+						case 5:
+						case 7:
+								*(frames[i]) = frames[i]->mirrored();
+							break;
+					}
+					
+					if( rot > 2 ) //1 and 2 is not rotated, all others are
+						*(frames[i]) = frames[i]->transformed( trans );
+				}
 				
 				if( animate )
 					frame_delays[i] = image_reader.nextImageDelay();
