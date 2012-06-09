@@ -146,8 +146,7 @@ void imageContainer::load_image( QString filepath ){
 	
 	//Update interface
 	setWindowTitle( img_file.fileName() );
-	//TODO: do this when the image has been loaded instead
-	update_controls();
+	//TODO: update as soon read_info has been run
 	
 	//Begin caching
 	files = img_file.dir().entryInfoList( supported_file_ext , QDir::Files, QDir::Name | QDir::IgnoreCase | QDir::LocaleAware );
@@ -247,10 +246,8 @@ void imageContainer::loading_handler(){
 		offset++;
 	}
 	//*/
-	
-	
-	//TODO: update prev/next buttons
 }
+
 
 void imageContainer::update_controls(){
 	//Show amount of frames in file

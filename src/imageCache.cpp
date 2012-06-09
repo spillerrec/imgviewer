@@ -26,21 +26,21 @@
 #include <QTime>
 
 
-void imageCache::mark_as_invalid(){
+void imageCache::init(){
 	frames = NULL;
 	frame_delays = NULL;
-	frames_loaded = -1;
+	frames_loaded = 0;
 	memory_size = 0;
+	current_status = EMPTY;
 }
 
 
 imageCache::imageCache(){
-	mark_as_invalid();
-	frames_loaded = 0;
+	init();
 }
 
 imageCache::imageCache( QString filename ){
-	frames_loaded = 0;
+	init();
 	read( filename );
 }
 
@@ -61,6 +61,7 @@ imageCache::imageCache( QImage *preloaded ){
 	frame_delays[0] = -1;
 	loop_amount = -1;
 	
+	current_status = LOADED;
 	emit frame_loaded( 0 );
 }
 
@@ -79,7 +80,7 @@ imageCache::~imageCache(){
 
 void imageCache::read( QString filename ){
 	//Make sure this cache is unloaded!
-	if( frames_loaded != 0 )
+	if( current_status != EMPTY )
 		return;
 	
 	QImageReader image_reader( filename );
@@ -117,6 +118,8 @@ void imageCache::read( QString filename ){
 				break;
 		}
 		
+		//Signal that status have changed
+		current_status = INFO_READY;
 		emit info_loaded();
 		
 		if( frame_amount > 0 ){	//Make sure frames are readable
@@ -130,7 +133,11 @@ void imageCache::read( QString filename ){
 			//Read every frame and delay
 			for( int i=0; i<frame_amount; i++ ){
 				frames[i] = new QImage();
-				image_reader.read( frames[i] );
+				if( !image_reader.read( frames[i] ) ){
+					current_status = INVALID;
+					break;
+				}
+				
 				
 				//Orient image
 				if( rot != 1 ){
@@ -154,18 +161,24 @@ void imageCache::read( QString filename ){
 					image_reader.jumpToImage( i+1 );
 				
 				memory_size += frames[i]->byteCount();
-				/* QTime t;
+				/* Increase loading time for debugging
+				QTime t;
 				t.start();
 				while( t.elapsed() < 1000 ); */
 				
+				current_status = FRAMES_READY;
 				frames_loaded++;
 				emit frame_loaded( i );
 			}
+			
+			if( current_status == FRAMES_READY ) //All reads where succesful
+				current_status = LOADED;
+			//TODO: What to do on fail?
 		}
 	}
 	else{
 		//If canRead failed, some error must have happened!
-		mark_as_invalid();
+		current_status = INVALID;
 	}
 }
 

@@ -39,14 +39,14 @@ void imageLoader::run(){
 		
 		img->read( filepath );
 		
-		emit image_loaded();
-		
 		mutex.lock();	//Make sure to lock it again, as wee need it at the while loop check
 		loading = NULL;
 		if( delete_after_load ){
 			delete img;
 			delete_after_load = false;
 		}
+		else
+			emit image_loaded( img );
 	}
 	mutex.unlock(); //Make sure to lock it when the while loop exits
 }

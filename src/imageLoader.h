@@ -59,7 +59,7 @@ class imageLoader: public QThread{
 		
 	signals:
 		void image_fetched();
-		void image_loaded();
+		void image_loaded( imageCache *img );
 };
 
 

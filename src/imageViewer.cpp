@@ -270,20 +270,28 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 	shown_zoom_level = 0;
 	
 	if( image_cache ){
-		connect( image_cache, SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
-		//Make sure the new image reader is reset
-		if( image_cache->loaded() > 0 ){
-			read_info();
-		}
-		else{
-			//Image not loaded yet
-			connect( image_cache, SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
-			qDebug( "Image not loaded yet" );
+		switch( image_cache->get_status() ){
+			case imageCache::INVALID:	break; //Loading failed
 			
-			update();
-			emit image_changed();
+			//TODO: remove those connections again
+			case imageCache::EMPTY:
+					connect( image_cache, SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
+					connect( image_cache, SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
+				break;
+			
+			case imageCache::INFO_READY:
+			case imageCache::FRAMES_READY:
+					connect( image_cache, SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
+					read_info();
+				break;
+			
+			case imageCache::LOADED:
+					read_info();
+				break;
 		}
 		
+		update();
+		emit image_changed();
 	}
 }
 
@@ -292,7 +300,7 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 #include <QPen>
 #include <QColor>
 static QStaticText txt_loading( "Loading" );
-static QStaticText txt_no_image( "No image?" );
+static QStaticText txt_no_image( "Not loaded" );
 static QStaticText txt_invalid( "Image invalid or broken!" );
 static QStaticText txt_error( "Unspecified error" );
 
@@ -322,12 +330,17 @@ void imageViewer::paintEvent( QPaintEvent *event ){
 	
 	//Start checking for errors
 	
-	if( !image_cache ){
+	if( !image_cache || image_cache->get_status() == imageCache::EMPTY ){
 		//We have nothing to display
 		draw_message( &txt_no_image );
 		return;
 	}
 	
+	if( image_cache->get_status() == imageCache::INVALID ){
+		//Image is currently loading
+		draw_message( &txt_invalid );
+		return;
+	}
 	if( current_frame < 0 || current_frame >= image_cache->loaded() ){
 		//Image is currently loading
 		draw_message( &txt_loading );

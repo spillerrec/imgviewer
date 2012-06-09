@@ -26,6 +26,9 @@ class imageCache: public QObject{
 	Q_OBJECT
 	
 	private:
+		void init();
+		
+	private:
 	//Variables containing info about the image(s)
 		int frame_amount;
 		QImage **frames;
@@ -37,27 +40,38 @@ class imageCache: public QObject{
 		
 		long memory_size;
 		
+	//Info about loading
+	public:
+		enum status{
+			EMPTY,	//Nothing loaded
+			INVALID,	//Attempted loading, but failed
+			INFO_READY,	//Info is valid
+			FRAMES_READY,	//Some frames have been loaded
+			LOADED	//All frames have been loaded
+		};
 	private:
-		void mark_as_invalid();
+		status current_status;
+	public:
+		status get_status(){ return current_status; } //Current status
+		int loaded(){ return frames_loaded; }	//Amount of currently loaded frames
 		
 	public:
 		explicit imageCache();
 		explicit imageCache( QString filename );
 		explicit imageCache( QImage *preloaded );
-		
 		~imageCache();
 		
 		void read( QString filename );
 		long get_memory_size(){ return memory_size; }	//Notice, this is a rough number, not accurate!
 		
+		//Animation info
 		bool is_animated(){ return animate; }
 		int loop_count(){ return loop_amount; }
+		
+		//Frame info
 		int frame_count(){ return frame_amount; }
 		QImage* frame( unsigned int idx ){ return frames[ idx ]; }
-		int frame_delay( unsigned int idx ){ return frame_delays[ idx ]; }
-		
-		//Returns -1 on failure, 0 on not loaded and x>0 when x frames ready
-		int loaded(){ return frames_loaded; }
+		int frame_delay( unsigned int idx ){ return frame_delays[ idx ]; } //How long a frame should be shown
 	
 	signals:
 		void info_loaded();
