@@ -40,6 +40,7 @@ class imageViewer: public QWidget{
 	public:
 		int get_frame_amount(){ return frame_amount; }
 		int get_current_frame(){ return current_frame; }
+		bool can_animate();
 		bool is_animating(){ return continue_animating; }
 	
 	//How the image is to be viewed

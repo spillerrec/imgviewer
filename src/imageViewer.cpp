@@ -55,6 +55,11 @@ imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
 	connect( time, SIGNAL( timeout() ), this, SLOT( next_frame() ) );
 }
 
+
+bool imageViewer::can_animate(){
+	return image_cache ? image_cache->is_animated() : false;
+}
+
 void imageViewer::next_frame(){
 	if( !image_cache )
 		return;

@@ -80,7 +80,7 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	
 	ui->viewer_layout->addWidget( viewer );
 	
-	connect( viewer, SIGNAL( image_changed() ), this, SLOT( update_image_count() ) );
+	connect( viewer, SIGNAL( image_changed() ), this, SLOT( update_controls() ) );
 	connect( ui->btn_sub_next, SIGNAL( pressed() ), viewer, SLOT( goto_next_frame() ) );
 	connect( ui->btn_sub_prev, SIGNAL( pressed() ), viewer, SLOT( goto_prev_frame() ) );
 	connect( ui->btn_pause, SIGNAL( pressed() ), this, SLOT( toogle_animation() ) );
@@ -147,8 +147,7 @@ void imageContainer::load_image( QString filepath ){
 	//Update interface
 	setWindowTitle( img_file.fileName() );
 	//TODO: do this when the image has been loaded instead
-	update_image_count();
-	update_toogle_btn();
+	update_controls();
 	
 	//Begin caching
 	files = img_file.dir().entryInfoList( supported_file_ext , QDir::Files, QDir::Name | QDir::IgnoreCase | QDir::LocaleAware );
@@ -253,12 +252,30 @@ void imageContainer::loading_handler(){
 	//TODO: update prev/next buttons
 }
 
-
 void imageContainer::update_controls(){
-	
-}
-void imageContainer::update_image_count(){
+	//Show amount of frames in file
 	ui->lbl_image_amount->setText( QString::number( viewer->get_current_frame()+1 ) + "/" + QString::number( viewer->get_frame_amount() ) );
+	
+	//Disable button when animation is not applyable
+	update_toogle_btn(); //Make sure the icon is correct
+	ui->btn_pause->setEnabled( viewer->can_animate() );
+	
+	//Disable sub left and right buttons
+	bool frames_exists = viewer->get_frame_amount() > 1;
+	if( frames_exists && !viewer->can_animate() ){
+		//prevent wrap on non-animated files
+		ui->btn_sub_next->setEnabled( viewer->get_current_frame() != viewer->get_frame_amount()-1 );
+		ui->btn_sub_prev->setEnabled( viewer->get_current_frame() != 0 );
+	}
+	else{
+		//Only one frame exists, or it is animated
+		ui->btn_sub_next->setEnabled( frames_exists );
+		ui->btn_sub_prev->setEnabled( frames_exists );
+	}
+	
+	//Disable left or right buttons
+	ui->btn_next->setEnabled( current_file != cache.size()-1 );
+	ui->btn_prev->setEnabled( current_file != 0 );
 }
 
 
@@ -267,8 +284,6 @@ void imageContainer::update_toogle_btn(){
 		ui->btn_pause->setIcon( QIcon( ":/main/pause.png" ) ); //"||" );
 	else
 		ui->btn_pause->setIcon( QIcon( ":/main/start.png" ) );
-	
-	//TODO: disable button when animation is not applyable
 }
 
 
