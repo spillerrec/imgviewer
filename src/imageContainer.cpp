@@ -18,6 +18,7 @@
 #include "imageContainer.h"
 #include "imageViewer.h"
 #include "imageCache.h"
+#include "windowManager.h"
 
 #include "ui_controls_ui.h"
 
@@ -76,10 +77,11 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	current_file = -1;
 	is_fullscreen = false;
 	
-	setFocusPolicy( Qt::StrongFocus );
+	setFocusPolicy( Qt::StrongFocus ); //Why this?
 	
 	ui->viewer_layout->addWidget( viewer );
 	
+	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
 	connect( viewer, SIGNAL( image_changed() ), this, SLOT( update_controls() ) );
 	connect( ui->btn_sub_next, SIGNAL( pressed() ), viewer, SLOT( goto_next_frame() ) );
 	connect( ui->btn_sub_prev, SIGNAL( pressed() ), viewer, SLOT( goto_prev_frame() ) );
@@ -90,12 +92,15 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	
 	connect( &loader, SIGNAL( image_fetched() ), this, SLOT( loading_handler() ) );
 	
+	manager = new windowManager( this );
+	resize_window = true;
 	
 	setAcceptDrops( true );
 }
 
 imageContainer::~imageContainer(){
 	viewer->change_image( NULL, false );
+	delete manager;
 	clear_cache();
 }
 
@@ -273,6 +278,15 @@ void imageContainer::update_controls(){
 	//Disable left or right buttons
 	ui->btn_next->setEnabled( current_file != cache.size()-1 );
 	ui->btn_prev->setEnabled( current_file != 0 );
+	
+	//Resize and move window to fit image
+	if( resize_window && !is_fullscreen ){ //Buggy behaviour in fullscreen
+		QSize wanted = viewer->frame_size();
+		if( !wanted.isNull() ){
+			manager->resize_content( wanted, viewer->size() );
+			resize_window = false;
+		}
+	}
 }
 
 

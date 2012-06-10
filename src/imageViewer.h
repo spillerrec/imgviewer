@@ -42,6 +42,7 @@ class imageViewer: public QWidget{
 		int get_current_frame(){ return current_frame; }
 		bool can_animate();
 		bool is_animating(){ return continue_animating; }
+		QSize frame_size();
 	
 	//How the image is to be viewed
 	private:
@@ -107,6 +108,7 @@ class imageViewer: public QWidget{
 		QSize sizeHint() const;
 	
 	signals:
+		void image_info_read();
 		void image_changed();
 };
 

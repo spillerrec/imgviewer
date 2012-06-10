@@ -27,6 +27,7 @@
 
 class imageViewer;
 class imageCache;
+class windowManager;
 class Ui_controls;
 
 class imageContainer: public QWidget{
@@ -34,6 +35,7 @@ class imageContainer: public QWidget{
 	
 	private:
 		imageViewer *viewer;
+		windowManager *manager;
 		Ui_controls *ui;
 		
 		imageLoader loader;
@@ -45,6 +47,8 @@ class imageContainer: public QWidget{
 		
 		void clear_cache();
 		void create_cache( QString loaded_file, imageCache *loaded_image );
+		
+		bool resize_window; //resize the window to fit image
 		
 	private:
 		bool is_fullscreen;

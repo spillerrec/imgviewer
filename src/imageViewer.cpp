@@ -60,6 +60,10 @@ bool imageViewer::can_animate(){
 	return image_cache ? image_cache->is_animated() : false;
 }
 
+QSize imageViewer::frame_size(){
+	return ( image_cache->loaded() > 0 ) ? image_cache->frame( 0 )->size() : QSize(0,0);
+}
+
 void imageViewer::next_frame(){
 	if( !image_cache )
 		return;
@@ -239,6 +243,7 @@ void imageViewer::read_info(){
 	continue_animating = image_cache->is_animated();
 	
 	current_frame = -1;
+	emit image_info_read();
 	next_frame();
 }
 void imageViewer::check_frame( unsigned int idx ){
