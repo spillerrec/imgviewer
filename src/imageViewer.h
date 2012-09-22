@@ -93,6 +93,8 @@ class imageViewer: public QWidget{
 	protected:
 		bool mouse_active;
 		QPoint mouse_last_pos;
+		QPoint image_pos( QPoint pos );
+		void keep_on( QPoint pos );
 		
 		void mousePressEvent( QMouseEvent *event );
 		void mouseMoveEvent( QMouseEvent *event );

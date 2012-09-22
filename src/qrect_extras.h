@@ -15,23 +15,11 @@
 	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef WINDOWMANAGER_H
-#define WINDOWMANAGER_H
+#ifndef QRECT_EXTRAS_H
+#define QRECT_EXTRAS_H
 
-#include <QWidget>
-class QDesktopWidget;
+#include <QRect>
 
-class windowManager{
-	private:
-		QDesktopWidget *desktop;
-		QWidget *window;
-		
-	public:
-		explicit windowManager( QWidget *widget );
-		~windowManager();
-		
-		QSize resize_content( QSize wanted, QSize content, bool keep_aspect = false );
-};
-
+QRect constrain( QRect outer, QRect inner, bool keep_aspect = false );
 
 #endif

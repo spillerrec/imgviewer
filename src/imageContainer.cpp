@@ -283,7 +283,7 @@ void imageContainer::update_controls(){
 	if( resize_window && !is_fullscreen ){ //Buggy behaviour in fullscreen
 		QSize wanted = viewer->frame_size();
 		if( !wanted.isNull() ){
-			manager->resize_content( wanted, viewer->size() );
+			manager->resize_content( wanted, viewer->size(), true );
 			resize_window = false;
 		}
 	}

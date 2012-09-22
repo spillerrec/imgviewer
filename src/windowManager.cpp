@@ -16,6 +16,7 @@
 */
 
 #include "windowManager.h"
+#include "qrect_extras.h"
 #include <QApplication>
 #include <QDesktopWidget>
 
@@ -30,48 +31,28 @@ windowManager::~windowManager(){
 }
 
 
-QSize windowManager::resize( QSize size ){
-	QRect space = desktop->availableGeometry( window );
-	QSize diff = window->frameGeometry().size() - window->size();
-	qDebug( "diff: %d, %d", diff.width(), diff.height() );
-	
-	//Reduce to fit screen
-	if( size.width() > space.width() )
-		size.setWidth( space.width() );
-	if( size.height() > space.height() )
-		size.setHeight( space.height() );
-	
-	QRect position( window->pos(), size );
-	
-	//Check if there is room for it at current window position
-	if( !space.contains( position ) ){
-		//If window is to the upper left of the screern, move to corner
-		if( position.x() < space.x() )
-			position.setX( space.x() );
-		if( position.y() < space.y() )
-			position.setY( space.y() );
-		
-		//If window sticks out of the screen, move towards center
-	qDebug( "position before: %d, %d, %d, %d", position.x(), position.y(), position.width(), position.height() );
-		int space_right = space.x() + space.width();
-		int space_bottom = space.y() + space.height();
-		if( position.x() + position.width() > space_right )
-			position.moveLeft( space_right - position.width() );
-		if( position.y() + position.height() > space_bottom )
-			position.moveTop( space_bottom - position.height() );
-		
-		window->move( position.topLeft() );
-	}
-	
-	window->resize( position.size() - diff );
-	
-	qDebug( "position after: %d, %d, %d, %d", position.x(), position.y(), position.width(), position.height() );
-	return position.size();
-}
-
-
+//Resizes the window so that "content" will have "wanted" size.
+//Requires that only the only resizable widget contains "content".
+//Window will be moved so that it does not cross monitors boundaries.
+//If "wanted" size can't fit on the monitor, it will be resized
+//depending on "keep_aspect". If false, height and width will be clipped.
+//If true, it will be scaled so "content" keeps it aspect ratio.
+//Function returns "content"'s new size.
 QSize windowManager::resize_content( QSize wanted, QSize content, bool keep_aspect ){
+	//Get the difference in size between the content and the whole window
 	QSize difference = window->frameGeometry().size() - content;
-	return resize( wanted + difference ) - difference;
+	
+	//Take the full area and substract the constant widths (which doesn't scale with aspect)
+	QRect space = desktop->availableGeometry( window );
+	space.setSize( space.size() - difference );
+	
+	//Prepare resize dimentions, but keep it within "space"
+	QRect position = constrain( space, QRect( window->pos(), wanted ), keep_aspect );
+	
+	//Move and resize window. We need to convert dimentions to window size though.
+	window->move( position.topLeft() );
+	window->resize( position.size() + window->size() - content );
+	
+	return position.size();
 }
 

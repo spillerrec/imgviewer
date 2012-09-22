@@ -358,36 +358,47 @@ void imageViewer::paintEvent( QPaintEvent *event ){
 	}
 	
 	
-	//Everything when fine, start drashown_zoom_levelwing the image
+	//Everything when fine, start drawing the image
 	QImage *frame = image_cache->frame( current_frame );
-	auto_scale( frame->size() );
-	
 	QSize img_size = frame->size();
+	auto_scale( img_size );
+	
 	QPainter painter( this );
 	if( img_size.width()*1.5 >= shown_size.width() )
 		painter.setRenderHints( QPainter::SmoothPixmapTransform, true );
 	
 	painter.fillRect( QRect( QPoint(0,0), current_size ), QBrush( background ) );
-	painter.drawImage( QRect( shown_pos.x(), shown_pos.y(), shown_size.width(), shown_size.height() ), *frame );
+	painter.drawImage( QRect( shown_pos, shown_size ), *frame );
 }
 
 QSize imageViewer::sizeHint() const{
-	
-	if( image_cache && frame_amount > 0 ){
+	if( image_cache && frame_amount > 0 )
 		return image_cache->frame( 0 )->size();
-	}
 	
 	return QSize();
 }
 
 
+QPoint imageViewer::image_pos( QPoint pos ){
+	if( image_cache && current_frame >= 0 && image_cache->loaded() > current_frame )
+		return QPoint();
+	
+	QSize img_size = image_cache->frame( current_frame )->size();
+	
+}
 
+
+//Update after a autoscale change, but keep the point at pos consistent from before and after
+void imageViewer::keep_on( QPoint pos ){
+	
+	update();
+}
 
 
 void imageViewer::mousePressEvent( QMouseEvent *event ){
 	if( event->button() & Qt::RightButton ){
 		auto_scale_on = !auto_scale_on;
-		update();
+		keep_on( event->pos() );
 		return;
 	}
 	
@@ -432,7 +443,7 @@ void imageViewer::wheelEvent( QWheelEvent *event ){
 	
 	qDebug( "New zoom level: %d", shown_zoom_level );
 	
-	update();
+	keep_on( event->pos() );
 }
 
 
