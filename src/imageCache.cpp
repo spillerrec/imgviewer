@@ -25,9 +25,12 @@
 #include <QPainter>
 #include <QTime>
 
-color imageCache::manager( "" );
+color* imageCache::manager = NULL;
 
 void imageCache::init(){
+	if( !manager )
+		manager = new color( "" );
+	
 	frames = NULL;
 	frame_delays = NULL;
 	frames_loaded = 0;
@@ -124,7 +127,7 @@ void imageCache::read( QString filename ){
 		unsigned len;
 		unsigned char *data = rotation.get_icc( len );
 		if( data ){
-			transform = manager.get_transform( data, len );
+			transform = manager->get_transform( data, len );
 			qDebug( "Tried to get transform: %d", (int) transform );
 		}
 		
@@ -148,7 +151,7 @@ void imageCache::read( QString filename ){
 					break;
 				}
 				
-				manager.transform( frames[i], transform );
+				manager->transform( frames[i], transform );
 				
 				//Orient image
 				if( rot != 1 ){

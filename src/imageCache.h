@@ -28,7 +28,7 @@ class imageCache: public QObject{
 	
 	private:
 		void init();
-		static color manager;
+		static color* manager;
 		
 	private:
 	//Variables containing info about the image(s)
