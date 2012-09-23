@@ -18,30 +18,29 @@
 #include "color.h"
 
 #include <lcms2.h>
+#include <QCoreApplication>
 #include <QImage.h>
 
 
 color::color( QString filepath ){
 	//Init default profiles
 	p_srgb = cmsCreate_sRGBProfile();
-	p_monitor = cmsOpenProfileFromFile("1.icm", "r");
+	QString app_path = QCoreApplication::applicationDirPath();
+	p_monitor = cmsOpenProfileFromFile( (app_path + "/1.icm").toLocal8Bit().data(), "r");
 	
 	//If there is a profile, make a default transform.
 	if( p_monitor ){
 		t_default = cmsCreateTransform(
 				p_srgb
-			,	TYPE_BGRA_8
+			,	TYPE_BGRA_8	//This might be incorrect on some systems???
 			,	p_monitor
 			,	TYPE_BGRA_8
 			,	INTENT_PERCEPTUAL
 			,	0
 			);
-		qDebug( "Profile loaded" );
 	}
-	else{
+	else
 		t_default = NULL;
-		qDebug( "Profile not loaded" );
-	}
 }
 color::~color(){
 	//Delete profiles and transforms
@@ -52,12 +51,13 @@ color::~color(){
 		cmsDeleteTransform( t_default );
 }
 
-//Load profile from memory and transform image
-void color::transform( QImage *img, char *data, unsigned len ) const{
+
+//Load a profile from memory and get its transform
+cmsHTRANSFORM color::get_transform( unsigned char *data, unsigned len ) const{
 	cmsHPROFILE in = cmsOpenProfileFromMem( (const void*)data, len );
 	if( in ){
 		//Create transform
-		cmsHPROFILE transform = cmsCreateTransform(
+		cmsHTRANSFORM transform = cmsCreateTransform(
 				in
 			,	TYPE_BGRA_8
 			,	( p_monitor ) ? p_monitor : p_srgb //Fall back to sRGB
@@ -66,17 +66,15 @@ void color::transform( QImage *img, char *data, unsigned len ) const{
 			,	0
 			);
 		cmsCloseProfile( in );
-		
-		do_transform( img, transform );
-		cmsDeleteTransform( transform );
+		return transform;
 	}
+	else
+		return NULL;
 }
 
 
 void color::do_transform( QImage *img, cmsHTRANSFORM transform ) const{
-	
-		qDebug( "Should transform" );
-		if( transform ){
+	if( transform ){
 		//Make sure the image is in the correct pixel format
 		QImage::Format format = img->format();
 		qDebug( "Format: %d", (int)format );

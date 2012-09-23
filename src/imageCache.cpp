@@ -119,6 +119,15 @@ void imageCache::read( QString filename ){
 				break;
 		}
 		
+		//ICC
+		cmsHTRANSFORM transform = 0;
+		unsigned len;
+		unsigned char *data = rotation.get_icc( len );
+		if( data ){
+			transform = manager.get_transform( data, len );
+			qDebug( "Tried to get transform: %d", (int) transform );
+		}
+		
 		//Signal that status have changed
 		current_status = INFO_READY;
 		emit info_loaded();
@@ -139,7 +148,7 @@ void imageCache::read( QString filename ){
 					break;
 				}
 				
-				manager.transform( frames[i] );
+				manager.transform( frames[i], transform );
 				
 				//Orient image
 				if( rot != 1 ){

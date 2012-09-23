@@ -36,10 +36,15 @@ class color{
 		explicit color( QString filepath );
 		~color();
 		
-		void transform( QImage *img ) const{
-			do_transform( img, t_default );
+		void transform( QImage *img, cmsHTRANSFORM transform=0 ) const{
+			do_transform( img, (transform) ?  transform : t_default );
 		}
-		void transform( QImage *img, char *data, unsigned len ) const;
+		
+		cmsHTRANSFORM get_transform( unsigned char *data, unsigned len ) const;
+		void delete_transform( cmsHTRANSFORM transform ) const{
+			if( transform )
+				cmsDeleteTransform( transform );
+		}
 };
 
 
