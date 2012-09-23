@@ -25,6 +25,7 @@
 #include <QPainter>
 #include <QTime>
 
+color imageCache::manager( "" );
 
 void imageCache::init(){
 	frames = NULL;
@@ -138,6 +139,7 @@ void imageCache::read( QString filename ){
 					break;
 				}
 				
+				manager.transform( frames[i] );
 				
 				//Orient image
 				if( rot != 1 ){

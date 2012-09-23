@@ -15,24 +15,31 @@
 	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef META_H
-#define META_H
+#ifndef COLOR_H
+#define COLOR_H
 
 #include <QString>
+#include <lcms2.h>
 
-#include <libexif/exif-data.h>
+class QImage;
 
-class meta{
+class color{
 	private:
-		QString file;
-		ExifData *data;
+		cmsHPROFILE p_srgb;
+		cmsHPROFILE p_monitor;
+		cmsHTRANSFORM t_default;
+	
+	private:
+		void do_transform( QImage *img, cmsHTRANSFORM transform ) const;
 	
 	public:
-		explicit meta( QString filepath );
-		~meta();
+		explicit color( QString filepath );
+		~color();
 		
-		int get_orientation();
-		unsigned char* get_icc( unsigned &len);
+		void transform( QImage *img ) const{
+			do_transform( img, t_default );
+		}
+		void transform( QImage *img, char *data, unsigned len ) const;
 };
 
 

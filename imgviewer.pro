@@ -4,9 +4,10 @@
 
 TEMPLATE = app
 TARGET = 
-DEPENDPATH += . debug src src\resources
+DEPENDPATH += . debug src src/resources
 INCLUDEPATH += .
 LIBS += -lexif
+LIBS += -llcms2
 
 # Input
 HEADERS += src/imageCache.h \
@@ -15,7 +16,8 @@ HEADERS += src/imageCache.h \
            src/imageViewer.h \
            src/meta.h \
            src/qrect_extras.h \
-           src/windowManager.h
+           src/windowManager.h \
+           src/color.h
 FORMS += src/controls_ui.ui
 SOURCES += src/imageCache.cpp \
            src/imageContainer.cpp \
@@ -24,5 +26,6 @@ SOURCES += src/imageCache.cpp \
            src/main.cpp \
            src/meta.cpp \
            src/qrect_extras.cpp \
-           src/windowManager.cpp
+           src/windowManager.cpp \
+           src/color.cpp
 RESOURCES += src/resources/resources.qrc

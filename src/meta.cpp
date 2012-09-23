@@ -48,5 +48,15 @@ int meta::get_orientation(){
 	return 1;
 }
 
+unsigned char* meta::get_icc( unsigned &len ){
+	if( data ){
+		ExifEntry *icc = exif_content_get_entry( data->ifd[0], EXIF_TAG_INTER_COLOR_PROFILE ); //TODO: [0]!
+		len = icc->size;
+		return icc->data;
+	}
+	
+	return 0;
+}
+
 
 

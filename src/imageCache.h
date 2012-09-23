@@ -19,6 +19,7 @@
 #define IMAGECACHE_H
 
 #include <QObject>
+#include "color.h"
 
 class QImage;
 
@@ -27,6 +28,7 @@ class imageCache: public QObject{
 	
 	private:
 		void init();
+		static color manager;
 		
 	private:
 	//Variables containing info about the image(s)
