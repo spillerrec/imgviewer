@@ -15,6 +15,7 @@
 	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <QCoreApplication>
 #include <QtGui/QApplication>
 #include <QDir>
 
@@ -25,8 +26,9 @@ int main(int argc, char *argv[]){
 	QApplication a(argc, argv);
 	
 	QDir file;
-	if( argc == 2 )
-		file.setPath( QString::fromLocal8Bit( argv[1] ) );
+	QStringList args = QCoreApplication::arguments();
+	if( args.size() == 2 )
+		file.setPath( args.at(1) );
 	
 	imageContainer test(NULL);
 	test.show();
