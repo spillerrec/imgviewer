@@ -304,10 +304,6 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 #include <QBrush>
 #include <QPen>
 #include <QColor>
-static QStaticText txt_loading( "Loading" );
-static QStaticText txt_no_image( "Not loaded" );
-static QStaticText txt_invalid( "Image invalid or broken!" );
-static QStaticText txt_error( "Unspecified error" );
 
 void imageViewer::draw_message( QStaticText *text ){
 	text->prepare();	//Make sure it has calculated the size
@@ -331,6 +327,10 @@ void imageViewer::draw_message( QStaticText *text ){
 
 
 void imageViewer::paintEvent( QPaintEvent *event ){
+	static QStaticText txt_loading( "Loading" );
+	static QStaticText txt_no_image( "Not loaded" );
+	static QStaticText txt_invalid( "Image invalid or broken!" );
+	static QStaticText txt_error( "Unspecified error" );
 	QSize current_size = size();
 	
 	//Start checking for errors

@@ -21,12 +21,40 @@
 #include <QCoreApplication>
 #include <QImage.h>
 
+#include <qglobal.h>
+#ifdef Q_OS_WIN
+	#include <Windows.h>
+#endif
 
 color::color( QString filepath ){
 	//Init default profiles
 	p_srgb = cmsCreate_sRGBProfile();
+	p_monitor = NULL;
+	
+#ifdef Q_OS_WIN
+	//Try to grap it from the Windows APIs
+	DWORD size = 250;
+	wchar_t temp[size];
+	GetICMProfile( GetDC(NULL), &size, temp );
+	char temp2[size*2];
+	wcstombs( temp2, temp, size*2 );
+	qDebug( temp2 );
+	p_monitor = cmsOpenProfileFromFile( temp2, "r");
+	
+	//TODO: find a way to iterate over all displays
+/*	DISPLAY_DEVICE disp;
+	disp.cb = sizeof(DISPLAY_DEVICE);
+	if( EnumDisplayDevices( NULL, 0, &disp, 0 ) ){
+		qDebug( "Yes!" );
+		
+	}
+	else
+		qDebug( "Noo : \\" );
+*/
+#else
 	QString app_path = QCoreApplication::applicationDirPath();
 	p_monitor = cmsOpenProfileFromFile( (app_path + "/1.icm").toLocal8Bit().data(), "r");
+#endif
 	
 	//If there is a profile, make a default transform.
 	if( p_monitor ){
