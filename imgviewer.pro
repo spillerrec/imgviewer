@@ -8,6 +8,7 @@ DEPENDPATH += . debug src src/resources
 INCLUDEPATH += .
 LIBS += -lexif
 LIBS += -llcms2
+QT += widgets
 
 # Input
 HEADERS += src/imageCache.h \

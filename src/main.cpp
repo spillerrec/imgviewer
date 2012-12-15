@@ -16,7 +16,7 @@
 */
 
 #include <QCoreApplication>
-#include <QtGui/QApplication>
+#include <QApplication>
 #include <QDir>
 
 #include "imageContainer.h"

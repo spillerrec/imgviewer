@@ -27,6 +27,7 @@
 #include <QKeyEvent>
 
 
+#include <QMimeData>
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QUrl>
