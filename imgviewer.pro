@@ -3,7 +3,7 @@
 ######################################################################
 
 TEMPLATE = app
-TARGET = 
+TARGET = imgviewer
 DEPENDPATH += . debug src src/resources
 INCLUDEPATH += .
 LIBS += -lexif
