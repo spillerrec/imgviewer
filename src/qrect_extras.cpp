@@ -33,9 +33,9 @@ QRect constrain( QRect outer, QRect inner, bool keep_aspect ){
 		
 		//Calculate new height/width so that result becomes smaller
 		if( old_aspect < new_aspect )
-			result.setWidth( result.height() * old_aspect );
+			result.setWidth( result.height() * old_aspect + 0.5 );
 		else
-			result.setHeight( result.width() / old_aspect );
+			result.setHeight( result.width() / old_aspect + 0.5 );
 	}
 	
 	//Check if there is room for it in outer / constrain position
