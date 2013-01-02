@@ -25,14 +25,15 @@
 int main(int argc, char *argv[]){
 	QApplication a(argc, argv);
 	
-	QDir file;
 	QStringList args = QCoreApplication::arguments();
-	if( args.size() == 2 )
-		file.setPath( args.at(1) );
 	
 	imageContainer test(NULL);
 	test.show();
-	test.load_image( file.path() );
+	
+	if( args.size() == 2 ){
+		QDir file( args.at(1) );
+		test.load_image( file.path() );
+	}
 	
 	return a.exec();
 }
