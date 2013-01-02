@@ -308,10 +308,32 @@ void imageContainer::toogle_animation(){
 
 
 void imageContainer::keyPressEvent( QKeyEvent *event ){
+	Qt::KeyboardModifiers mods = event->modifiers();
+	
 	switch( event->key() ){
-		case Qt::Key_Left: prev_file(); break;
-		case Qt::Key_Right: next_file(); break;
-		case Qt::Key_F11:				
+		case Qt::Key_Escape: close(); break;
+		case Qt::Key_Left:
+				if( mods & Qt::ControlModifier )
+					viewer->goto_prev_frame();
+				else
+					prev_file();
+			break;
+		case Qt::Key_Right:
+				if( mods & Qt::ControlModifier )
+					viewer->goto_next_frame();
+				else
+					next_file();
+			break;
+		case Qt::Key_Space: toogle_animation(); break;
+		case Qt::Key_A:
+				if( mods & Qt::ControlModifier ){
+					resize_window = true;
+					update_controls();
+				}
+				else
+					event->ignore();
+			break;
+		case Qt::Key_F11:
 				if( is_fullscreen ){
 					viewer->set_background_color( QPalette().color( QPalette::Window ) );
 					showNormal();
