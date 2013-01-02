@@ -205,7 +205,13 @@ void imageViewer::auto_scale( QSize img ){
 		else
 			zoom = ( (int)(2*pow( 2, exp ) + 0.5) ) * 0.5;
 		
+		QPoint before = image_pos( img, keep_on );
 		shown_size = img * zoom;
+		
+		if( keep_on != QPoint( 0,0 ) ){
+			QPoint after = image_pos( img, keep_on );
+			shown_pos -= (before - after) * zoom;
+		}
 		
 		//Make sure it doesn't leave the screen
 		QSize diff = widget - shown_size;
@@ -233,6 +239,8 @@ void imageViewer::auto_scale( QSize img ){
 		else
 			setCursor( Qt::OpenHandCursor );
 	}
+	
+	keep_on = QPoint( 0,0 );
 }
 
 
@@ -379,26 +387,19 @@ QSize imageViewer::sizeHint() const{
 }
 
 
-QPoint imageViewer::image_pos( QPoint pos ){
-	if( image_cache && current_frame >= 0 && image_cache->loaded() > current_frame )
-		return QPoint();
-	
-	QSize img_size = image_cache->frame( current_frame )->size();
-	
-}
-
-
-//Update after a autoscale change, but keep the point at pos consistent from before and after
-void imageViewer::keep_on( QPoint pos ){
-	
-	update();
+QPoint imageViewer::image_pos( QSize img_size, QPoint pos ){
+	QPoint aligned = pos - shown_pos;
+	aligned.setX( aligned.x() * img_size.width() / shown_size.width() );
+	aligned.setY( aligned.y() * img_size.height() / shown_size.height() );
+	return aligned;
 }
 
 
 void imageViewer::mousePressEvent( QMouseEvent *event ){
 	if( event->button() & Qt::RightButton ){
 		auto_scale_on = !auto_scale_on;
-		keep_on( event->pos() );
+		keep_on = event->pos();
+		update();
 		return;
 	}
 	
@@ -434,16 +435,14 @@ void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
 
 void imageViewer::wheelEvent( QWheelEvent *event ){
 	int amount = event->delta() / 8;
-	QPoint pos = event->pos();
 	
 	if( amount > 0 )
 		shown_zoom_level++;
 	else if( amount < 0 )
 		shown_zoom_level--;
 	
-	qDebug( "New zoom level: %d", shown_zoom_level );
-	
-	keep_on( event->pos() );
+	keep_on = event->pos();
+	update();
 }
 
 
