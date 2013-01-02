@@ -95,6 +95,7 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	
 	manager = new windowManager( this );
 	resize_window = true;
+	update_controls();
 	
 	setAcceptDrops( true );
 }
@@ -278,7 +279,7 @@ void imageContainer::update_controls(){
 	
 	//Disable left or right buttons
 	ui->btn_next->setEnabled( current_file != cache.size()-1 );
-	ui->btn_prev->setEnabled( current_file != 0 );
+	ui->btn_prev->setEnabled( current_file > 0 );
 	
 	//Resize and move window to fit image
 	if( resize_window && !is_fullscreen ){ //Buggy behaviour in fullscreen

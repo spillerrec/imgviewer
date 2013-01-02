@@ -37,6 +37,10 @@
 
 imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
 	image_cache = NULL;
+	frame_amount = 0;
+	current_frame = -1;
+	loop_counter = 0;
+	continue_animating = false;
 	waiting_on_frame = -1;
 	
 	background = QPalette().color( QPalette::Window );	//::Window for default
@@ -53,6 +57,8 @@ imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
 	time = new QTimer( this );
 	time->setSingleShot( true );
 	connect( time, SIGNAL( timeout() ), this, SLOT( next_frame() ) );
+	
+	mouse_active = false;
 }
 
 
@@ -61,7 +67,7 @@ bool imageViewer::can_animate(){
 }
 
 QSize imageViewer::frame_size(){
-	return ( image_cache->loaded() > 0 ) ? image_cache->frame( 0 )->size() : QSize(0,0);
+	return ( image_cache && image_cache->loaded() > 0 ) ? image_cache->frame( 0 )->size() : QSize(0,0);
 }
 
 void imageViewer::next_frame(){
@@ -335,10 +341,10 @@ void imageViewer::draw_message( QStaticText *text ){
 
 
 void imageViewer::paintEvent( QPaintEvent *event ){
-	static QStaticText txt_loading( "Loading" );
-	static QStaticText txt_no_image( "Not loaded" );
-	static QStaticText txt_invalid( "Image invalid or broken!" );
-	static QStaticText txt_error( "Unspecified error" );
+	static QStaticText txt_loading( tr( "Loading" ) );
+	static QStaticText txt_no_image( tr( "No image selected" ) );
+	static QStaticText txt_invalid( tr( "Image invalid or broken!" ) );
+	static QStaticText txt_error( tr( "Unspecified error" ) );
 	QSize current_size = size();
 	
 	//Start checking for errors
