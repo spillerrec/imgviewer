@@ -6,8 +6,10 @@ TEMPLATE = app
 TARGET = imgviewer
 DEPENDPATH += . debug src src/resources
 INCLUDEPATH += .
-LIBS += -lexif
-LIBS += -llcms2
+LIBS += -lexif -llcms2
+win32{
+	LIBS += -lgdi32
+}
 QT += widgets
 
 # Input
