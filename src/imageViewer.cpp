@@ -193,8 +193,8 @@ void imageViewer::auto_scale( QSize img ){
 		}
 		
 		//Apply scaling
-		shown_size.setWidth( scaling_x * img.width() );
-		shown_size.setHeight( scaling_y * img.height() );
+		shown_size.setWidth( scaling_x * img.width() + 0.5 );
+		shown_size.setHeight( scaling_y * img.height() + 0.5 );
 		
 		//Position image
 		QSize temp = ( widget - shown_size ) / 2;
