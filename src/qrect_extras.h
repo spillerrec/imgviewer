@@ -21,5 +21,7 @@
 #include <QRect>
 
 QRect constrain( QRect outer, QRect inner, bool keep_aspect = false );
+QPoint contrain_point( QRect outer, QPoint inner );
+inline int qsize_area( QSize a ){ return a.height() * a.width(); }
 
 #endif

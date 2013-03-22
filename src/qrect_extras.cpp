@@ -58,3 +58,15 @@ QRect constrain( QRect outer, QRect inner, bool keep_aspect ){
 	return result;
 }
 
+QPoint contrain_point( QRect outer, QPoint inner ){
+	if( outer.x() > inner.x() )
+		inner.setX( outer.x() );
+	else if( outer.x() + outer.width() < inner.x() )
+		inner.setX( outer.x() + outer.width() );
+	
+	if( outer.y() > inner.y() )
+		inner.setY( outer.y() );
+	else if( outer.y() + outer.height() < inner.y() )
+		inner.setY( outer.y() + outer.height() );
+	return inner;
+}

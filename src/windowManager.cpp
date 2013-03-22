@@ -46,17 +46,25 @@ QSize windowManager::resize_content( QSize wanted, QSize content, bool keep_aspe
 	QRect space = desktop->availableGeometry( window );
 	space.setSize( space.size() - difference );
 	
-	//Push window top-left edge into the screen
-	QPoint topleft = window->pos();
-	if( !space.contains( topleft ) ){
-		if( space.x() > topleft.x() )
-			topleft.setX( space.x() );
-		if( space.y() > topleft.y() )
-			topleft.setY( space.y() );
-	}
-	
 	//Prepare resize dimentions, but keep it within "space"
-	QRect position = constrain( space, QRect( topleft, wanted ), keep_aspect );
+	QRect position = constrain( space, QRect( contrain_point( space, window->pos() ), wanted ), keep_aspect );
+	
+	if( position.size() != wanted ){
+		int best = qsize_area( position.size() );
+		
+		for( int i=0; i<desktop->screenCount(); i++ ){
+			QRect space_new = desktop->availableGeometry( i );
+			space_new.setSize( space_new.size() - difference );
+			
+			QRect position_new = constrain( space_new, QRect( contrain_point( space_new, window->pos() ), wanted ), keep_aspect );
+			
+			int area = qsize_area( position_new.size() );
+			if( area > best ){
+				best = area;
+				position = position_new;
+			}
+		}
+	}
 	
 	//Move and resize window. We need to convert dimentions to window size though.
 	window->move( position.topLeft() );
