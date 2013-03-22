@@ -31,6 +31,7 @@
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QUrl>
+#include <QCursor>
 
 
 void imageContainer::dragEnterEvent( QDragEnterEvent *event ){
@@ -95,6 +96,10 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	
 	manager = new windowManager( this );
 	resize_window = true;
+	//Center window on mouse cursor on start
+	QSize half_size( frameGeometry().size() / 2 );
+	move( QCursor::pos() - QPoint( half_size.width(), half_size.height() ) );
+	
 	update_controls();
 	
 	setAcceptDrops( true );
