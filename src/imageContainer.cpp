@@ -32,6 +32,10 @@
 #include <QDragEnterEvent>
 #include <QUrl>
 #include <QCursor>
+#include <QImageReader>
+
+#include <QMutex>
+#include <QStringList>
 
 
 void imageContainer::dragEnterEvent( QDragEnterEvent *event ){
@@ -50,25 +54,8 @@ void imageContainer::dropEvent( QDropEvent *event ){
 }
 
 
-
-QStringList supported_file_ext =(QStringList)
-	   "*.jpg"
-	<< "*.png"
-	<< "*.gif"
-	<< "*.svg"
-	<< "*.ico"
-	<< "*.bmp"
-	<< "*.jpeg"
-	<< "*.tif"
-	<< "*.tiff"
-	<< "*.mng"
-	<< "*.pbm"
-	<< "*.ppm"
-	<< "*.pgm"
-	<< "*.xbm"
-	<< "*.xpm"
-	<< "*.ric"
-;
+static QMutex supported_lock( QMutex::NonRecursive );
+static QStringList supported_file_ext = QStringList();
 
 
 
@@ -93,6 +80,15 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	connect( ui->btn_prev, SIGNAL( pressed() ), this, SLOT( prev_file() ) );
 	
 	connect( &loader, SIGNAL( image_fetched() ), this, SLOT( loading_handler() ) );
+	
+	//Initialize all supported image formats
+	supported_lock.lock();
+	if( supported_file_ext.count() == 0 ){
+		QList<QByteArray> supported = QImageReader::supportedImageFormats();
+		for( int i=0; i<supported.count(); i++ )
+			supported_file_ext << "*." + QString( supported.at( i ) );
+	}
+	supported_lock.unlock();
 	
 	manager = new windowManager( this );
 	resize_window = true;
