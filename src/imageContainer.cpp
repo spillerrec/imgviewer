@@ -37,11 +37,23 @@
 #include <QMutex>
 #include <QStringList>
 
+static QMutex supported_lock( QMutex::NonRecursive );
+static QStringList supported_file_ext = QStringList();
+
 
 void imageContainer::dragEnterEvent( QDragEnterEvent *event ){
-	if( event->mimeData()->hasUrls() )
-		event->acceptProposedAction();
-		//TODO: only accept if it includes files we want?
+	QList<QUrl> urls = event->mimeData()->urls();
+	
+	if( urls.count() == 1 ){	//Do we have exactly one url to accept?
+		QString url = urls[0].toLocalFile();
+		
+		//Only accept the file if it has the correct extension
+		for( int i=0; i<supported_file_ext.count(); i++ )
+			if( url.endsWith( QString( supported_file_ext[i] ).remove( 0, 1 ) ) ){ //Remove "*" from "*.ext"
+				event->acceptProposedAction();
+				break;
+			}
+	}
 }
 void imageContainer::dropEvent( QDropEvent *event ){
 	if( event->mimeData()->hasUrls() ){
@@ -52,12 +64,6 @@ void imageContainer::dropEvent( QDropEvent *event ){
 		event->accept();
 	}
 }
-
-
-static QMutex supported_lock( QMutex::NonRecursive );
-static QStringList supported_file_ext = QStringList();
-
-
 
 imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui_controls ){
 	viewer = new imageViewer( this );
