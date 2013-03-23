@@ -67,7 +67,24 @@ bool imageViewer::can_animate(){
 }
 
 QSize imageViewer::frame_size(){
-	return ( image_cache && image_cache->loaded() > 0 ) ? image_cache->frame( 0 )->size() : QSize(0,0);
+	if( !image_cache || image_cache->loaded() < 1 )
+		return QSize( 0,0 );
+	
+	if( image_cache->is_animated() )
+		return image_cache->frame( 0 )->size(); //Just return the first frame
+	else{
+		//Iterate over all frames and find the largest
+		int width = 0, height = 0;
+		for( int i=0; i<image_cache->loaded(); i++ ){
+			QSize frame = image_cache->frame( i )->size();
+			if( frame.width() > width )
+				width = frame.width();
+			if( frame.height() > height )
+				height = frame.height();
+		}
+		
+		return QSize( width, height );
+	}
 }
 
 void imageViewer::next_frame(){
