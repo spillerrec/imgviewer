@@ -70,6 +70,16 @@ bool imageViewer::can_animate(){
 	return image_cache ? image_cache->is_animated() : false;
 }
 
+bool imageViewer::moveable() const{
+	QImage *frame = image_cache->frame( current_frame );
+	if( !frame )
+		return false;
+	
+	QSize img = frame->size();
+	return ( img.width() * current_scale > size().width() )
+		||	( img.height() * current_scale > size().height() );
+}
+
 QSize imageViewer::frame_size(){
 	if( !image_cache || image_cache->loaded() < 1 )
 		return QSize( 0,0 );
@@ -437,7 +447,7 @@ void imageViewer::mousePressEvent( QMouseEvent *event ){
 			shown_zoom_level = 0;
 		}
 		else{
-			if( current_scale < 1.0 ) //TODO: add dead-zone?
+			if( !moveable() )
 				shown_zoom_level = 0;
 			else
 				auto_scale_on = true;
@@ -449,7 +459,7 @@ void imageViewer::mousePressEvent( QMouseEvent *event ){
 	}
 	
 	if( event->button() & Qt::LeftButton ){
-		if( current_scale > 1.0 )
+		if( moveable() )
 			setCursor( Qt::ClosedHandCursor );
 		mouse_active = true;
 	}
@@ -492,8 +502,7 @@ void imageViewer::mouseMoveEvent( QMouseEvent *event ){
 
 
 void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
-	if( mouse_active && current_scale > 1.0 )
-		setCursor( Qt::OpenHandCursor );
+	setCursor( ( mouse_active && moveable() ) ? Qt::OpenHandCursor : Qt::ArrowCursor );
 	
 	mouse_active = false;
 	is_zooming = false;

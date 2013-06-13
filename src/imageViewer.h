@@ -52,6 +52,7 @@ class imageViewer: public QWidget{
 		QColor background;
 	public:
 		void set_background_color( QColor new_color ){ background = new_color; update(); }
+		bool moveable() const;
 		
 	//Settings to autoscale
 	private:
