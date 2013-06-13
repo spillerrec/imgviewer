@@ -78,6 +78,7 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	
 	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
 	connect( viewer, SIGNAL( image_changed() ), this, SLOT( update_controls() ) );
+	connect( viewer, SIGNAL( double_clicked() ), this, SLOT( toogle_fullscreen() ) );
 	connect( ui->btn_sub_next, SIGNAL( pressed() ), viewer, SLOT( goto_next_frame() ) );
 	connect( ui->btn_sub_prev, SIGNAL( pressed() ), viewer, SLOT( goto_prev_frame() ) );
 	connect( ui->btn_pause, SIGNAL( pressed() ), this, SLOT( toogle_animation() ) );
@@ -314,6 +315,21 @@ void imageContainer::toogle_animation(){
 }
 
 
+void imageContainer::toogle_fullscreen(){
+	if( is_fullscreen ){
+		viewer->set_background_color( QPalette().color( QPalette::Window ) );
+		showNormal();
+		ui->control_sub->show();
+	}
+	else{
+		viewer->set_background_color( QColor( Qt::black ) );
+		showFullScreen();
+		ui->control_sub->hide();
+	}
+	is_fullscreen = !is_fullscreen;
+}
+
+
 void imageContainer::keyPressEvent( QKeyEvent *event ){
 	Qt::KeyboardModifiers mods = event->modifiers();
 	
@@ -341,17 +357,7 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 					event->ignore();
 			break;
 		case Qt::Key_F11:
-				if( is_fullscreen ){
-					viewer->set_background_color( QPalette().color( QPalette::Window ) );
-					showNormal();
-					ui->control_sub->show();
-				}
-				else{
-					viewer->set_background_color( QColor( Qt::black ) );
-					showFullScreen();
-					ui->control_sub->hide();
-				}
-				is_fullscreen = !is_fullscreen;
+				toogle_fullscreen();
 			break;
 		
 		default: event->ignore();

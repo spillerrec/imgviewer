@@ -48,7 +48,7 @@ class imageViewer: public QWidget{
 	private:
 		QPoint shown_pos;
 		QSize shown_size;
-		int shown_zoom_level;
+		double shown_zoom_level;
 		QColor background;
 	public:
 		void set_background_color( QColor new_color ){ background = new_color; update(); }
@@ -59,6 +59,7 @@ class imageViewer: public QWidget{
 		bool auto_aspect_ratio;
 		bool auto_downscale_only;
 		bool auto_upscale_only;
+		double current_scale;
 	private slots:
 		void auto_scale( QSize img );
 	//Access methods
@@ -92,12 +93,15 @@ class imageViewer: public QWidget{
 	
 	protected:
 		bool mouse_active;
+		bool is_zooming;
+		double start_zoom;
 		QPoint mouse_last_pos;
 		QPoint keep_on;
 		QPoint image_pos( QSize img, QPoint pos );
 		
 		void mousePressEvent( QMouseEvent *event );
 		void mouseMoveEvent( QMouseEvent *event );
+		void mouseDoubleClickEvent( QMouseEvent *event );
 		void mouseReleaseEvent( QMouseEvent *event );
 		void wheelEvent( QWheelEvent *event );
 	
@@ -112,6 +116,7 @@ class imageViewer: public QWidget{
 	signals:
 		void image_info_read();
 		void image_changed();
+		void double_clicked();
 };
 
 

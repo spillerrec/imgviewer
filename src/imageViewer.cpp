@@ -32,7 +32,9 @@
 
 #include "imageCache.h"
 
-#include <math.h>
+#include <cmath>
+
+using namespace std;
 
 
 imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
@@ -50,6 +52,7 @@ imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
 	auto_aspect_ratio = true;
 	auto_downscale_only = true;
 	auto_upscale_only = false;
+	current_scale = 1;
 	
 	shown_pos = QPoint( 0,0 );
 	shown_zoom_level = 0;
@@ -59,6 +62,7 @@ imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
 	connect( time, SIGNAL( timeout() ), this, SLOT( next_frame() ) );
 	
 	mouse_active = false;
+	is_zooming = false;
 }
 
 
@@ -212,34 +216,36 @@ void imageViewer::auto_scale( QSize img ){
 		//Apply scaling
 		shown_size.setWidth( scaling_x * img.width() + 0.5 );
 		shown_size.setHeight( scaling_y * img.height() + 0.5 );
+		current_scale = scaling_x; //prevents it to scale in both dimensions!
 		
 		//Position image
-		QSize temp = ( widget - shown_size ) / 2;
-		shown_pos = QPoint( temp.width(), temp.height() );
+		QSize temp = widget - shown_size;
+		shown_pos = QPoint( temp.width() / 2.0 + 0.5, temp.height() / 2.0 + 0.5 );
+		
+		if( current_scale == 1.0 )
+			shown_zoom_level = 0; //Division by zero
+		else
+			shown_zoom_level = ( log2( current_scale ) / log2( 2 ) ) * 2.0;
 		
 		setCursor( Qt::ArrowCursor );
 	}
 	else{
-		//Calculate zoom to 2^(x/2) which is then rounded to nearest 0.5
-		//At negative x values: zoom^-1
-		double zoom, exp = shown_zoom_level * 0.5;
-		if( exp < 0 )
-			zoom = 1 / ( ( (int)(2*pow( 2, -exp ) + 0.5) ) * 0.5 );
-		else
-			zoom = ( (int)(2*pow( 2, exp ) + 0.5) ) * 0.5;
+		//Calculate zoom to 2^(x/2)
+		double exp = shown_zoom_level * 0.5;
+		current_scale = pow( 2.0, exp );
 		
 		QPoint before = image_pos( img, keep_on );
-		shown_size = img * zoom;
+		shown_size = img * current_scale;
 		
 		if( keep_on != QPoint( 0,0 ) ){
 			QPoint after = image_pos( img, keep_on );
-			shown_pos -= (before - after) * zoom;
+			shown_pos -= (before - after) * current_scale;
 		}
 		
 		//Make sure it doesn't leave the screen
 		QSize diff = widget - shown_size;
 		if( diff.width() >= 0 )
-			shown_pos.setX( diff.width() / 2 );
+			shown_pos.setX( diff.width() / 2.0 + 0.5 );
 		else{
 			if( shown_pos.x() > 0 )
 				shown_pos.setX( 0 );
@@ -248,7 +254,7 @@ void imageViewer::auto_scale( QSize img ){
 		}
 		
 		if( diff.height() >= 0 )
-			shown_pos.setY( diff.height() / 2 );
+			shown_pos.setY( diff.height() / 2.0 + 0.5 );
 		else{
 			if( shown_pos.y() > 0 )
 				shown_pos.setY( 0 );
@@ -256,11 +262,15 @@ void imageViewer::auto_scale( QSize img ){
 				shown_pos.setY( widget.height() - shown_size.height() );
 		}
 		
-		//TODO: don't show cursor if image can't be moved!
-		if( mouse_active )
-			setCursor( Qt::ClosedHandCursor );
-		else
-			setCursor( Qt::OpenHandCursor );
+		//Show hand-cursor if image can be moved/is being moved
+		if( shown_size.width() <= widget.width() && shown_size.height() <= widget.height() )
+			setCursor( Qt::ArrowCursor );
+		else{
+			if( mouse_active )
+				setCursor( Qt::ClosedHandCursor );
+			else
+				setCursor( Qt::OpenHandCursor );
+		}
 	}
 	
 	keep_on = QPoint( 0,0 );
@@ -304,6 +314,7 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 	
 	shown_pos = QPoint( 0,0 );
 	shown_zoom_level = 0;
+	current_scale = 1;
 	
 	if( image_cache ){
 		switch( image_cache->get_status() ){
@@ -419,40 +430,73 @@ QPoint imageViewer::image_pos( QSize img_size, QPoint pos ){
 
 
 void imageViewer::mousePressEvent( QMouseEvent *event ){
+	mouse_last_pos = event->pos();
 	if( event->button() & Qt::RightButton ){
-		auto_scale_on = !auto_scale_on;
+		if( auto_scale_on ){
+			auto_scale_on = false;
+			shown_zoom_level = 0;
+		}
+		else{
+			if( current_scale < 1.0 ) //TODO: add dead-zone?
+				shown_zoom_level = 0;
+			else
+				auto_scale_on = true;
+		}
+		
 		keep_on = event->pos();
 		update();
 		return;
 	}
 	
 	if( event->button() & Qt::LeftButton ){
-		if( auto_scale_on )
-			return;
-		
-		setCursor( Qt::ClosedHandCursor );
+		if( current_scale > 1.0 )
+			setCursor( Qt::ClosedHandCursor );
 		mouse_active = true;
-		mouse_last_pos = event->pos();
 	}
 }
 
 
+void imageViewer::mouseDoubleClickEvent( QMouseEvent *event ){
+	if( event->button() & Qt::LeftButton )
+		emit double_clicked();
+}
+
+
 void imageViewer::mouseMoveEvent( QMouseEvent *event ){
-	if( !mouse_active )
-		return;
-	
-	shown_pos -= mouse_last_pos - event->pos();
-	mouse_last_pos = event->pos();
+	if( event->modifiers() & Qt::ControlModifier ){
+		if( !is_zooming ){
+			is_zooming = true;
+			start_zoom = shown_zoom_level;
+		}
+		
+		auto_scale_on = false;
+		QPoint diff = mouse_last_pos - event->pos();
+		shown_zoom_level = start_zoom + diff.y() * 0.05;
+		keep_on = mouse_last_pos;
+	}
+	else{
+		if( !mouse_active )
+			return;
+		
+		if( is_zooming ){
+			is_zooming = false;
+			mouse_last_pos = event->pos();
+		}
+		
+		shown_pos -= mouse_last_pos - event->pos();
+		mouse_last_pos = event->pos();
+	}
 	
 	update();
 }
 
 
 void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
-	if( mouse_active )
+	if( mouse_active && current_scale > 1.0 )
 		setCursor( Qt::OpenHandCursor );
 	
 	mouse_active = false;
+	is_zooming = false;
 }
 
 
@@ -460,9 +504,10 @@ void imageViewer::wheelEvent( QWheelEvent *event ){
 	int amount = event->delta() / 8;
 	
 	if( amount > 0 )
-		shown_zoom_level++;
+		shown_zoom_level += 1.0;
 	else if( amount < 0 )
-		shown_zoom_level--;
+		shown_zoom_level -= 1.0;
+	auto_scale_on = false;
 	
 	keep_on = event->pos();
 	update();

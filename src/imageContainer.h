@@ -61,8 +61,11 @@ class imageContainer: public QWidget{
 	private slots:
 		void loading_handler();
 		void update_controls();
-		void toogle_animation();
 		void update_toogle_btn();
+	
+	public slots:
+		void toogle_animation();
+		void toogle_fullscreen();
 		
 		void next_file();
 		void prev_file();
