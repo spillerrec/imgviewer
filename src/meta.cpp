@@ -49,12 +49,10 @@ int meta::get_orientation(){
 }
 
 unsigned char* meta::get_icc( unsigned &len ){
-	qDebug( "Trying to start with icc" );
 	if( data ){
 		qDebug( "Trying to fetch icc" );
 		ExifEntry *icc = exif_content_get_entry( data->ifd[EXIF_IFD_1], EXIF_TAG_INTER_COLOR_PROFILE ); //TODO: [0]!
 		if( icc ){
-			qDebug( "We have data to read :D" );
 			len = icc->size;
 			return icc->data;
 		}

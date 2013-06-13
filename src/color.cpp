@@ -105,13 +105,13 @@ void color::do_transform( QImage *img, cmsHTRANSFORM transform ) const{
 	if( transform ){
 		//Make sure the image is in the correct pixel format
 		QImage::Format format = img->format();
-		qDebug( "Format: %d", (int)format );
+		//qDebug( "Format: %d", (int)format );
 		if(	format != QImage::Format_RGB32
 			&&	format != QImage::Format_ARGB32
 			&&	format != QImage::Format_ARGB32_Premultiplied
 			)
 			return;
-		qDebug( "did transform %x", qRgba( 0xAA, 0xBB, 0xCC, 0xDD ) );
+		//qDebug( "did transform %x", qRgba( 0xAA, 0xBB, 0xCC, 0xDD ) );
 		
 		
 		
