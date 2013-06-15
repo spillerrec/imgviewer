@@ -22,6 +22,8 @@
 #include <QDir>
 #include <QImageReader>
 #include <QStringList>
+#include <QCoreApplication>
+#include <QTime>
 
 
 fileManager::fileManager(){
@@ -97,12 +99,10 @@ void fileManager::set_files( QStringList files ){
 
 
 bool fileManager::has_previous() const{
-	qDebug( "has_previous: %d", current_file );
 	return current_file > 0;
 }
 
 bool fileManager::has_next() const{
-	qDebug( "has_next: %d", current_file );
 	return current_file + 1 < files.count();
 }
 
@@ -163,10 +163,49 @@ void fileManager::clear_cache(){
 	cache.clear();
 }
 
+//Make sure that this is done without caching
+static bool file_exists( QFileInfo file ){
+	file.setCaching( false );
+	return file.exists();
+}
+
 void fileManager::dir_modified( QString dir ){
 	if( !has_file() )
 		return;
 	
-	set_files( files[current_file].absoluteFilePath() );
+	//Wait shortly to ensure files have been updated
+	//Solution by kshark27: http://stackoverflow.com/a/11487434/2248153
+	QTime wait = QTime::currentTime().addMSecs( 200 );
+	while( QTime::currentTime() < wait )
+		QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
+	
+	//Find the file to show now, considering it might have disappeared
+	QFileInfo new_file = files[current_file];
+	if( !file_exists( new_file ) ){
+		//Keep trying until we find a file which still exists
+		int prev = current_file-1;
+		int next = current_file+1;
+		while( prev >= 0 || next < files.count() ){
+			if( next < files.count() ){
+				if( file_exists( files[next] ) ){
+					new_file = files[next];
+					break;
+				}
+				else
+					next++;
+			}
+			
+			if( prev >= 0 ){
+				if( file_exists( files[prev] ) ){
+					new_file = files[prev];
+					break;
+				}
+				else
+					prev--;
+			}
+		}
+	}
+	
+	set_files( new_file.absoluteFilePath() );
 }
 
