@@ -26,7 +26,7 @@
 
 fileManager::fileManager(){
 	connect( &loader, SIGNAL( image_fetched() ), this, SLOT( loading_handler() ) );
-//	connect( &loader, SIGNAL( image_fetched() ), this, SLOT( emit_file_changed() ) );
+	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified( QString ) ) );
 	
 	current_file = -1;
 	
@@ -55,6 +55,8 @@ void fileManager::set_files( QString file ){
 	files = img_file.dir().entryInfoList( supported_file_ext , QDir::Files, QDir::Name | QDir::IgnoreCase | QDir::LocaleAware );
 	qDebug( "files.count(): %d", files.count() );
 	init_cache( file );
+	
+	watcher.addPath( img_file.dir().path() );
 }
 
 void fileManager::load_image( int pos ){
@@ -153,10 +155,18 @@ void fileManager::loading_handler(){
 
 
 void fileManager::clear_cache(){
+	watcher.removePaths( watcher.directories() );
 	current_file = -1;
 	emit_file_changed();
 	for( int i=0; i<cache.count(); i++ )
 		loader.delete_image( cache[i] );
 	cache.clear();
+}
+
+void fileManager::dir_modified( QString dir ){
+	if( !has_file() )
+		return;
+	
+	set_files( files[current_file].absoluteFilePath() );
 }
 

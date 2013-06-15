@@ -59,14 +59,15 @@ class fileManager : public QObject{
 		void set_files( QString file );
 		void set_files( QStringList files );
 		
+		bool has_file() const{ return current_file >= 0 && current_file < cache.count(); }
 		
 		bool has_previous() const;
 		bool has_next() const;
 		void next_file();
 		void previous_file();
 		
-		imageCache* file() const{ return current_file >= 0 ? cache[current_file] : NULL; }
-		QString file_name() const{ return current_file >= 0 ? files[current_file].fileName() : "no file!"; }
+		imageCache* file() const{ return has_file() ? cache[current_file] : NULL; }
+		QString file_name() const{ return has_file() ? files[current_file].fileName() : "no file!"; }
 		
 		
 	private slots:
@@ -76,6 +77,7 @@ class fileManager : public QObject{
 			qDebug( "emitting file_changed()" );
 			emit file_changed();
 		}
+		void dir_modified( QString dir );
 		
 	signals:
 		void file_changed();
