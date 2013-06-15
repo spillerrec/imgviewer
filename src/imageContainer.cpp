@@ -34,6 +34,7 @@
 #include <QUrl>
 #include <QCursor>
 #include <QImageReader>
+#include <QMessageBox>
 
 
 
@@ -231,6 +232,11 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 			break;
 		case Qt::Key_F11:
 				toogle_fullscreen();
+			break;
+			
+		case Qt::Key_Delete:
+				if( QMessageBox::question( this, "Delete?", tr( "Do you want to permanently delete the following file?\n" ) + files->file_name() ) == QMessageBox::Yes )
+					files->delete_current_file();
 			break;
 		
 		default: event->ignore();

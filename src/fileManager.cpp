@@ -209,3 +209,13 @@ void fileManager::dir_modified( QString dir ){
 	set_files( new_file.absoluteFilePath() );
 }
 
+
+void fileManager::delete_current_file(){
+	if( !has_file() )
+		return;
+	
+	//QFileWatcher will ensure that the list will be updated
+	//TODO: wouldn't work if we add: set_files( QStringList )
+	QFile::remove( files[current_file].absoluteFilePath() );
+}
+

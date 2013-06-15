@@ -66,6 +66,8 @@ class fileManager : public QObject{
 		void next_file();
 		void previous_file();
 		
+		void delete_current_file();
+		
 		imageCache* file() const{ return has_file() ? cache[current_file] : NULL; }
 		QString file_name() const{ return has_file() ? files[current_file].fileName() : "no file!"; }
 		
