@@ -37,6 +37,7 @@ class fileManager : public QObject{
 		QStringList supported_file_ext;
 		imageLoader loader;
 		
+		bool show_hidden;
 		
 		QFileInfoList files;
 		QList<imageCache*> cache;
@@ -56,7 +57,10 @@ class fileManager : public QObject{
 		
 		QStringList supported_extensions() const{ return supported_file_ext; }
 		
-		void set_files( QString file );
+		void set_show_hidden_files( bool value ){ show_hidden = value; }
+		
+		void set_files( QString file ){ set_files( QFileInfo( file ) ); }
+		void set_files( QFileInfo file );
 		void set_files( QStringList files );
 		
 		bool has_file() const{ return current_file >= 0 && current_file < cache.count(); }
@@ -66,6 +70,7 @@ class fileManager : public QObject{
 		void next_file();
 		void previous_file();
 		
+		bool supports_extension( QString filename ) const;
 		void delete_current_file();
 		
 		imageCache* file() const{ return has_file() ? cache[current_file] : NULL; }

@@ -45,11 +45,8 @@ void imageContainer::dragEnterEvent( QDragEnterEvent *event ){
 		QString url = urls[0].toLocalFile();
 		
 		//Only accept the file if it has the correct extension
-		for( int i=0; i<files->supported_extensions().count(); i++ )
-			if( url.endsWith( QString( files->supported_extensions()[i] ).remove( 0, 1 ) ) ){ //Remove "*" from "*.ext"
-				event->acceptProposedAction();
-				break;
-			}
+		if( files->supports_extension( url ) )
+			event->acceptProposedAction();
 	}
 }
 void imageContainer::dropEvent( QDropEvent *event ){

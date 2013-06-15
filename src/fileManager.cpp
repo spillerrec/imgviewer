@@ -24,6 +24,13 @@
 #include <QStringList>
 #include <QCoreApplication>
 #include <QTime>
+#include <QSettings>
+
+#include <qglobal.h>
+#ifdef Q_OS_WIN
+	#include <qt_windows.h>
+	#include <Shlobj.h>
+#endif
 
 
 fileManager::fileManager(){
@@ -31,6 +38,17 @@ fileManager::fileManager(){
 	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified( QString ) ) );
 	
 	current_file = -1;
+	show_hidden = false;
+	
+#ifdef Q_OS_WIN
+	//Set show_hidden on Windows to match Windows Explorer setting
+	SHELLSTATE lpss;
+	SHGetSetSettings( &lpss, SSF_SHOWALLOBJECTS | SSF_SHOWEXTENSIONS, false );
+	
+	if( lpss.fShowAllObjects )
+		show_hidden = true;
+	//TODO: also match "show extensions"? It is stored in: fShowExtensions
+#endif
 	
 	//Initialize all supported image formats
 	if( supported_file_ext.count() == 0 ){
@@ -45,20 +63,23 @@ fileManager::~fileManager(){
 }
 
 
-void fileManager::set_files( QString file ){
-	qDebug( "load_image: %s", file.toLatin1().constData() );
-	//Load and display the file
-	//TODO: check if image is supported!
-	QFileInfo img_file( file );
+void fileManager::set_files( QFileInfo file ){
+	//Stop if it does not support file
+	if( !supports_extension( file.fileName() ) ){
+		clear_cache();
+		return;
+	}
 	
-	//TODO: if hidden, include hidden files
+	//If hidden, include hidden files
+	QDir::Filters filters = QDir::Files | QDir::Readable;
+	if( show_hidden || file.isHidden() )
+		filters |= QDir::Hidden;
 	
 	//Begin caching
-	files = img_file.dir().entryInfoList( supported_file_ext , QDir::Files, QDir::Name | QDir::IgnoreCase | QDir::LocaleAware );
-	qDebug( "files.count(): %d", files.count() );
-	init_cache( file );
+	files = file.dir().entryInfoList( supported_file_ext , filters, QDir::Name | QDir::IgnoreCase | QDir::LocaleAware );
+	init_cache( file.absoluteFilePath() );
 	
-	watcher.addPath( img_file.dir().path() );
+	watcher.addPath( file.dir().absolutePath() );
 }
 
 void fileManager::load_image( int pos ){
@@ -209,6 +230,13 @@ void fileManager::dir_modified( QString dir ){
 	set_files( new_file.absoluteFilePath() );
 }
 
+
+bool fileManager::supports_extension( QString filename ) const{
+	for( int i=0; i<supported_file_ext.count(); i++ )
+		if( filename.endsWith( QString( supported_file_ext[i] ).remove( 0, 1 ) ) ) //Remove "*" from "*.ext"
+			return true;
+	return false;
+}
 
 void fileManager::delete_current_file(){
 	if( !has_file() )
