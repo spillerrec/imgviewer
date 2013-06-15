@@ -19,7 +19,7 @@
 #define IMAGELOADER_H
 
 /*
-	This class loads a imageCache in a seperate thread.
+	This class loads a imageCache in a separate thread.
 	It can only load one at a time but it can store a single imageCache
 	until it is ready to start loading it. The signal image_fetched()
 	is emitted when it is possible to store a new one.

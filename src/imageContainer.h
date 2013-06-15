@@ -21,13 +21,11 @@
 #include <QWidget>
 #include <QString>
 #include <QList>
-#include <QFileInfo>
-
-#include "imageLoader.h"
 
 class imageViewer;
 class imageCache;
 class windowManager;
+class fileManager;
 class Ui_controls;
 
 class imageContainer: public QWidget{
@@ -38,15 +36,7 @@ class imageContainer: public QWidget{
 		windowManager *manager;
 		Ui_controls *ui;
 		
-		imageLoader loader;
-		
-		
-		QFileInfoList files;
-		QList<imageCache*> cache;
-		int current_file;
-		
-		void clear_cache();
-		void create_cache( QString loaded_file, imageCache *loaded_image );
+		fileManager *files;
 		
 		bool resize_window; //resize the window to fit image
 		
@@ -59,9 +49,10 @@ class imageContainer: public QWidget{
 		void dropEvent( QDropEvent *event );
 		
 	private slots:
-		void loading_handler();
 		void update_controls();
 		void update_toogle_btn();
+		
+		void update_file();
 	
 	public slots:
 		void toogle_animation();

@@ -185,7 +185,7 @@ void imageCache::read( QString filename ){
 				emit frame_loaded( i );
 			}
 			
-			if( current_status == FRAMES_READY ) //All reads where succesful
+			if( current_status == FRAMES_READY ) //All reads where successful
 				current_status = LOADED;
 			//TODO: What to do on fail?
 		}

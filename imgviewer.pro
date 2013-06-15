@@ -20,6 +20,7 @@ HEADERS += src/imageCache.h \
            src/meta.h \
            src/qrect_extras.h \
            src/windowManager.h \
+           src/fileManager.h \
            src/color.h
 FORMS += src/controls_ui.ui
 SOURCES += src/imageCache.cpp \
@@ -30,5 +31,6 @@ SOURCES += src/imageCache.cpp \
            src/meta.cpp \
            src/qrect_extras.cpp \
            src/windowManager.cpp \
+           src/fileManager.cpp \
            src/color.cpp
 RESOURCES += src/resources/resources.qrc

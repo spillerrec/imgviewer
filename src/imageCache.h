@@ -54,8 +54,8 @@ class imageCache: public QObject{
 	private:
 		status current_status;
 	public:
-		status get_status(){ return current_status; } //Current status
-		int loaded(){ return frames_loaded; }	//Amount of currently loaded frames
+		status get_status() const{ return current_status; } //Current status
+		int loaded() const{ return frames_loaded; }	//Amount of currently loaded frames
 		
 	public:
 		explicit imageCache();
@@ -64,16 +64,16 @@ class imageCache: public QObject{
 		~imageCache();
 		
 		void read( QString filename );
-		long get_memory_size(){ return memory_size; }	//Notice, this is a rough number, not accurate!
+		long get_memory_size() const{ return memory_size; }	//Notice, this is a rough number, not accurate!
 		
 		//Animation info
-		bool is_animated(){ return animate; }
-		int loop_count(){ return loop_amount; }
+		bool is_animated() const{ return animate; }
+		int loop_count() const{ return loop_amount; }
 		
 		//Frame info
-		int frame_count(){ return frame_amount; }
-		QImage* frame( unsigned int idx ){ return frames[ idx ]; }
-		int frame_delay( unsigned int idx ){ return frame_delays[ idx ]; } //How long a frame should be shown
+		int frame_count() const{ return frame_amount; }
+		QImage* frame( unsigned int idx ) const{ return frames[ idx ]; }
+		int frame_delay( unsigned int idx ) const{ return frame_delays[ idx ]; } //How long a frame should be shown
 	
 	signals:
 		void info_loaded();

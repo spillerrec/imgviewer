@@ -71,7 +71,7 @@ bool imageViewer::can_animate(){
 }
 
 bool imageViewer::moveable() const{
-	QImage *frame = image_cache->frame( current_frame );
+	QImage *frame = image_cache ? image_cache->frame( current_frame ) : NULL;
 	if( !frame )
 		return false;
 	

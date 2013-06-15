@@ -55,7 +55,7 @@ void imageLoader::run(){
 bool imageLoader::load_image( imageCache *img, QString filepath ){
 	mutex.lock();
 	if( image ){
-		//An image is already in the queqe, can't add this one
+		//An image is already in the queue, can't add this one
 		mutex.unlock();
 		return false;
 	}
