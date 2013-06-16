@@ -38,6 +38,7 @@ class fileManager : public QObject{
 		imageLoader loader;
 		
 		bool show_hidden;
+		bool force_hidden;
 		
 		QFileInfoList files;
 		QList<imageCache*> cache;
@@ -45,6 +46,7 @@ class fileManager : public QObject{
 		
 		void load_image( int pos );
 		
+		void load_files( QDir dir );
 		void init_cache( int start );
 		void init_cache( QString start ){
 			init_cache( files.indexOf( start ) );
@@ -61,7 +63,6 @@ class fileManager : public QObject{
 		
 		void set_files( QString file ){ set_files( QFileInfo( file ) ); }
 		void set_files( QFileInfo file );
-		void set_files( QStringList files );
 		
 		bool has_file() const{ return current_file >= 0 && current_file < cache.count(); }
 		

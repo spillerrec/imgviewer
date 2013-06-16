@@ -39,6 +39,7 @@ fileManager::fileManager(){
 	
 	current_file = -1;
 	show_hidden = false;
+	force_hidden = false;
 	
 #ifdef Q_OS_WIN
 	//Set show_hidden on Windows to match Windows Explorer setting
@@ -71,15 +72,23 @@ void fileManager::set_files( QFileInfo file ){
 	}
 	
 	//If hidden, include hidden files
-	QDir::Filters filters = QDir::Files | QDir::Readable;
-	if( show_hidden || file.isHidden() )
-		filters |= QDir::Hidden;
+	force_hidden = file.isHidden();
 	
 	//Begin caching
-	files = file.dir().entryInfoList( supported_file_ext , filters, QDir::Name | QDir::IgnoreCase | QDir::LocaleAware );
+	load_files( file.dir() );
 	init_cache( file.absoluteFilePath() );
 	
 	watcher.addPath( file.dir().absolutePath() );
+}
+
+void fileManager::load_files( QDir dir ){
+	//If hidden, include hidden files
+	QDir::Filters filters = QDir::Files | QDir::Readable;
+	if( show_hidden || force_hidden )
+		filters |= QDir::Hidden;
+	
+	//Begin caching
+	files = dir.entryInfoList( supported_file_ext , filters, QDir::Name | QDir::IgnoreCase | QDir::LocaleAware );
 }
 
 void fileManager::load_image( int pos ){
@@ -108,14 +117,10 @@ void fileManager::init_cache( int start ){
 	
 	cache.reserve( files.count() );
 	for( int i=0; i<files.count(); i++ )
-		cache.append( NULL );
+		cache << NULL;
 	
 	load_image( current_file );
 	loading_handler();
-}
-
-void fileManager::set_files( QStringList files ){
-	
 }
 
 
@@ -190,6 +195,10 @@ static bool file_exists( QFileInfo file ){
 	return file.exists();
 }
 
+struct oldCache{
+	QFileInfo file;
+	imageCache* cache;
+};
 void fileManager::dir_modified( QString dir ){
 	if( !has_file() )
 		return;
@@ -227,7 +236,48 @@ void fileManager::dir_modified( QString dir ){
 		}
 	}
 	
-	set_files( new_file.absoluteFilePath() );
+	
+	//Save imageCache's which might still be valid
+	QList<oldCache> old;
+	for( int i=0; i<cache.count(); i++ )
+		if( cache[i] ){
+			oldCache temp = { files[i], cache[i] };
+			old << temp;
+		}
+	
+	//Prepare the QLists
+	cache.clear();
+	load_files( new_file.dir() );
+	cache.reserve( files.count() );
+	for( int i=0; i<files.count(); i++ )
+		cache << NULL;
+	
+	//Restore old elements
+	for( int i=0; i<old.count(); i++ ){
+		int new_index = files.indexOf( old[i].file );
+		if( new_index != -1 ){
+			cache[new_index] = old[i].cache;
+			old[i].cache = NULL;
+		}
+	}
+	
+	//Set image position
+	current_file = files.indexOf( new_file );
+	emit_file_changed(); //The file and position could have changed
+	
+	if( current_file == -1 )
+		return;
+	
+	//Now delete images which are no longer here
+	//We can't do it earlier than emit file_changed(), as imageViewer needs to disconnect first
+	for( int i=0; i<old.count(); i++ )
+		if( old[i].cache )
+			loader.delete_image( old[i].cache );
+		
+	//Start loading the new files
+	if( !cache[ current_file ] )
+		load_image( current_file );
+	loading_handler();
 }
 
 
@@ -243,7 +293,6 @@ void fileManager::delete_current_file(){
 		return;
 	
 	//QFileWatcher will ensure that the list will be updated
-	//TODO: wouldn't work if we add: set_files( QStringList )
 	QFile::remove( files[current_file].absoluteFilePath() );
 }
 
