@@ -282,6 +282,7 @@ void fileManager::dir_modified( QString dir ){
 
 
 bool fileManager::supports_extension( QString filename ) const{
+	filename = filename.toLower();
 	for( int i=0; i<supported_file_ext.count(); i++ )
 		if( filename.endsWith( QString( supported_file_ext[i] ).remove( 0, 1 ) ) ) //Remove "*" from "*.ext"
 			return true;
