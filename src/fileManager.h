@@ -75,7 +75,7 @@ class fileManager : public QObject{
 		void delete_current_file();
 		
 		imageCache* file() const{ return has_file() ? cache[current_file] : NULL; }
-		QString file_name() const{ return has_file() ? files[current_file].fileName() : "no file!"; }
+		QString file_name() const;
 		
 		
 	private slots:

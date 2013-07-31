@@ -19,7 +19,7 @@
 
 #include <lcms2.h>
 #include <QCoreApplication>
-#include <QImage.h>
+#include <QImage>
 
 #include <qglobal.h>
 #ifdef Q_OS_WIN

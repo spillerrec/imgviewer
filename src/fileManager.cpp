@@ -297,3 +297,17 @@ void fileManager::delete_current_file(){
 	QFile::remove( files[current_file].absoluteFilePath() );
 }
 
+
+QString fileManager::file_name() const{
+	if( !has_file() )
+		return "No file!";
+	
+	QString filename = files[current_file].fileName();
+	
+	return QString( "%1 - [%2/%3]" )
+		.arg( filename )
+		.arg( QString::number( current_file+1 ) )
+		.arg( QString::number( files.count() ) )
+		;
+}
+
