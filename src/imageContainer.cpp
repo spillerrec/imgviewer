@@ -220,7 +220,14 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 				else
 					next_file();
 			break;
-		case Qt::Key_Space: toogle_animation(); break;
+		case Qt::Key_Space:
+				if( mods & Qt::ControlModifier ){
+					viewer->restart_animation();
+					update_toogle_btn();
+				}
+				else
+					toogle_animation();
+			break;
 		case Qt::Key_A:
 				if( mods & Qt::ControlModifier ){
 					resize_window = true;

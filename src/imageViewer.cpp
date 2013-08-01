@@ -171,7 +171,11 @@ void imageViewer::goto_prev_frame(){
 	prev_frame();
 }
 
-
+void imageViewer::restart_animation(){
+	continue_animating = true;
+	current_frame = -1;
+	next_frame();
+}
 
 bool imageViewer::toogle_animation(){
 	if( image_cache && image_cache->is_animated() ){

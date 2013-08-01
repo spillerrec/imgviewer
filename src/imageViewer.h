@@ -84,6 +84,7 @@ class imageViewer: public QWidget{
 	public slots:
 		void goto_next_frame();
 		void goto_prev_frame();
+		void restart_animation();
 		bool toogle_animation();
 	
 	protected:
