@@ -172,7 +172,7 @@ void imageViewer::goto_prev_frame(){
 }
 
 void imageViewer::restart_animation(){
-	continue_animating = true;
+	continue_animating = can_animate();
 	current_frame = -1;
 	next_frame();
 }
