@@ -440,12 +440,24 @@ QPoint imageViewer::image_pos( QSize img_size, QPoint pos ){
 
 void imageViewer::mousePressEvent( QMouseEvent *event ){
 	//Rocker gestures
-	if( mouse_active ){
+	if( mouse_active & ( Qt::LeftButton | Qt::RightButton ) ){
 		mouse_active |= event->button();
 		multi_button = true;
 		switch( event->button() & event->buttons() ){
-			case Qt::LeftButton: emit rocker_left(); return;
-			case Qt::RightButton: emit rocker_right(); return;
+			case Qt::LeftButton:
+					if( event->modifiers() & Qt::ControlModifier )
+						goto_prev_frame();
+					else
+						emit rocker_left();
+				return;
+				
+			case Qt::RightButton:
+					if( event->modifiers() & Qt::ControlModifier )
+						goto_next_frame();
+					else
+						emit rocker_right();
+				return;
+			
 			default: return;
 		}
 	}
