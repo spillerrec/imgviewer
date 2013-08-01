@@ -474,11 +474,12 @@ void imageViewer::mousePressEvent( QMouseEvent *event ){
 
 void imageViewer::mouseDoubleClickEvent( QMouseEvent *event ){
 	//Only emit if only LeftButton is pressed, and no other buttons
-	if( !( event->buttons() & ~Qt::LeftButton ) )
+	if( !( event->buttons() & ~Qt::LeftButton ) ){
 		if( event->modifiers() & Qt::ControlModifier )
 			toogle_animation();
 		else
 			emit double_clicked();
+	}
 }
 
 
@@ -554,14 +555,24 @@ void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
 void imageViewer::wheelEvent( QWheelEvent *event ){
 	int amount = event->delta() / 8;
 	
-	if( amount > 0 )
-		shown_zoom_level += 1.0;
-	else if( amount < 0 )
-		shown_zoom_level -= 1.0;
-	auto_scale_on = false;
-	
-	keep_on = event->pos();
-	update();
+	if( event->modifiers() & Qt::ControlModifier ){
+		//Change current frame
+		if( amount > 0 )
+			goto_next_frame();
+		else
+			goto_prev_frame();
+	}
+	else{
+		//Change zoom-level
+		if( amount > 0 )
+			shown_zoom_level += 1.0;
+		else if( amount < 0 )
+			shown_zoom_level -= 1.0;
+		auto_scale_on = false;
+		
+		keep_on = event->pos();
+		update();
+	}
 }
 
 
