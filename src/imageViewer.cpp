@@ -475,7 +475,10 @@ void imageViewer::mousePressEvent( QMouseEvent *event ){
 void imageViewer::mouseDoubleClickEvent( QMouseEvent *event ){
 	//Only emit if only LeftButton is pressed, and no other buttons
 	if( !( event->buttons() & ~Qt::LeftButton ) )
-		emit double_clicked();
+		if( event->modifiers() & Qt::ControlModifier )
+			toogle_animation();
+		else
+			emit double_clicked();
 }
 
 
