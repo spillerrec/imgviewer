@@ -75,10 +75,11 @@ void fileManager::set_files( QFileInfo file ){
 	force_hidden = file.isHidden();
 	
 	//Begin caching
-	load_files( file.dir() );
+	dir = file.dir().absolutePath();
+	load_files( dir );
 	init_cache( file.absoluteFilePath() );
 	
-	watcher.addPath( file.dir().absolutePath() );
+	watcher.addPath( dir );
 }
 
 void fileManager::load_files( QDir dir ){

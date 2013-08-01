@@ -28,10 +28,12 @@
 #include <QDragEnterEvent>
 #include <QUrl>
 
-#include <QCursor>
+#include <QFileDialog>
 #include <QMessageBox>
+#include <QCursor>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QStandardPaths>
 
 
 void imageContainer::dragEnterEvent( QDragEnterEvent *event ){
@@ -112,7 +114,7 @@ void imageContainer::create_menubar(){
 	QMenu* view_menu = menubar->addMenu( tr( "&View" ) );
 	
 	//General actions
-	//TODO: file_menu->addAction( "&Open", this, SLOT( open_file() ) );
+	file_menu->addAction( "&Open", this, SLOT( open_file() ) );
 	file_menu->addSeparator();
 	file_menu->addAction( "&Delete", this, SLOT( delete_file() ) );
 	//TODO: file_menu->addAction( "&Properties", this, SLOT( "show_properties() ) );
@@ -158,6 +160,32 @@ void imageContainer::update_file(){
 }
 
 
+void imageContainer::open_file(){
+	//Make filter
+	QStringList ext = files->supported_extensions();
+	QString filter = "Images (";
+	for( int i=0; i<ext.count(); ++i )
+		filter += ext[i] + " ";
+	filter += ")";
+	
+	//Find folder to open in dialog
+	QString folder = files->get_dir();
+	if( folder.isEmpty() ){
+		QStringList pic_folders = QStandardPaths::standardLocations( QStandardPaths::PicturesLocation );
+		if( pic_folders.count() > 0 )
+			folder = pic_folders[0];
+	}
+	
+	//Show open file dialog and load the file on success
+	QString file = QFileDialog::getOpenFileName( this
+		,	tr( "Open image" )
+		,	folder
+		,	filter
+		);
+	
+	if( !file.isEmpty() )
+		load_image( file );
+}
 void imageContainer::next_file(){
 	if( files->has_next() ){
 		files->next_file();
@@ -300,6 +328,10 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 				}
 				else
 					event->ignore();
+			break;
+		case Qt::Key_O:
+				if( mods & Qt::ControlModifier )
+					open_file();
 			break;
 		case Qt::Key_F11:
 				toogle_fullscreen();

@@ -40,6 +40,7 @@ class fileManager : public QObject{
 		bool show_hidden;
 		bool force_hidden;
 		
+		QString dir;
 		QFileInfoList files;
 		QList<imageCache*> cache;
 		int current_file;
@@ -74,6 +75,7 @@ class fileManager : public QObject{
 		bool supports_extension( QString filename ) const;
 		void delete_current_file();
 		
+		QString get_dir() const{ return dir; }
 		imageCache* file() const{ return has_file() ? cache[current_file] : NULL; }
 		QString file_name() const;
 		

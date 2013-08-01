@@ -68,6 +68,7 @@ class imageContainer: public QWidget{
 		void toogle_animation();
 		void toogle_fullscreen();
 		
+		void open_file();
 		void next_file();
 		void prev_file();
 		void delete_file();
