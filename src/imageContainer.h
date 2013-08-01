@@ -21,6 +21,7 @@
 #include <QWidget>
 #include <QString>
 #include <QList>
+#include <QMenuBar>
 
 class imageViewer;
 class imageCache;
@@ -40,17 +41,24 @@ class imageContainer: public QWidget{
 		
 		bool resize_window; //resize the window to fit image
 		
+		QMenuBar* menubar;
+		bool menubar_autohide;
+		
 	private:
 		bool is_fullscreen;
 		
+		void create_menubar();
+		
 	protected:
-		void keyPressEvent( QKeyEvent *event );
-		void dragEnterEvent( QDragEnterEvent *event );
-		void dropEvent( QDropEvent *event );
+		virtual void keyPressEvent( QKeyEvent *event );
+		virtual void dragEnterEvent( QDragEnterEvent *event );
+		virtual void dropEvent( QDropEvent *event );
+		virtual void focusInEvent( QFocusEvent* ){ hide_menubar(); }
 		
 	private slots:
 		void update_controls();
 		void update_toogle_btn();
+		void hide_menubar();
 		
 		void update_file();
 	
@@ -60,6 +68,7 @@ class imageContainer: public QWidget{
 		
 		void next_file();
 		void prev_file();
+		void delete_file();
 	
 	public:
 		explicit imageContainer( QWidget* parent = 0 );

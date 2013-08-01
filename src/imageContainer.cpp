@@ -36,6 +36,7 @@
 #include <QImageReader>
 #include <QMessageBox>
 
+#include <QMenu>
 
 
 void imageContainer::dragEnterEvent( QDragEnterEvent *event ){
@@ -62,6 +63,9 @@ void imageContainer::dropEvent( QDropEvent *event ){
 imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui_controls ){
 	viewer = new imageViewer( this );
 	ui->setupUi( this );
+	
+	menubar = NULL;
+	menubar_autohide = true;
 
 	files = new fileManager();
 	
@@ -69,7 +73,8 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	
 	setFocusPolicy( Qt::StrongFocus ); //Why this?
 	
-	ui->viewer_layout->addWidget( viewer );
+	create_menubar();
+	ui->viewer_layout->insertWidget( 1, viewer );
 	
 	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
 	connect( viewer, SIGNAL( image_changed() ), this, SLOT( update_controls() ) );
@@ -98,6 +103,47 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	setAcceptDrops( true );
 }
 
+
+void imageContainer::create_menubar(){
+	if( menubar )
+		return;
+	
+	//Create and add
+	menubar = new QMenuBar( this );
+	menubar->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Fixed );
+	ui->viewer_layout->insertWidget( 0, menubar );
+	if( menubar_autohide )
+		menubar->hide();
+	
+	connect( menubar, SIGNAL( triggered(QAction*) ), this, SLOT( hide_menubar() ) );
+	
+	QMenu* file_menu = menubar->addMenu( tr( "&File" ) );
+	QMenu* anim_menu = menubar->addMenu( tr( "&Animation" ) );
+	QMenu* view_menu = menubar->addMenu( tr( "&View" ) );
+	
+	//TODO: file_menu->addAction( "&Open", this, SLOT( open_file() ) );
+	file_menu->addSeparator();
+	file_menu->addAction( "&Delete", this, SLOT( delete_file() ) );
+	//TODO: file_menu->addAction( "&Properties", this, SLOT( "show_properties() ) );
+	file_menu->addSeparator();
+	//TODO: file_menu->addAction( "&Settings", this, SLOT( show_settings() ) );
+	file_menu->addAction( "E&xit", qApp, SLOT( quit() ) );
+	
+	anim_menu->addAction( "&Pause/resume", viewer, SLOT( toogle_animation() ) );
+	anim_menu->addAction( "&Restart", viewer, SLOT( restart_animation() ) );
+	anim_menu->addSeparator();
+	anim_menu->addAction( "&Next frame", viewer, SLOT( goto_next_frame() ) );
+	anim_menu->addAction( "Pre&vious frame", viewer, SLOT( goto_prev_frame() ) );
+	//TODO: goto a specific frame
+	
+	view_menu->addAction( "&Fullscreen", this, SLOT( toogle_fullscreen() ) );
+	//TODO: hide and show menubar, statusbar, ...
+}
+
+void imageContainer::hide_menubar(){
+	if( menubar && menubar_autohide )
+		menubar->hide();
+}
 
 void imageContainer::load_image( QString filepath ){
 	files->set_files( filepath );
@@ -135,6 +181,16 @@ void imageContainer::prev_file(){
 	}
 	else
 		QApplication::beep();
+}
+
+void imageContainer::delete_file(){
+	QMessageBox::StandardButton result = QMessageBox::question(
+			this, "Delete?"
+		,	tr( "Do you want to permanently delete the following file?\n" ) + files->file_name()
+		);
+	
+	if( result == QMessageBox::Yes )
+		files->delete_current_file();
 }
 
 void imageContainer::update_controls(){
@@ -193,11 +249,15 @@ void imageContainer::toogle_fullscreen(){
 		viewer->set_background_color( QPalette().color( QPalette::Window ) );
 		showNormal();
 		ui->control_sub->show();
+		if( menubar && !menubar_autohide )
+			menubar->show();
 	}
 	else{
 		viewer->set_background_color( QColor( Qt::black ) );
 		showFullScreen();
 		ui->control_sub->hide();
+		if( menubar )
+			menubar->hide();
 	}
 	is_fullscreen = !is_fullscreen;
 }
@@ -205,9 +265,14 @@ void imageContainer::toogle_fullscreen(){
 
 void imageContainer::keyPressEvent( QKeyEvent *event ){
 	Qt::KeyboardModifiers mods = event->modifiers();
+	hide_menubar();
 	
 	switch( event->key() ){
 		case Qt::Key_Escape: close(); break;
+		case Qt::Key_Alt:
+				if( menubar )
+					menubar->show();
+			break;
 		case Qt::Key_Left:
 				if( mods & Qt::ControlModifier )
 					viewer->goto_prev_frame();
@@ -241,8 +306,7 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 			break;
 			
 		case Qt::Key_Delete:
-				if( QMessageBox::question( this, "Delete?", tr( "Do you want to permanently delete the following file?\n" ) + files->file_name() ) == QMessageBox::Yes )
-					files->delete_current_file();
+				delete_file();
 			break;
 		
 		default: event->ignore();
