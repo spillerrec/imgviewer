@@ -74,6 +74,8 @@ imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui
 	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
 	connect( viewer, SIGNAL( image_changed() ), this, SLOT( update_controls() ) );
 	connect( viewer, SIGNAL( double_clicked() ), this, SLOT( toogle_fullscreen() ) );
+	connect( viewer, SIGNAL( rocker_left() ), this, SLOT( prev_file() ) );
+	connect( viewer, SIGNAL( rocker_right() ), this, SLOT( next_file() ) );
 	connect( ui->btn_sub_next, SIGNAL( pressed() ), viewer, SLOT( goto_next_frame() ) );
 	connect( ui->btn_sub_prev, SIGNAL( pressed() ), viewer, SLOT( goto_prev_frame() ) );
 	connect( ui->btn_pause, SIGNAL( pressed() ), this, SLOT( toogle_animation() ) );

@@ -16,25 +16,25 @@
 */
 
 #include "imageViewer.h"
+#include "imageCache.h"
 
 #include <QPoint>
 #include <QSize>
 #include <QRect>
 
-#include <QImage>
-#include <QImageReader>
-
 #include <QPainter>
+#include <QImage>
+#include <QStaticText>
+#include <QBrush>
+#include <QPen>
+#include <QColor>
+
 #include <QTimer>
 
 #include <QMouseEvent>
 #include <QWheelEvent>
 
-#include "imageCache.h"
-
 #include <cmath>
-
-using namespace std;
 
 
 imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
@@ -61,7 +61,8 @@ imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
 	time->setSingleShot( true );
 	connect( time, SIGNAL( timeout() ), this, SLOT( next_frame() ) );
 	
-	mouse_active = false;
+	mouse_active = Qt::NoButton;
+	multi_button = false;
 	is_zooming = false;
 }
 
@@ -190,6 +191,8 @@ bool imageViewer::toogle_animation(){
 
 
 void imageViewer::auto_scale( QSize img ){
+	using namespace std;
+	
 	QSize widget = size();
 	
 	if( auto_scale_on ){
@@ -276,7 +279,7 @@ void imageViewer::auto_scale( QSize img ){
 		if( shown_size.width() <= widget.width() && shown_size.height() <= widget.height() )
 			setCursor( Qt::ArrowCursor );
 		else{
-			if( mouse_active )
+			if( mouse_active & Qt::LeftButton )
 				setCursor( Qt::ClosedHandCursor );
 			else
 				setCursor( Qt::OpenHandCursor );
@@ -352,10 +355,6 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 	}
 }
 
-#include <QStaticText>
-#include <QBrush>
-#include <QPen>
-#include <QColor>
 
 void imageViewer::draw_message( QStaticText *text ){
 	text->prepare();	//Make sure it has calculated the size
@@ -440,34 +439,30 @@ QPoint imageViewer::image_pos( QSize img_size, QPoint pos ){
 
 
 void imageViewer::mousePressEvent( QMouseEvent *event ){
-	mouse_last_pos = event->pos();
-	if( event->button() & Qt::RightButton ){
-		if( auto_scale_on ){
-			auto_scale_on = false;
-			shown_zoom_level = 0;
+	//Rocker gestures
+	if( mouse_active ){
+		mouse_active |= event->button();
+		multi_button = true;
+		switch( event->button() & event->buttons() ){
+			case Qt::LeftButton: emit rocker_left(); return;
+			case Qt::RightButton: emit rocker_right(); return;
+			default: return;
 		}
-		else{
-			if( !moveable() )
-				shown_zoom_level = 0;
-			else
-				auto_scale_on = true;
-		}
-		
-		keep_on = event->pos();
-		update();
-		return;
 	}
 	
-	if( event->button() & Qt::LeftButton ){
+	mouse_active |= event->button();
+	mouse_last_pos = event->pos();
+	
+	//Change cursor when dragging
+	if( event->button() == Qt::LeftButton )
 		if( moveable() )
 			setCursor( Qt::ClosedHandCursor );
-		mouse_active = true;
-	}
 }
 
 
 void imageViewer::mouseDoubleClickEvent( QMouseEvent *event ){
-	if( event->button() & Qt::LeftButton )
+	//Only emit if only LeftButton is pressed, and no other buttons
+	if( !( event->buttons() & ~Qt::LeftButton ) )
 		emit double_clicked();
 }
 
@@ -485,7 +480,7 @@ void imageViewer::mouseMoveEvent( QMouseEvent *event ){
 		keep_on = mouse_last_pos;
 	}
 	else{
-		if( !mouse_active )
+		if( !(mouse_active & Qt::LeftButton) )
 			return;
 		
 		if( is_zooming ){
@@ -502,10 +497,42 @@ void imageViewer::mouseMoveEvent( QMouseEvent *event ){
 
 
 void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
-	setCursor( ( mouse_active && moveable() ) ? Qt::OpenHandCursor : Qt::ArrowCursor );
+	setCursor( ( (mouse_active & Qt::LeftButton) && moveable() ) ? Qt::OpenHandCursor : Qt::ArrowCursor );
 	
-	mouse_active = false;
+	//If only one button was pressed
+	if( !multi_button ){
+		//
+		switch( event->button() ){
+			//Cycle through scalings
+			case Qt::RightButton:
+					if( auto_scale_on ){
+						auto_scale_on = false;
+						shown_zoom_level = 0;
+					}
+					else{
+						if( !moveable() )
+							shown_zoom_level = 0;
+						else
+							auto_scale_on = true;
+					}
+					
+					keep_on = event->pos();
+					update();
+					break;
+			
+			//Open context menu
+			case Qt::MidButton:
+					//TODO:
+				
+			default: break;
+		}
+	}
+	
+	//Revert properties
+	mouse_active &= ~event->button();
 	is_zooming = false;
+	if( !mouse_active ) //Last button released
+		multi_button = false;
 }
 
 

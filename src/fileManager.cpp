@@ -302,10 +302,9 @@ QString fileManager::file_name() const{
 	if( !has_file() )
 		return "No file!";
 	
-	QString filename = files[current_file].fileName();
-	
+	//TODO: once we have a meta-data system, check if it contains a title
 	return QString( "%1 - [%2/%3]" )
-		.arg( filename )
+		.arg( files[current_file].fileName() )
 		.arg( QString::number( current_file+1 ) )
 		.arg( QString::number( files.count() ) )
 		;

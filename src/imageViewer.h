@@ -93,7 +93,8 @@ class imageViewer: public QWidget{
 	//Controlling mouse actions
 	
 	protected:
-		bool mouse_active;
+		Qt::MouseButtons mouse_active;
+		bool multi_button;
 		bool is_zooming;
 		double start_zoom;
 		QPoint mouse_last_pos;
@@ -118,6 +119,8 @@ class imageViewer: public QWidget{
 		void image_info_read();
 		void image_changed();
 		void double_clicked();
+		void rocker_left();
+		void rocker_right();
 };
 
 
