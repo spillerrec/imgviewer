@@ -23,19 +23,14 @@
 
 #include "ui_controls_ui.h"
 
-#include <QDir>
-#include <QTime>
-#include <QKeyEvent>
-
-
 #include <QMimeData>
 #include <QDropEvent>
 #include <QDragEnterEvent>
 #include <QUrl>
-#include <QCursor>
-#include <QImageReader>
-#include <QMessageBox>
 
+#include <QCursor>
+#include <QMessageBox>
+#include <QKeyEvent>
 #include <QMenu>
 
 
@@ -43,10 +38,8 @@ void imageContainer::dragEnterEvent( QDragEnterEvent *event ){
 	QList<QUrl> urls = event->mimeData()->urls();
 	
 	if( urls.count() == 1 ){	//Do we have exactly one url to accept?
-		QString url = urls[0].toLocalFile();
-		
 		//Only accept the file if it has the correct extension
-		if( files->supports_extension( url ) )
+		if( files->supports_extension( urls[0].toLocalFile() ) )
 			event->acceptProposedAction();
 	}
 }
@@ -61,46 +54,41 @@ void imageContainer::dropEvent( QDropEvent *event ){
 }
 
 imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui_controls ){
-	viewer = new imageViewer( this );
-	ui->setupUi( this );
-	
+	//Init properties
 	menubar = NULL;
 	menubar_autohide = true;
-
-	files = new fileManager();
-	
 	is_fullscreen = false;
+	resize_window = true;
+	setAcceptDrops( true ); //Drag&Drop
 	
-	setFocusPolicy( Qt::StrongFocus ); //Why this?
-	
+	//Init components
+	viewer = new imageViewer( this );
+	files = new fileManager();
+	manager = new windowManager( this );
+	ui->setupUi( this );
+
+	//Add and refresh widgets
 	create_menubar();
 	ui->viewer_layout->insertWidget( 1, viewer );
+	update_controls();
 	
-	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
-	connect( viewer, SIGNAL( image_changed() ), this, SLOT( update_controls() ) );
-	connect( viewer, SIGNAL( double_clicked() ), this, SLOT( toogle_fullscreen() ) );
-	connect( viewer, SIGNAL( rocker_left() ), this, SLOT( prev_file() ) );
-	connect( viewer, SIGNAL( rocker_right() ), this, SLOT( next_file() ) );
-	connect( ui->btn_sub_next, SIGNAL( pressed() ), viewer, SLOT( goto_next_frame() ) );
-	connect( ui->btn_sub_prev, SIGNAL( pressed() ), viewer, SLOT( goto_prev_frame() ) );
-	connect( ui->btn_pause, SIGNAL( pressed() ), this, SLOT( toogle_animation() ) );
-	connect( files, SIGNAL( file_changed() ), this, SLOT( update_file() ) );
-	
-	connect( ui->btn_next, SIGNAL( pressed() ), this, SLOT( next_file() ) );
-	connect( ui->btn_prev, SIGNAL( pressed() ), this, SLOT( prev_file() ) );
-	
-	
-
-	
-	manager = new windowManager( this );
-	resize_window = true;
 	//Center window on mouse cursor on start
 	QSize half_size( frameGeometry().size() / 2 );
 	move( QCursor::pos() - QPoint( half_size.width(), half_size.height() ) );
 	
-	update_controls();
-	
-	setAcceptDrops( true );
+	//Connect signals
+	connect( viewer, SIGNAL( clicked() ),         this, SLOT( hide_menubar() ) );
+	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
+	connect( viewer, SIGNAL( image_changed() ),   this, SLOT( update_controls() ) );
+	connect( viewer, SIGNAL( double_clicked() ),  this, SLOT( toogle_fullscreen() ) );
+	connect( viewer, SIGNAL( rocker_left() ),     this, SLOT( prev_file() ) );
+	connect( viewer, SIGNAL( rocker_right() ),    this, SLOT( next_file() ) );
+	connect( ui->btn_sub_next, SIGNAL( pressed() ), viewer, SLOT( goto_next_frame() ) );
+	connect( ui->btn_sub_prev, SIGNAL( pressed() ), viewer, SLOT( goto_prev_frame() ) );
+	connect( ui->btn_pause,    SIGNAL( pressed() ), this, SLOT( toogle_animation() ) );
+	connect( ui->btn_next,     SIGNAL( pressed() ), this, SLOT( next_file() ) );
+	connect( ui->btn_prev,     SIGNAL( pressed() ), this, SLOT( prev_file() ) );
+	connect( files, SIGNAL( file_changed() ), this, SLOT( update_file() ) );
 }
 
 
@@ -112,15 +100,18 @@ void imageContainer::create_menubar(){
 	menubar = new QMenuBar( this );
 	menubar->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Fixed );
 	ui->viewer_layout->insertWidget( 0, menubar );
+	
+	//Init auto-hide
+	connect( menubar, SIGNAL( triggered(QAction*) ), this, SLOT( hide_menubar() ) );
 	if( menubar_autohide )
 		menubar->hide();
 	
-	connect( menubar, SIGNAL( triggered(QAction*) ), this, SLOT( hide_menubar() ) );
-	
+	//Top-level menus
 	QMenu* file_menu = menubar->addMenu( tr( "&File" ) );
-	QMenu* anim_menu = menubar->addMenu( tr( "&Animation" ) );
+	anim_menu = menubar->addMenu( tr( "&Animation" ) );
 	QMenu* view_menu = menubar->addMenu( tr( "&View" ) );
 	
+	//General actions
 	//TODO: file_menu->addAction( "&Open", this, SLOT( open_file() ) );
 	file_menu->addSeparator();
 	file_menu->addAction( "&Delete", this, SLOT( delete_file() ) );
@@ -129,6 +120,7 @@ void imageContainer::create_menubar(){
 	//TODO: file_menu->addAction( "&Settings", this, SLOT( show_settings() ) );
 	file_menu->addAction( "E&xit", qApp, SLOT( quit() ) );
 	
+	//Animation actions
 	anim_menu->addAction( "&Pause/resume", viewer, SLOT( toogle_animation() ) );
 	anim_menu->addAction( "&Restart", viewer, SLOT( restart_animation() ) );
 	anim_menu->addSeparator();
@@ -136,6 +128,7 @@ void imageContainer::create_menubar(){
 	anim_menu->addAction( "Pre&vious frame", viewer, SLOT( goto_prev_frame() ) );
 	//TODO: goto a specific frame
 	
+	//Actions related to the interface
 	view_menu->addAction( "&Fullscreen", this, SLOT( toogle_fullscreen() ) );
 	//TODO: hide and show menubar, statusbar, ...
 }
@@ -195,11 +188,18 @@ void imageContainer::delete_file(){
 
 void imageContainer::update_controls(){
 	//Show amount of frames in file
-	ui->lbl_image_amount->setText( QString::number( viewer->get_current_frame()+1 ) + "/" + QString::number( viewer->get_frame_amount() ) );
+	ui->lbl_image_amount->setText(
+			QString::number( viewer->get_current_frame()+1 )
+			+ "/" +
+			QString::number( viewer->get_frame_amount() )
+		);
 	
 	//Disable button when animation is not playable
 	update_toogle_btn(); //Make sure the icon is correct
 	ui->btn_pause->setEnabled( viewer->can_animate() );
+	//Disable animation menu as well
+	if( menubar )
+		anim_menu->setEnabled( viewer->can_animate() );
 	
 	//Disable sub left and right buttons
 	bool frames_exists = viewer->get_frame_amount() > 1;

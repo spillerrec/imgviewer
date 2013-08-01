@@ -443,6 +443,8 @@ QPoint imageViewer::image_pos( QSize img_size, QPoint pos ){
 
 
 void imageViewer::mousePressEvent( QMouseEvent *event ){
+	emit clicked();
+	
 	//Rocker gestures
 	if( mouse_active & ( Qt::LeftButton | Qt::RightButton ) ){
 		mouse_active |= event->button();

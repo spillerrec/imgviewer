@@ -122,6 +122,7 @@ class imageViewer: public QWidget{
 		void double_clicked();
 		void rocker_left();
 		void rocker_right();
+		void clicked();
 };
 
 

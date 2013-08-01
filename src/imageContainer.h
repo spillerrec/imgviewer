@@ -42,6 +42,7 @@ class imageContainer: public QWidget{
 		bool resize_window; //resize the window to fit image
 		
 		QMenuBar* menubar;
+		QMenu* anim_menu;
 		bool menubar_autohide;
 		
 	private:
@@ -54,6 +55,7 @@ class imageContainer: public QWidget{
 		virtual void dragEnterEvent( QDragEnterEvent *event );
 		virtual void dropEvent( QDropEvent *event );
 		virtual void focusInEvent( QFocusEvent* ){ hide_menubar(); }
+		virtual void mousePressEvent( QMouseEvent* ){ hide_menubar(); }
 		
 	private slots:
 		void update_controls();

@@ -10,6 +10,9 @@
     <height>370</height>
    </rect>
   </property>
+  <property name="focusPolicy">
+   <enum>Qt::ClickFocus</enum>
+  </property>
   <layout class="QVBoxLayout" name="viewer_layout">
    <property name="spacing">
     <number>0</number>
@@ -67,6 +70,9 @@
           <width>32</width>
           <height>32</height>
          </size>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
         </property>
         <property name="icon">
          <iconset resource="resources/resources.qrc">
@@ -129,6 +135,9 @@
               <height>16</height>
              </size>
             </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
             <property name="icon">
              <iconset resource="resources/resources.qrc">
               <normaloff>:/main/small_prev.png</normaloff>:/main/small_prev.png</iconset>
@@ -157,6 +166,9 @@
               <width>16</width>
               <height>16</height>
              </size>
+            </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
             </property>
             <property name="icon">
              <iconset resource="resources/resources.qrc">
@@ -187,6 +199,9 @@
               <height>16</height>
              </size>
             </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
             <property name="icon">
              <iconset resource="resources/resources.qrc">
               <normaloff>:/main/small_next.png</normaloff>:/main/small_next.png</iconset>
@@ -213,6 +228,9 @@
           <width>32</width>
           <height>32</height>
          </size>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
         </property>
         <property name="icon">
          <iconset resource="resources/resources.qrc">
