@@ -295,7 +295,11 @@ void imageContainer::toogle_fullscreen(){
 		settings.beginGroup( "fullscreen" );
 		
 		setStyleSheet( settings.value( "style"
-			,	"background: black; color:white"
+			,	"*, QMenuBar:item,QMenu:item{background: black;color:white;}"
+				"QMenu, QMenuBar{border:1px solid lightgray}"
+				"QMenuBar:item:selected,QMenu:item:selected,"
+				"QMenuBar:item:pressed,QMenu:item:pressed{background:gray}"
+				"QMenu:separator{background:lightgray;height:1px;margin:2px}"
 			).toString() ); //TODO: style the menu
 		
 		if( settings.value( "hide_controls", true ).toBool() )
