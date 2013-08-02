@@ -209,7 +209,13 @@ void imageContainer::prev_file(){
 		QApplication::beep();
 }
 
-void imageContainer::delete_file(){
+void imageContainer::delete_file( bool ask ){
+	if( !ask ){
+		//Delete without warning
+		files->delete_current_file();
+		return;
+	}
+	
 	QMessageBox::StandardButton result = QMessageBox::question(
 			this, "Delete?"
 		,	tr( "Do you want to permanently delete the following file?\n" ) + files->file_name()
@@ -352,7 +358,7 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 			break;
 			
 		case Qt::Key_Delete:
-				delete_file();
+				delete_file( !(mods & Qt::ShiftModifier) );
 			break;
 		
 		default: event->ignore();
