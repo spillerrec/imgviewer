@@ -22,6 +22,7 @@
 #include <QString>
 #include <QList>
 #include <QMenuBar>
+#include <QSettings>
 
 class imageViewer;
 class imageCache;
@@ -38,6 +39,7 @@ class imageContainer: public QWidget{
 		Ui_controls *ui;
 		
 		fileManager *files;
+		QSettings settings;
 		
 		bool resize_window; //resize the window to fit image
 		

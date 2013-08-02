@@ -20,6 +20,7 @@
 
 #include <QWidget>
 #include <QColor>
+#include <QSettings>
 
 class imageCache;
 
@@ -49,9 +50,7 @@ class imageViewer: public QWidget{
 		QPoint shown_pos;
 		QSize shown_size;
 		double shown_zoom_level;
-		QColor background;
 	public:
-		void set_background_color( QColor new_color ){ background = new_color; update(); }
 		bool moveable() const;
 		
 	//Settings to autoscale
@@ -74,6 +73,7 @@ class imageViewer: public QWidget{
 		
 	private:
 		QTimer *time;
+		const QSettings& settings;
 		
 	private slots:
 		void read_info();
@@ -109,7 +109,7 @@ class imageViewer: public QWidget{
 		void wheelEvent( QWheelEvent *event );
 	
 	public:
-		explicit imageViewer( QWidget* parent = 0 );
+		explicit imageViewer( const QSettings& settings, QWidget* parent = 0 );
 		
 		void change_image( imageCache *new_image, bool delete_old = true );
 		

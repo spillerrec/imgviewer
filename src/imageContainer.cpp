@@ -55,16 +55,21 @@ void imageContainer::dropEvent( QDropEvent *event ){
 	}
 }
 
-imageContainer::imageContainer( QWidget* parent ): QWidget( parent ), ui( new Ui_controls ){
+imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
+	,	ui( new Ui_controls )
+	//TODO: provide a portable version like:
+	// settings( QCoreApplication::applicationDirPath() + "/settings.ini", QSettings::IniFormat )
+	,	settings( "spillerrec", "imgviewer" )
+	{
 	//Init properties
 	menubar = NULL;
-	menubar_autohide = true;
+	menubar_autohide = settings.value( "autohide-menubar", false ).toBool();
+	resize_window = settings.value( "resize-on-start", true ).toBool();
 	is_fullscreen = false;
-	resize_window = true;
 	setAcceptDrops( true ); //Drag&Drop
 	
 	//Init components
-	viewer = new imageViewer( this );
+	viewer = new imageViewer( settings, this );
 	files = new fileManager();
 	manager = new windowManager( this );
 	ui->setupUi( this );
@@ -274,18 +279,27 @@ void imageContainer::toogle_animation(){
 
 void imageContainer::toogle_fullscreen(){
 	if( is_fullscreen ){
-		viewer->set_background_color( QPalette().color( QPalette::Window ) );
+		setStyleSheet( "" ); //Reset it
 		showNormal();
 		ui->control_sub->show();
 		if( menubar && !menubar_autohide )
 			menubar->show();
 	}
 	else{
-		viewer->set_background_color( QColor( Qt::black ) );
-		showFullScreen();
-		ui->control_sub->hide();
-		if( menubar )
+		settings.beginGroup( "fullscreen" );
+		
+		setStyleSheet( settings.value( "style"
+			,	"background: black; color:white"
+			).toString() ); //TODO: style the menu
+		
+		if( settings.value( "hide_controls", true ).toBool() )
+			ui->control_sub->hide();
+		if( menubar && settings.value( "hide_menu", true ).toBool() )
 			menubar->hide();
+		
+		showFullScreen();
+		
+		settings.endGroup();
 	}
 	is_fullscreen = !is_fullscreen;
 }

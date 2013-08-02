@@ -37,7 +37,7 @@
 #include <cmath>
 
 
-imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
+imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget( parent ), settings( settings ){
 	image_cache = NULL;
 	frame_amount = 0;
 	current_frame = -1;
@@ -45,13 +45,11 @@ imageViewer::imageViewer( QWidget* parent ): QWidget( parent ){
 	continue_animating = false;
 	waiting_on_frame = -1;
 	
-	background = QPalette().color( QPalette::Window );	//::Window for default
-	
 	//Auto scale default settings
 	auto_scale_on = true;
-	auto_aspect_ratio = true;
-	auto_downscale_only = true;
-	auto_upscale_only = false;
+	auto_aspect_ratio = settings.value( "viewer/aspect_ration", true ).toBool();
+	auto_downscale_only = settings.value( "viewer/downscale", true ).toBool();
+	auto_upscale_only = settings.value( "viewer/upscale", false ).toBool();
 	current_scale = 1;
 	
 	shown_pos = QPoint( 0,0 );
@@ -373,7 +371,6 @@ void imageViewer::draw_message( QStaticText *text ){
 	painter.setPen( QPen( Qt::NoPen ) );
 	
 	//Draw the background, box and text
-	painter.fillRect( QRect( QPoint(0,0), size() ), QBrush( background ) );
 	painter.drawRoundedRect( x-10,y-10, txt_size.width()+20, txt_size.height()+20, 10, 10 );
 	painter.setPen( QPen( Qt::black ) );
 	painter.drawStaticText( x,y, *text );
@@ -422,7 +419,6 @@ void imageViewer::paintEvent( QPaintEvent *event ){
 	if( img_size.width()*1.5 >= shown_size.width() )
 		painter.setRenderHints( QPainter::SmoothPixmapTransform, true );
 	
-	painter.fillRect( QRect( QPoint(0,0), current_size ), QBrush( background ) );
 	painter.drawImage( QRect( shown_pos, shown_size ), *frame );
 }
 
