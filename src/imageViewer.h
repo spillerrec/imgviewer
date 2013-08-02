@@ -102,6 +102,15 @@ class imageViewer: public QWidget{
 		QPoint keep_on;
 		QPoint image_pos( QSize img, QPoint pos );
 		
+		Qt::MouseButton button_rleft;
+		Qt::MouseButton button_rright;
+		Qt::MouseButton button_drag;
+		Qt::MouseButton button_double;
+		Qt::MouseButton button_scaling;
+		Qt::MouseButton button_context;
+		
+		Qt::MouseButton translate_button( const char* name, char fallback ) const;
+		
 		void mousePressEvent( QMouseEvent *event );
 		void mouseMoveEvent( QMouseEvent *event );
 		void mouseDoubleClickEvent( QMouseEvent *event );

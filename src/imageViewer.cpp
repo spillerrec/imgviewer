@@ -52,6 +52,13 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 	auto_upscale_only = settings.value( "viewer/upscale", false ).toBool();
 	current_scale = 1;
 	
+	button_rleft = translate_button( "mouse/rocker-left", 'L' );
+	button_rright = translate_button( "mouse/rocker-right", 'R' );
+	button_drag = translate_button( "mouse/dragging", 'L' );
+	button_double = translate_button( "mouse/double-click", 'L' );
+	button_scaling = translate_button( "mouse/cycle-scales", 'M' );
+	button_context = translate_button( "mouse/context-menu", 'R' );
+	
 	shown_pos = QPoint( 0,0 );
 	shown_zoom_level = 0;
 	
@@ -378,7 +385,7 @@ void imageViewer::draw_message( QStaticText *text ){
 }
 
 
-void imageViewer::paintEvent( QPaintEvent *event ){
+void imageViewer::paintEvent( QPaintEvent* ){
 	static QStaticText txt_loading( tr( "Loading" ) );
 	static QStaticText txt_no_image( tr( "No image selected" ) );
 	static QStaticText txt_invalid( tr( "Image invalid or broken!" ) );
@@ -437,38 +444,64 @@ QPoint imageViewer::image_pos( QSize img_size, QPoint pos ){
 	return aligned;
 }
 
+Qt::MouseButton imageViewer::translate_button( const char* name, char fallback ) const{
+	QString s = settings.value( name ).toString();
+	
+	QChar c( fallback );
+	if( s.count() > 0 )
+		c = s[0];
+	
+	switch( c.unicode() ){
+		case 'l':
+		case 'L': return Qt::LeftButton;
+		case 'm':
+		case 'M': return Qt::MidButton;
+		case 'r':
+		case 'R': return Qt::RightButton;
+		case '1': return Qt::ExtraButton1;
+		case '2': return Qt::ExtraButton2;
+		case '3': return Qt::ExtraButton3;
+		case '4': return Qt::ExtraButton4;
+		case '5': return Qt::ExtraButton5;
+		case '6': return Qt::ExtraButton6;
+		case '7': return Qt::ExtraButton7;
+		case '8': return Qt::ExtraButton8;
+		case '9': return Qt::ExtraButton9;
+		case 'a':
+		case 'A': return Qt::AllButtons;
+		default: return Qt::NoButton;
+	}
+}
 
 void imageViewer::mousePressEvent( QMouseEvent *event ){
 	emit clicked();
 	
 	//Rocker gestures
-	if( mouse_active & ( Qt::LeftButton | Qt::RightButton ) ){
+	if( mouse_active & ( button_rleft | button_rright ) ){
 		mouse_active |= event->button();
 		multi_button = true;
-		switch( event->button() & event->buttons() ){
-			case Qt::LeftButton:
-					if( event->modifiers() & Qt::ControlModifier )
-						goto_prev_frame();
-					else
-						emit rocker_left();
-				return;
-				
-			case Qt::RightButton:
-					if( event->modifiers() & Qt::ControlModifier )
-						goto_next_frame();
-					else
-						emit rocker_right();
-				return;
-			
-			default: return;
+		unsigned current = event->button() & event->buttons();
+		
+		if( current == button_rleft ){
+			if( event->modifiers() & Qt::ControlModifier )
+				goto_prev_frame();
+			else
+				emit rocker_left();
 		}
+		else if( current == button_rright ){
+			if( event->modifiers() & Qt::ControlModifier )
+				goto_next_frame();
+			else
+				emit rocker_right();
+		}
+		return;
 	}
 	
 	mouse_active |= event->button();
 	mouse_last_pos = event->pos();
 	
 	//Change cursor when dragging
-	if( event->button() == Qt::LeftButton )
+	if( event->button() == button_drag )
 		if( moveable() )
 			setCursor( Qt::ClosedHandCursor );
 }
@@ -476,7 +509,7 @@ void imageViewer::mousePressEvent( QMouseEvent *event ){
 
 void imageViewer::mouseDoubleClickEvent( QMouseEvent *event ){
 	//Only emit if only LeftButton is pressed, and no other buttons
-	if( !( event->buttons() & ~Qt::LeftButton ) ){
+	if( !( event->buttons() & ~button_double ) ){
 		if( event->modifiers() & Qt::ControlModifier )
 			toogle_animation();
 		else
@@ -486,6 +519,9 @@ void imageViewer::mouseDoubleClickEvent( QMouseEvent *event ){
 
 
 void imageViewer::mouseMoveEvent( QMouseEvent *event ){
+	if( !(mouse_active & button_drag) )
+		return;
+	
 	if( event->modifiers() & Qt::ControlModifier ){
 		if( !is_zooming ){
 			is_zooming = true;
@@ -498,9 +534,6 @@ void imageViewer::mouseMoveEvent( QMouseEvent *event ){
 		keep_on = mouse_last_pos;
 	}
 	else{
-		if( !(mouse_active & Qt::LeftButton) )
-			return;
-		
 		if( is_zooming ){
 			is_zooming = false;
 			mouse_last_pos = event->pos();
@@ -515,34 +548,28 @@ void imageViewer::mouseMoveEvent( QMouseEvent *event ){
 
 
 void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
-	setCursor( ( (mouse_active & Qt::LeftButton) && moveable() ) ? Qt::OpenHandCursor : Qt::ArrowCursor );
+	setCursor( ( (mouse_active & button_drag) && moveable() ) ? Qt::OpenHandCursor : Qt::ArrowCursor );
 	
 	//If only one button was pressed
 	if( !multi_button ){
-		//
-		switch( event->button() ){
+		if( event->button() == button_scaling ){
 			//Cycle through scalings
-			case Qt::RightButton:
-					if( auto_scale_on ){
-						auto_scale_on = false;
-						shown_zoom_level = 0;
-					}
-					else{
-						if( !moveable() )
-							shown_zoom_level = 0;
-						else
-							auto_scale_on = true;
-					}
-					
-					keep_on = event->pos();
-					update();
-					break;
+			if( auto_scale_on ){
+				auto_scale_on = false;
+				shown_zoom_level = 0;
+			}
+			else{
+				if( !moveable() )
+					shown_zoom_level = 0;
+				else
+					auto_scale_on = true;
+			}
 			
-			//Open context menu
-			case Qt::MidButton:
-					//TODO:
-				
-			default: break;
+			keep_on = event->pos();
+			update();
+		}
+		else if( event->button() == button_context ){
+			//TODO: Open context menu
 		}
 	}
 	
