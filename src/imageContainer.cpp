@@ -70,7 +70,7 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	
 	//Init components
 	viewer = new imageViewer( settings, this );
-	files = new fileManager();
+	files = new fileManager( settings );
 	manager = new windowManager( this );
 	ui->setupUi( this );
 

@@ -24,7 +24,8 @@
 #include <QStringList>
 #include <QCoreApplication>
 #include <QTime>
-#include <QSettings>
+#include <QDirIterator>
+#include <QtAlgorithms>
 
 #include <qglobal.h>
 #ifdef Q_OS_WIN
@@ -33,23 +34,27 @@
 #endif
 
 
-fileManager::fileManager(){
+fileManager::fileManager( const QSettings& settings ){
 	connect( &loader, SIGNAL( image_fetched() ), this, SLOT( loading_handler() ) );
 	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified( QString ) ) );
 	
-	current_file = -1;
-	show_hidden = false;
-	force_hidden = false;
-	
+	bool hidden_default = false;
 #ifdef Q_OS_WIN
 	//Set show_hidden on Windows to match Windows Explorer setting
 	SHELLSTATE lpss;
 	SHGetSetSettings( &lpss, SSF_SHOWALLOBJECTS | SSF_SHOWEXTENSIONS, false );
 	
 	if( lpss.fShowAllObjects )
-		show_hidden = true;
+		hidden_default = true;
 	//TODO: also match "show extensions"? It is stored in: fShowExtensions
 #endif
+	
+	current_file = -1;
+	show_hidden = settings.value( "loading/show-hidden-files", hidden_default ).toBool();
+	force_hidden = false;
+	recursive = settings.value( "loading/recursive", false ).toBool();
+	locale_aware = settings.value( "loading/locale-sorting", true ).toBool();
+	
 	
 	//Initialize all supported image formats
 	if( supported_file_ext.count() == 0 ){
@@ -63,6 +68,12 @@ fileManager::~fileManager(){
 	clear_cache();
 }
 
+int fileManager::index_of( QString file ) const{
+	if( !locale_aware )
+		return qBinaryFind( files.begin(), files.end(), file ) - files.begin();
+	
+	return files.indexOf( file );
+}
 
 void fileManager::set_files( QFileInfo file ){
 	//Stop if it does not support file
@@ -77,11 +88,17 @@ void fileManager::set_files( QFileInfo file ){
 	//Begin caching
 	dir = file.dir().absolutePath();
 	load_files( dir );
-	init_cache( file.absoluteFilePath() );
+	init_cache( recursive ? file.filePath() : file.fileName() );
 	
 	watcher.addPath( dir );
 }
 
+
+struct localecomp{
+	bool operator()( const QString& f1, const QString& f2 ) const{
+		return QString::localeAwareCompare( f1, f2 ) < 0;
+	}
+};
 void fileManager::load_files( QDir dir ){
 	//If hidden, include hidden files
 	QDir::Filters filters = QDir::Files | QDir::Readable;
@@ -89,7 +106,36 @@ void fileManager::load_files( QDir dir ){
 		filters |= QDir::Hidden;
 	
 	//Begin caching
-	files = dir.entryInfoList( supported_file_ext , filters, QDir::Name | QDir::IgnoreCase | QDir::LocaleAware );
+	files.clear();
+	
+	//This folder, or all sub-folders as well
+	if( recursive ){
+		prefix = "";
+		
+		QDirIterator it( dir.path()
+			,	supported_file_ext, filters
+			,	QDirIterator::Subdirectories
+			);
+		while( it.hasNext() ){
+			it.next();
+			files.append( it.filePath() );
+		}
+	}
+	else{
+		prefix = dir.path() + "/";
+		
+		QDirIterator it( dir.path(), supported_file_ext, filters );
+		while( it.hasNext() ){
+			it.next();
+			files.append( it.fileName() );
+		}
+	}
+	
+	//Sort using unicode or normal
+	if( locale_aware )
+		qSort( files.begin(), files.end(), localecomp() );
+	else
+		qSort( files );
 }
 
 void fileManager::load_image( int pos ){
@@ -97,8 +143,8 @@ void fileManager::load_image( int pos ){
 		return;
 	
 	imageCache *img = new imageCache();
-	if( loader.load_image( img, files[pos].filePath() ) ){
-	qDebug( "loading image: %s", files[pos].filePath().toLocal8Bit().constData() );
+	if( loader.load_image( img, file( pos ) ) ){
+		qDebug( "loading image: %s", file( pos ).toLocal8Bit().constData() );
 		cache[pos] = img;
 		if( pos == current_file )
 			emit_file_changed();
@@ -182,7 +228,8 @@ void fileManager::loading_handler(){
 
 
 void fileManager::clear_cache(){
-	watcher.removePaths( watcher.directories() );
+	if( watcher.directories().count() > 0 )
+		watcher.removePaths( watcher.directories() );
 	current_file = -1;
 	emit_file_changed();
 	for( int i=0; i<cache.count(); i++ )
@@ -197,7 +244,7 @@ static bool file_exists( QFileInfo file ){
 }
 
 struct oldCache{
-	QFileInfo file;
+	QString file;
 	imageCache* cache;
 };
 void fileManager::dir_modified( QString dir ){
@@ -211,14 +258,14 @@ void fileManager::dir_modified( QString dir ){
 		QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
 	
 	//Find the file to show now, considering it might have disappeared
-	QFileInfo new_file = files[current_file];
-	if( !file_exists( new_file ) ){
+	QString new_file = files[current_file];
+	if( !file_exists( fileinfo( current_file ) ) ){
 		//Keep trying until we find a file which still exists
 		int prev = current_file-1;
 		int next = current_file+1;
 		while( prev >= 0 || next < files.count() ){
 			if( next < files.count() ){
-				if( file_exists( files[next] ) ){
+				if( file_exists( fileinfo( next ) ) ){
 					new_file = files[next];
 					break;
 				}
@@ -227,7 +274,7 @@ void fileManager::dir_modified( QString dir ){
 			}
 			
 			if( prev >= 0 ){
-				if( file_exists( files[prev] ) ){
+				if( file_exists( fileinfo( prev ) ) ){
 					new_file = files[prev];
 					break;
 				}
@@ -236,7 +283,6 @@ void fileManager::dir_modified( QString dir ){
 			}
 		}
 	}
-	
 	
 	//Save imageCache's which might still be valid
 	QList<oldCache> old;
@@ -248,14 +294,14 @@ void fileManager::dir_modified( QString dir ){
 	
 	//Prepare the QLists
 	cache.clear();
-	load_files( new_file.dir() );
+	load_files( QFileInfo( file( new_file ) ).dir() );
 	cache.reserve( files.count() );
 	for( int i=0; i<files.count(); i++ )
 		cache << NULL;
 	
 	//Restore old elements
 	for( int i=0; i<old.count(); i++ ){
-		int new_index = files.indexOf( old[i].file );
+		int new_index = index_of( old[i].file );
 		if( new_index != -1 ){
 			cache[new_index] = old[i].cache;
 			old[i].cache = NULL;
@@ -263,7 +309,7 @@ void fileManager::dir_modified( QString dir ){
 	}
 	
 	//Set image position
-	current_file = files.indexOf( new_file );
+	current_file = index_of( new_file );
 	emit_file_changed(); //The file and position could have changed
 	
 	if( current_file == -1 )
@@ -295,7 +341,7 @@ void fileManager::delete_current_file(){
 		return;
 	
 	//QFileWatcher will ensure that the list will be updated
-	QFile::remove( files[current_file].absoluteFilePath() );
+	QFile::remove( file( current_file ) );
 }
 
 
@@ -305,7 +351,7 @@ QString fileManager::file_name() const{
 	
 	//TODO: once we have a meta-data system, check if it contains a title
 	return QString( "%1 - [%2/%3]" )
-		.arg( files[current_file].fileName() )
+		.arg( file( current_file ) )
 		.arg( QString::number( current_file+1 ) )
 		.arg( QString::number( files.count() ) )
 		;

@@ -23,6 +23,7 @@
 #include <QStringList>
 #include <QFileInfoList>
 #include <QFileSystemWatcher>
+#include <QSettings>
 
 #include "imageLoader.h"
 
@@ -39,11 +40,25 @@ class fileManager : public QObject{
 		
 		bool show_hidden;
 		bool force_hidden;
+		bool recursive;
+		bool locale_aware;
 		
 		QString dir;
-		QFileInfoList files;
+		QString prefix;
+		QStringList files;
 		QList<imageCache*> cache;
 		int current_file;
+		
+		QString file( QString f ) const{
+			return prefix + f;
+		}
+		QString file( int index ) const{
+			return file( files[index] );
+		}
+		QFileInfo fileinfo( int index ) const{
+			return QFileInfo( file( index ) );
+		}
+		int index_of( QString file ) const;
 		
 		void load_image( int pos );
 		
@@ -55,7 +70,7 @@ class fileManager : public QObject{
 		void clear_cache();
 		
 	public:
-		explicit fileManager();
+		explicit fileManager( const QSettings& settings );
 		virtual ~fileManager();
 		
 		QStringList supported_extensions() const{ return supported_file_ext; }
