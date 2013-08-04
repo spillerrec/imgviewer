@@ -145,6 +145,8 @@ void fileManager::load_image( int pos ){
 		if( (*it).file == files[pos] ){
 			cache[pos] = (*it).cache;
 			buffer.erase( it );
+			if( pos == current_file )
+				emit file_changed();
 			return;
 		}
 	
