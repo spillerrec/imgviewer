@@ -34,9 +34,9 @@
 #endif
 
 
-fileManager::fileManager( const QSettings& settings ){
+fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 	connect( &loader, SIGNAL( image_fetched() ), this, SLOT( loading_handler() ) );
-	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified( QString ) ) );
+	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
 	
 	bool hidden_default = false;
 #ifdef Q_OS_WIN
@@ -54,6 +54,7 @@ fileManager::fileManager( const QSettings& settings ){
 	force_hidden = false;
 	recursive = settings.value( "loading/recursive", false ).toBool();
 	locale_aware = settings.value( "loading/locale-sorting", true ).toBool();
+	buffer_max = settings.value( "loading/buffer-max", 3 ).toInt();
 	
 	
 	//Initialize all supported image formats
@@ -62,10 +63,6 @@ fileManager::fileManager( const QSettings& settings ){
 		for( int i=0; i<supported.count(); i++ )
 			supported_file_ext << "*." + QString( supported.at( i ) );
 	}
-}
-
-fileManager::~fileManager(){
-	clear_cache();
 }
 
 int fileManager::index_of( QString file ) const{
@@ -142,12 +139,22 @@ void fileManager::load_image( int pos ){
 	if( cache[pos] )
 		return;
 	
+	//Check buffer first
+	QLinkedList<oldCache>::iterator it = buffer.begin();
+	for( ; it != buffer.end(); ++it )
+		if( (*it).file == files[pos] ){
+			cache[pos] = (*it).cache;
+			buffer.erase( it );
+			return;
+		}
+	
+	//Load image
 	imageCache *img = new imageCache();
 	if( loader.load_image( img, file( pos ) ) ){
 		qDebug( "loading image: %s", file( pos ).toLocal8Bit().constData() );
 		cache[pos] = img;
 		if( pos == current_file )
-			emit_file_changed();
+			emit file_changed();
 	}
 	else
 		delete img;	//If it is already loading an image
@@ -155,7 +162,6 @@ void fileManager::load_image( int pos ){
 
 void fileManager::init_cache( int start ){
 	clear_cache();
-	cache.clear();
 	current_file = start;
 	
 	qDebug( "current_file: %d", current_file );
@@ -183,7 +189,7 @@ bool fileManager::has_next() const{
 void fileManager::next_file(){
 	if( has_next() ){
 		current_file++;
-		emit_file_changed();
+		emit file_changed();
 		loading_handler();
 	}
 }
@@ -191,18 +197,31 @@ void fileManager::next_file(){
 void fileManager::previous_file(){
 	if( has_previous() ){
 		current_file--;
-		emit_file_changed();
+		emit file_changed();
 		loading_handler();
 	}
 }
 
 
+void fileManager::unload_image( int index ){
+	if( !cache[index] )
+		return;
+	
+	//Save cache in buffer
+	oldCache abandoned = { files[index], cache[index] };
+	buffer << abandoned;
+	cache[index] = NULL;
+	
+	//Remove if there becomes too many
+	while( (unsigned)buffer.count() > buffer_max )
+		loader.delete_image( buffer.takeFirst().cache );
+}
 
 void fileManager::loading_handler(){
 	if( current_file == -1 )
 		return;
 	
-	int loading_lenght = 10;
+	int loading_lenght = settings.value( "loading/lenght", 5 ).toInt();
 	for( int i=0; i<loading_lenght; i++ ){
 		if( current_file + i < files.count() && !cache[current_file+i] ){
 			load_image( current_file+i );
@@ -215,15 +234,11 @@ void fileManager::loading_handler(){
 		}
 	}
 	
-	//* Delete everything after loading length
-	for( int i=current_file+loading_lenght; i<cache.count(); i++ ){
-		loader.delete_image( cache[i] );
-		cache[i] = NULL;
-	}
-	for( int i=current_file-loading_lenght; i>=0; i-- ){
-		loader.delete_image( cache[i] );
-		cache[i] = NULL;
-	}
+	//* Unload everything after loading length
+	for( int i=current_file+loading_lenght; i<cache.count(); i++ )
+		unload_image( i );
+	for( int i=current_file-loading_lenght; i>=0; i-- )
+		unload_image( i );
 }
 
 
@@ -231,10 +246,15 @@ void fileManager::clear_cache(){
 	if( watcher.directories().count() > 0 )
 		watcher.removePaths( watcher.directories() );
 	current_file = -1;
-	emit_file_changed();
-	for( int i=0; i<cache.count(); i++ )
+	emit file_changed();
+	
+	//Delete any images in the buffer and cache
+	for( int i=0; i<cache.count(); ++i )
 		loader.delete_image( cache[i] );
 	cache.clear();
+	
+	while( !buffer.isEmpty() )
+		loader.delete_image( buffer.takeFirst().cache );
 }
 
 //Make sure that this is done without caching
@@ -243,11 +263,7 @@ static bool file_exists( QFileInfo file ){
 	return file.exists();
 }
 
-struct oldCache{
-	QString file;
-	imageCache* cache;
-};
-void fileManager::dir_modified( QString dir ){
+void fileManager::dir_modified(){
 	if( !has_file() )
 		return;
 	
@@ -310,7 +326,7 @@ void fileManager::dir_modified( QString dir ){
 	
 	//Set image position
 	current_file = index_of( new_file );
-	emit_file_changed(); //The file and position could have changed
+	emit file_changed(); //The file and position could have changed
 	
 	if( current_file == -1 )
 		return;
@@ -351,7 +367,7 @@ QString fileManager::file_name() const{
 	
 	//TODO: once we have a meta-data system, check if it contains a title
 	return QString( "%1 - [%2/%3]" )
-		.arg( file( current_file ) )
+		.arg( files[current_file] )
 		.arg( QString::number( current_file+1 ) )
 		.arg( QString::number( files.count() ) )
 		;

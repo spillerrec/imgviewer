@@ -24,6 +24,7 @@
 #include <QFileInfoList>
 #include <QFileSystemWatcher>
 #include <QSettings>
+#include <QLinkedList>
 
 #include "imageLoader.h"
 
@@ -34,6 +35,7 @@ class fileManager : public QObject{
 	Q_OBJECT
 	
 	private:
+		const QSettings& settings;
 		QFileSystemWatcher watcher;
 		QStringList supported_file_ext;
 		imageLoader loader;
@@ -43,18 +45,24 @@ class fileManager : public QObject{
 		bool recursive;
 		bool locale_aware;
 		
-		QString dir;
-		QString prefix;
-		QStringList files;
-		QList<imageCache*> cache;
-		int current_file;
+		QString dir;       ///Current directory (without last '/')
+		QString prefix;    ///prefix for 'files' to get full path
+		QStringList files; ///relative paths to files
+		QList<imageCache*> cache; ///loaded files
+		int current_file;  ///Index to currently used file
 		
-		QString file( QString f ) const{
-			return prefix + f;
-		}
-		QString file( int index ) const{
-			return file( files[index] );
-		}
+		//Struct for keeping old caches
+		struct oldCache{
+			QString file;
+			imageCache* cache;
+		};
+		unsigned buffer_max;
+		QLinkedList<oldCache> buffer;
+		void unload_image( int index );
+		
+		//Accessers to 'files'
+		QString file( QString f ) const{ return prefix + f; }
+		QString file( int index ) const{ return file( files[index] ); }
 		QFileInfo fileinfo( int index ) const{
 			return QFileInfo( file( index ) );
 		}
@@ -64,14 +72,12 @@ class fileManager : public QObject{
 		
 		void load_files( QDir dir );
 		void init_cache( int start );
-		void init_cache( QString start ){
-			init_cache( files.indexOf( start ) );
-		}
+		void init_cache( QString start ){ init_cache( index_of( start ) ); }
 		void clear_cache();
 		
 	public:
 		explicit fileManager( const QSettings& settings );
-		virtual ~fileManager();
+		virtual ~fileManager(){ clear_cache(); }
 		
 		QStringList supported_extensions() const{ return supported_file_ext; }
 		
@@ -97,12 +103,7 @@ class fileManager : public QObject{
 		
 	private slots:
 		void loading_handler();
-		
-		void emit_file_changed(){
-			qDebug( "emitting file_changed()" );
-			emit file_changed();
-		}
-		void dir_modified( QString dir );
+		void dir_modified();
 		
 	signals:
 		void file_changed();
