@@ -74,11 +74,12 @@ class imageViewer: public QWidget{
 		void read_info();
 		void check_frame( unsigned int idx );
 	private slots:
-		void next_frame();
-		void prev_frame();
+		void change_frame( int frame );
+		void next_frame(){ change_frame( current_frame + 1 ); }
 	public slots:
-		void goto_next_frame();
-		void goto_prev_frame();
+		void goto_frame( int idx );
+		void goto_next_frame(){ goto_frame( current_frame + 1); }
+		void goto_prev_frame(){ goto_frame( current_frame - 1); }
 		void restart_animation();
 		bool toogle_animation();
 	

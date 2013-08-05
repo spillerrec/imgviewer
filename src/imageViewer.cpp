@@ -104,13 +104,17 @@ QSize imageViewer::frame_size(){
 	}
 }
 
-void imageViewer::next_frame(){
+void imageViewer::change_frame( int wanted ){
 	if( !image_cache )
 		return;
 	
-	if( image_cache->loaded() < frame_amount && current_frame+1 >= image_cache->loaded() ){
+	//Cycle backwards
+	if( wanted < 0 )
+		wanted = frame_amount - 1;
+	
+	if( image_cache->loaded() < frame_amount && wanted >= image_cache->loaded() ){
 		//Wait for frame to be available
-		waiting_on_frame = current_frame + 1;
+		waiting_on_frame = wanted;
 		return;
 	}
 	
@@ -118,7 +122,7 @@ void imageViewer::next_frame(){
 		return;	//Not loaded
 	
 	//Go to next frame
-	current_frame++;
+	current_frame = wanted;
 	if( current_frame >= frame_amount ){
 		//Last frame reached
 		if( loop_counter > 0 ){
@@ -145,38 +149,15 @@ void imageViewer::next_frame(){
 	emit image_changed();
 }
 
-
-void imageViewer::goto_next_frame(){
+void imageViewer::goto_frame( int index ){
 	time->stop();
 	continue_animating = false;
-	next_frame();
-}
-
-
-void imageViewer::prev_frame(){
-	if( current_frame < 0 || frame_amount < 2 )
-		return;
-	
-	if( current_frame > 0 )
-		current_frame--;
-	else	//current_frame == 0
-		current_frame = frame_amount - 1;
-	
-	update();
-	emit image_changed();
-}
-
-
-void imageViewer::goto_prev_frame(){
-	time->stop();
-	continue_animating = false;
-	prev_frame();
+	change_frame( index );
 }
 
 void imageViewer::restart_animation(){
 	continue_animating = can_animate();
-	current_frame = -1;
-	next_frame();
+	change_frame( 0 );
 }
 
 bool imageViewer::toogle_animation(){
@@ -297,7 +278,7 @@ void imageViewer::read_info(){
 	
 	current_frame = -1;
 	emit image_info_read();
-	next_frame();
+	change_frame( 0 );
 }
 void imageViewer::check_frame( unsigned int idx ){
 	//TODO: add code to check if needed to update
@@ -306,7 +287,7 @@ void imageViewer::check_frame( unsigned int idx ){
 	
 	if( idx == (unsigned int)waiting_on_frame ){
 		waiting_on_frame = -1;
-		next_frame();
+		change_frame( idx );
 	}
 }
 
