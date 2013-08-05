@@ -35,6 +35,7 @@
 #include <QWheelEvent>
 
 #include <cmath>
+#include <algorithm>
 
 
 imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget( parent ), settings( settings ){
@@ -83,9 +84,8 @@ bool imageViewer::moveable() const{
 	if( !frame )
 		return false;
 	
-	QSize img = frame->size();
-	return ( img.width() * current_scale > size().width() )
-		||	( img.height() * current_scale > size().height() );
+	QSize img = frame->size() * current_scale;
+	return ( img.width() > size().width() ) || ( img.height() > size().height() );
 }
 
 QSize imageViewer::frame_size(){
@@ -96,16 +96,11 @@ QSize imageViewer::frame_size(){
 		return image_cache->frame( 0 )->size(); //Just return the first frame
 	else{
 		//Iterate over all frames and find the largest
-		int width = 0, height = 0;
-		for( int i=0; i<image_cache->loaded(); i++ ){
-			QSize frame = image_cache->frame( i )->size();
-			if( frame.width() > width )
-				width = frame.width();
-			if( frame.height() > height )
-				height = frame.height();
-		}
+		QSize combined;
+		for( int i=0; i<image_cache->loaded(); i++ )
+			combined = combined.expandedTo( image_cache->frame( i )->size() );
 		
-		return QSize( width, height );
+		return combined;
 	}
 }
 
@@ -213,16 +208,12 @@ void imageViewer::auto_scale( QSize img ){
 		
 		//Prevent certain types of scaling
 		if( auto_downscale_only ){
-			if( scaling_x > 1 )
-				scaling_x = 1;
-			if( scaling_y > 1 )
-				scaling_y = 1;
+			scaling_x = min( scaling_x, 1.0 );
+			scaling_y = min( scaling_y, 1.0 );
 		}
 		if( auto_upscale_only ){
-			if( scaling_x < 1 )
-				scaling_x = 1;
-			if( scaling_y < 1 )
-				scaling_y = 1;
+			scaling_x = max( scaling_x, 1.0 );
+			scaling_y = max( scaling_y, 1.0 );
 		}
 		
 		//Keep aspect ratio
@@ -255,8 +246,7 @@ void imageViewer::auto_scale( QSize img ){
 	}
 	else{
 		//Calculate zoom to 2^(x/2)
-		double exp = shown_zoom_level * 0.5;
-		current_scale = pow( 2.0, exp );
+		current_scale = pow( 2.0, shown_zoom_level * 0.5 );
 		
 		QPoint before = image_pos( img, keep_on );
 		shown_size = img * current_scale;
@@ -271,8 +261,7 @@ void imageViewer::auto_scale( QSize img ){
 		if( diff.width() >= 0 )
 			shown_pos.setX( diff.width() / 2.0 + 0.5 );
 		else{
-			if( shown_pos.x() > 0 )
-				shown_pos.setX( 0 );
+			shown_pos.setX( min( 0, shown_pos.x() ) );
 			if( shown_pos.x() + shown_size.width() < widget.width() )
 				shown_pos.setX( widget.width() - shown_size.width() );
 		}
@@ -280,8 +269,7 @@ void imageViewer::auto_scale( QSize img ){
 		if( diff.height() >= 0 )
 			shown_pos.setY( diff.height() / 2.0 + 0.5 );
 		else{
-			if( shown_pos.y() > 0 )
-				shown_pos.setY( 0 );
+			shown_pos.setY( min( 0, shown_pos.y() ) );
 			if( shown_pos.y() + shown_size.height() < widget.height() )
 				shown_pos.setY( widget.height() - shown_size.height() );
 		}
@@ -594,6 +582,8 @@ void imageViewer::create_context_event( const QMouseEvent& event ){
 
 void imageViewer::wheelEvent( QWheelEvent *event ){
 	int amount = event->delta() / 8;
+	if( amount == 0 )
+		return;
 	
 	if( event->modifiers() & Qt::ControlModifier ){
 		//Change current frame
@@ -604,10 +594,7 @@ void imageViewer::wheelEvent( QWheelEvent *event ){
 	}
 	else{
 		//Change zoom-level
-		if( amount > 0 )
-			shown_zoom_level += 1.0;
-		else if( amount < 0 )
-			shown_zoom_level -= 1.0;
+		shown_zoom_level += (amount > 0) ? 1.0 : -1.0;
 		auto_scale_on = false;
 		
 		keep_on = event->pos();

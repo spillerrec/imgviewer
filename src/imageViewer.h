@@ -63,14 +63,8 @@ class imageViewer: public QWidget{
 		double current_scale;
 	private slots:
 		void auto_scale( QSize img );
-	//Access methods
 	public:
 		void set_auto_scale( bool is_on ){ auto_scale_on = is_on; }
-		void set_auto_aspect( bool is_on ){ auto_aspect_ratio = is_on; }
-		void set_auto_scaling( bool upscales, bool downscales ){
-			auto_downscale_only = !upscales;
-			auto_upscale_only = !downscales;
-		}
 		
 	private:
 		QTimer *time;
