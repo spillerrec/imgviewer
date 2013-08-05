@@ -69,6 +69,8 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 	mouse_active = Qt::NoButton;
 	multi_button = false;
 	is_zooming = false;
+	
+	setContextMenuPolicy( Qt::PreventContextMenu );
 }
 
 
@@ -569,7 +571,8 @@ void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
 			update();
 		}
 		else if( event->button() == button_context ){
-			//TODO: Open context menu
+			//Open context menu
+			create_context_event( *event );
 		}
 	}
 	
@@ -580,6 +583,14 @@ void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
 		multi_button = false;
 }
 
+void imageViewer::create_context_event( const QMouseEvent& event ){
+	emit context_menu( QContextMenuEvent(
+			QContextMenuEvent::Mouse
+		,	event.pos()
+		,	event.globalPos()
+		,	event.modifiers()
+		) );
+}
 
 void imageViewer::wheelEvent( QWheelEvent *event ){
 	int amount = event->delta() / 8;

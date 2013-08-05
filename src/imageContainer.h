@@ -23,6 +23,7 @@
 #include <QList>
 #include <QMenuBar>
 #include <QSettings>
+#include <QContextMenuEvent>
 
 class imageViewer;
 class imageCache;
@@ -45,19 +46,22 @@ class imageContainer: public QWidget{
 		
 		QMenuBar* menubar;
 		QMenu* anim_menu;
+		QMenu* context;
 		bool menubar_autohide;
 		
 	private:
 		bool is_fullscreen;
 		
 		void create_menubar();
+		void create_context();
 		
 	protected:
 		virtual void keyPressEvent( QKeyEvent *event );
 		virtual void dragEnterEvent( QDragEnterEvent *event );
 		virtual void dropEvent( QDropEvent *event );
 		virtual void focusInEvent( QFocusEvent* ){ hide_menubar(); }
-		virtual void mousePressEvent( QMouseEvent* ){ hide_menubar(); }
+		virtual void mousePressEvent( QMouseEvent* );
+		virtual void contextMenuEvent( QContextMenuEvent* event );
 		
 	private slots:
 		void update_controls();
@@ -65,6 +69,9 @@ class imageContainer: public QWidget{
 		void hide_menubar();
 		
 		void update_file();
+		void context_menu( QContextMenuEvent event ){
+			contextMenuEvent( &event );
+		}
 	
 	public slots:
 		void toogle_animation();

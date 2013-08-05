@@ -63,10 +63,12 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	{
 	//Init properties
 	menubar = NULL;
+	context = NULL;
 	menubar_autohide = settings.value( "autohide-menubar", false ).toBool();
 	resize_window = settings.value( "resize-on-start", true ).toBool();
 	is_fullscreen = false;
 	setAcceptDrops( true ); //Drag&Drop
+	setContextMenuPolicy( Qt::PreventContextMenu );
 	
 	//Init components
 	viewer = new imageViewer( settings, this );
@@ -78,6 +80,7 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	create_menubar();
 	ui->viewer_layout->insertWidget( 1, viewer );
 	update_controls();
+	create_context();
 	
 	//Center window on mouse cursor on start
 	QSize half_size( frameGeometry().size() / 2 );
@@ -90,6 +93,8 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	connect( viewer, SIGNAL( double_clicked() ),  this, SLOT( toogle_fullscreen() ) );
 	connect( viewer, SIGNAL( rocker_left() ),     this, SLOT( prev_file() ) );
 	connect( viewer, SIGNAL( rocker_right() ),    this, SLOT( next_file() ) );
+	connect( viewer, SIGNAL( context_menu(QContextMenuEvent) )
+	       , this,     SLOT( context_menu(QContextMenuEvent) ) );
 	connect( ui->btn_sub_next, SIGNAL( pressed() ), viewer, SLOT( goto_next_frame() ) );
 	connect( ui->btn_sub_prev, SIGNAL( pressed() ), viewer, SLOT( goto_prev_frame() ) );
 	connect( ui->btn_pause,    SIGNAL( pressed() ), this, SLOT( toogle_animation() ) );
@@ -138,6 +143,16 @@ void imageContainer::create_menubar(){
 	//Actions related to the interface
 	view_menu->addAction( "&Fullscreen", this, SLOT( toogle_fullscreen() ) );
 	//TODO: hide and show menubar, statusbar, ...
+}
+
+void imageContainer::create_context(){
+	if( context )
+		return;
+	
+	context = new QMenu();
+	context->addAction( "&Open", this, SLOT( open_file() ) );
+	context->addAction( "&Delete", this, SLOT( delete_file() ) );
+	context->addAction( "E&xit", qApp, SLOT( quit() ) );
 }
 
 void imageContainer::hide_menubar(){
@@ -297,10 +312,11 @@ void imageContainer::toogle_fullscreen(){
 		setStyleSheet( settings.value( "style"
 			,	"*, QMenuBar:item,QMenu:item{background: black;color:white;}"
 				"QMenu, QMenuBar{border:1px solid lightgray}"
+				"QMenuBar:item:disabled{color:gray}"
 				"QMenuBar:item:selected,QMenu:item:selected,"
 				"QMenuBar:item:pressed,QMenu:item:pressed{background:gray}"
 				"QMenu:separator{background:lightgray;height:1px;margin:2px}"
-			).toString() ); //TODO: style the menu
+			).toString() );
 		
 		if( settings.value( "hide_controls", true ).toBool() )
 			ui->control_sub->hide();
@@ -369,4 +385,16 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 	}
 }
 
+void imageContainer::contextMenuEvent( QContextMenuEvent* event ){
+	//TODO: keyboard...
+	if( context )
+		context->exec( event->globalPos() );
+}
+
+void imageContainer::mousePressEvent( QMouseEvent* event ){
+	hide_menubar();
+	
+	if( event->button() == viewer->get_context_button() )
+		viewer->create_context_event( *event );
+}
 

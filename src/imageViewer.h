@@ -21,6 +21,7 @@
 #include <QWidget>
 #include <QColor>
 #include <QSettings>
+#include <QContextMenuEvent>
 
 class imageCache;
 
@@ -122,6 +123,8 @@ class imageViewer: public QWidget{
 		
 		void change_image( imageCache *new_image, bool delete_old = true );
 		
+		Qt::MouseButton get_context_button() const{ return button_context; }
+		void create_context_event( const QMouseEvent& event );
 		
 		QSize sizeHint() const;
 	
@@ -132,6 +135,7 @@ class imageViewer: public QWidget{
 		void rocker_left();
 		void rocker_right();
 		void clicked();
+		void context_menu( QContextMenuEvent event );
 };
 
 
