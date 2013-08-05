@@ -44,6 +44,7 @@ class fileManager : public QObject{
 		bool force_hidden;
 		bool recursive;
 		bool locale_aware;
+		bool wrap;
 		
 		QString dir;       ///Current directory (without last '/')
 		QString prefix;    ///prefix for 'files' to get full path
@@ -86,12 +87,15 @@ class fileManager : public QObject{
 		void set_files( QString file ){ set_files( QFileInfo( file ) ); }
 		void set_files( QFileInfo file );
 		
-		bool has_file() const{ return current_file >= 0 && current_file < cache.count(); }
+		bool has_file( int index ) const{ return index >= 0 && index < cache.count(); }
+		bool has_file() const{ return has_file( current_file ); }
+		int move( int offset ) const;
 		
-		bool has_previous() const;
-		bool has_next() const;
-		void next_file();
-		void previous_file();
+		bool has_previous() const{ return has_file( move( -1 ) ); }
+		bool has_next() const{ return has_file( move( 1 ) ); }
+		void goto_file( int index );
+		void next_file(){ goto_file( move( 1 ) ); }
+		void previous_file(){ goto_file( move( -1 ) ); }
 		
 		bool supports_extension( QString filename ) const;
 		void delete_current_file();

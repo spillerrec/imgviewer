@@ -54,6 +54,7 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 	force_hidden = false;
 	recursive = settings.value( "loading/recursive", false ).toBool();
 	locale_aware = settings.value( "loading/locale-sorting", true ).toBool();
+	wrap = settings.value( "loading/wrap", true ).toBool();
 	buffer_max = settings.value( "loading/buffer-max", 3 ).toInt();
 	
 	
@@ -178,27 +179,24 @@ void fileManager::init_cache( int start ){
 	loading_handler();
 }
 
-
-bool fileManager::has_previous() const{
-	return current_file > 0;
+int fileManager::move( int offset ) const{
+	int wanted = current_file + offset;
+	
+	if( !wrap || cache.count() <= 0 )
+		return wanted; //empty cache would cause infinite loop
+	
+	//Keep warping until we reached a valid index
+	while( wanted < 0 )
+		wanted += cache.count();
+	while( wanted >= cache.count() )
+		wanted -= cache.count();
+	
+	return wanted;
 }
 
-bool fileManager::has_next() const{
-	return current_file + 1 < files.count();
-}
-
-
-void fileManager::next_file(){
-	if( has_next() ){
-		current_file++;
-		emit file_changed();
-		loading_handler();
-	}
-}
-
-void fileManager::previous_file(){
-	if( has_previous() ){
-		current_file--;
+void fileManager::goto_file( int index ){
+	if( has_file( index ) ){
+		current_file = index;
 		emit file_changed();
 		loading_handler();
 	}
@@ -275,6 +273,7 @@ void fileManager::dir_modified(){
 	while( QTime::currentTime() < wait )
 		QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
 	
+	//TODO: replace this with a "lower-bound"
 	//Find the file to show now, considering it might have disappeared
 	QString new_file = files[current_file];
 	if( !file_exists( fileinfo( current_file ) ) ){
