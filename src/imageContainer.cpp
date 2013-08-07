@@ -65,7 +65,6 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	menubar = NULL;
 	context = NULL;
 	menubar_autohide = settings.value( "autohide-menubar", false ).toBool();
-	resize_window = settings.value( "resize-on-start", true ).toBool();
 	is_fullscreen = false;
 	setAcceptDrops( true ); //Drag&Drop
 	setContextMenuPolicy( Qt::PreventContextMenu );
@@ -91,6 +90,7 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
 	connect( viewer, SIGNAL( image_changed() ),   this, SLOT( update_controls() ) );
 	connect( viewer, SIGNAL( double_clicked() ),  this, SLOT( toogle_fullscreen() ) );
+	connect( viewer, SIGNAL( resize_wanted() ),  this, SLOT( resize_window() ) );
 	connect( viewer, SIGNAL( rocker_left() ),     this, SLOT( prev_file() ) );
 	connect( viewer, SIGNAL( rocker_right() ),    this, SLOT( next_file() ) );
 	connect( viewer, SIGNAL( context_menu(QContextMenuEvent) )
@@ -142,6 +142,7 @@ void imageContainer::create_menubar(){
 	
 	//Actions related to the interface
 	view_menu->addAction( "&Fullscreen", this, SLOT( toogle_fullscreen() ) );
+	view_menu->addAction( "Fit window to &image", this, SLOT( resize_window() ), 400 );
 	//TODO: hide and show menubar, statusbar, ...
 }
 
@@ -207,19 +208,15 @@ void imageContainer::open_file(){
 		load_image( file );
 }
 void imageContainer::next_file(){
-	if( files->has_next() ){
+	if( files->has_next() )
 		files->next_file();
-		viewer->set_auto_scale( true );
-	}
 	else
 		QApplication::beep();
 }
 
 void imageContainer::prev_file(){
-	if( files->has_previous() ){
+	if( files->has_previous() )
 		files->previous_file();
-		viewer->set_auto_scale( true );
-	}
 	else
 		QApplication::beep();
 }
@@ -271,23 +268,13 @@ void imageContainer::update_controls(){
 	//Disable left or right buttons
 	ui->btn_next->setEnabled( files->has_next() );
 	ui->btn_prev->setEnabled( files->has_previous() );
-	
-	//Resize and move window to fit image
-	if( resize_window && !is_fullscreen ){ //Buggy behaviour in fullscreen
-		QSize wanted = viewer->frame_size();
-		if( !wanted.isNull() ){
-			manager->resize_content( wanted, viewer->size(), true );
-			resize_window = false;
-		}
-	}
 }
 
 
 void imageContainer::update_toogle_btn(){
-	if( viewer->is_animating() )
-		ui->btn_pause->setIcon( QIcon( ":/main/pause.png" ) ); //"||" );
-	else
-		ui->btn_pause->setIcon( QIcon( ":/main/start.png" ) );
+	ui->btn_pause->setIcon( QIcon( 
+			viewer->is_animating() ? ":/main/pause.png" : ":/main/start.png"
+		) );
 }
 
 
@@ -340,6 +327,8 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 		case Qt::Key_Alt:
 				if( menubar )
 					menubar->show();
+				else
+					event->ignore();
 			break;
 		case Qt::Key_Left:
 				if( mods & Qt::ControlModifier )
@@ -362,10 +351,8 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 					toogle_animation();
 			break;
 		case Qt::Key_A:
-				if( mods & Qt::ControlModifier ){
-					resize_window = true;
-					update_controls();
-				}
+				if( mods & Qt::ControlModifier )
+					resize_window();
 				else
 					event->ignore();
 			break;
@@ -396,5 +383,10 @@ void imageContainer::mousePressEvent( QMouseEvent* event ){
 	
 	if( event->button() == viewer->get_context_button() )
 		viewer->create_context_event( *event );
+}
+
+void imageContainer::resize_window(){
+	if( !is_fullscreen ) //Buggy in fullscreen
+		manager->resize_content( viewer->sizeHint(), viewer->size(), true );
 }
 

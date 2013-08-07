@@ -42,8 +42,6 @@ class imageContainer: public QWidget{
 		fileManager *files;
 		QSettings settings;
 		
-		bool resize_window; //resize the window to fit image
-		
 		QMenuBar* menubar;
 		QMenu* anim_menu;
 		QMenu* context;
@@ -67,6 +65,7 @@ class imageContainer: public QWidget{
 		void update_controls();
 		void update_toogle_btn();
 		void hide_menubar();
+		void resize_window();
 		
 		void update_file();
 		void context_menu( QContextMenuEvent event ){

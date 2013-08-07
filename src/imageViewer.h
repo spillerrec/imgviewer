@@ -39,19 +39,18 @@ class imageViewer: public QWidget{
 		int loop_counter;
 		bool continue_animating;
 		int waiting_on_frame;
+		QImage* get_frame() const;
 	public:
-		int get_frame_amount(){ return frame_amount; }
-		int get_current_frame(){ return current_frame; }
-		bool can_animate();
-		bool is_animating(){ return continue_animating; }
-		QSize frame_size();
+		int get_frame_amount() const{ return frame_amount; }
+		int get_current_frame() const{ return current_frame; }
+		bool can_animate() const;
+		bool is_animating() const{ return continue_animating; }
 	
 	//How the image is to be viewed
 	private:
 		QPoint shown_pos;
 		QSize shown_size;
 		double shown_zoom_level;
-	public:
 		bool moveable() const;
 		
 	//Settings to autoscale
@@ -60,15 +59,18 @@ class imageViewer: public QWidget{
 		bool auto_aspect_ratio;
 		bool auto_downscale_only;
 		bool auto_upscale_only;
-		double current_scale;
-	private slots:
-		void auto_scale( QSize img );
-	public:
-		void set_auto_scale( bool is_on ){ auto_scale_on = is_on; }
+		bool restrict_viewpoint;
+		bool initial_resize;
+		bool keep_resize;
+		
+		void restrict_view();
+		void change_zoom( double new_level, QPoint keep_on );
+		void auto_zoom();
 		
 	private:
 		QTimer *time;
 		const QSettings& settings;
+		void init_size();
 		
 	private slots:
 		void read_info();
@@ -86,17 +88,16 @@ class imageViewer: public QWidget{
 	protected:
 		void draw_message( QStaticText *text );
 		void paintEvent( QPaintEvent *event );
-	//	void resizeEvent( QResizeEvent *event );
-	//Controlling mouse actions
+		void resizeEvent( QResizeEvent * ){ if( auto_scale_on ) auto_zoom(); }
 	
+	//Controlling mouse actions
 	protected:
 		Qt::MouseButtons mouse_active;
 		bool multi_button;
 		bool is_zooming;
 		double start_zoom;
 		QPoint mouse_last_pos;
-		QPoint keep_on;
-		QPoint image_pos( QSize img, QPoint pos );
+		void update_cursor();
 		
 		Qt::MouseButton button_rleft;
 		Qt::MouseButton button_rright;
@@ -125,6 +126,7 @@ class imageViewer: public QWidget{
 	
 	signals:
 		void image_info_read();
+		void resize_wanted();
 		void image_changed();
 		void double_clicked();
 		void rocker_left();
