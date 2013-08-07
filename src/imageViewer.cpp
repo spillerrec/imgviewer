@@ -167,8 +167,8 @@ bool imageViewer::toogle_animation(){
 	return continue_animating;
 }
 
-void imageViewer::restrict_view(){
-	if( restrict_viewpoint ){
+void imageViewer::restrict_view( bool force ){
+	if( restrict_viewpoint || force ){
 		//Make sure it doesn't leave the screen
 		QSize diff = size() - shown_size;
 		if( diff.width() >= 0 )
@@ -246,7 +246,7 @@ void imageViewer::auto_zoom(){
 	shown_size.setWidth( scaling_x * img.width() + 0.5 );
 	shown_size.setHeight( scaling_y * img.height() + 0.5 );
 	
-	restrict_view();
+	restrict_view( true );
 	if( old != QRect( shown_pos, shown_size ) )
 		update();
 	update_cursor();

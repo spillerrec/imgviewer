@@ -63,7 +63,7 @@ class imageViewer: public QWidget{
 		bool initial_resize;
 		bool keep_resize;
 		
-		void restrict_view();
+		void restrict_view( bool force=false );
 		void change_zoom( double new_level, QPoint keep_on );
 		void auto_zoom();
 		
