@@ -57,9 +57,11 @@ void imageContainer::dropEvent( QDropEvent *event ){
 
 imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	,	ui( new Ui_controls )
-	//TODO: provide a portable version like:
-	// settings( QCoreApplication::applicationDirPath() + "/settings.ini", QSettings::IniFormat )
+#ifdef PORTABLE //Portable settings
+	,	settings( QCoreApplication::applicationDirPath() + "/settings.ini", QSettings::IniFormat )
+#else
 	,	settings( "spillerrec", "imgviewer" )
+#endif
 	{
 	//Init properties
 	menubar = NULL;

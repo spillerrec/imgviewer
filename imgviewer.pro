@@ -9,6 +9,7 @@ INCLUDEPATH += .
 LIBS += -lexif -llcms2
 win32{
 	LIBS += -lgdi32
+	DEFINES += PORTABLE
 }
 QT += widgets
 
