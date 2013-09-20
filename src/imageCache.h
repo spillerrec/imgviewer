@@ -60,10 +60,13 @@ class imageCache: public QObject{
 		int loaded() const{ return frames_loaded; }	//Amount of currently loaded frames
 		
 	public:
-		explicit imageCache();
-		explicit imageCache( QString filename );
-		explicit imageCache( QImage *preloaded );
-		~imageCache();
+		explicit imageCache(){
+			init();
+		}
+		explicit imageCache( QString filename ){
+			init();
+			read( filename );
+		}
 		
 		void read( QString filename );
 		long get_memory_size() const{ return memory_size; }	//Notice, this is a rough number, not accurate!

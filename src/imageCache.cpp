@@ -36,43 +36,6 @@ void imageCache::init(){
 	current_status = EMPTY;
 }
 
-
-imageCache::imageCache(){
-	init();
-}
-
-imageCache::imageCache( QString filename ){
-	init();
-	read( filename );
-}
-
-
-imageCache::imageCache( QImage *preloaded ){
-	frame_amount = 1;
-	frames.clear();
-	frames.push_back( (preloaded) ? *preloaded : QImage() );
-	frames_loaded = 1;
-	
-	if( preloaded )
-		memory_size = preloaded->byteCount();
-	else
-		memory_size = 0;
-	
-	animate = false;
-	frame_delays.clear();
-	frame_delays.push_back( -1 );
-	loop_amount = -1;
-	
-	current_status = LOADED;
-	emit frame_loaded( 0 );
-}
-
-
-imageCache::~imageCache(){
-
-}
-
-
 void imageCache::read( QString filename ){
 	//Make sure this cache is unloaded!
 	if( current_status != EMPTY )
