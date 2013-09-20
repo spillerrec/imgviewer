@@ -51,7 +51,7 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 	
 	//Auto scale default settings
 	auto_scale_on = true;
-	auto_aspect_ratio = settings.value( "viewer/aspect_ration", true ).toBool();
+	auto_aspect_ratio = settings.value( "viewer/aspect_ratio", true ).toBool();
 	auto_downscale_only = settings.value( "viewer/downscale", true ).toBool();
 	auto_upscale_only = settings.value( "viewer/upscale", false ).toBool();
 	
@@ -81,10 +81,10 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 }
 
 
-QImage* imageViewer::get_frame() const{
+QImage imageViewer::get_frame() const{
 	if( image_cache && image_cache->loaded() >= current_frame )
-		return current_frame >= 0 ? image_cache->frame( current_frame ) : NULL;
-	return NULL;
+		return image_cache->frame( current_frame );
+	return QImage();
 }
 
 bool imageViewer::can_animate() const{
@@ -190,11 +190,11 @@ void imageViewer::restrict_view( bool force ){
 }
 
 void imageViewer::change_zoom( double new_level, QPoint keep_on ){
-	QImage* frame = get_frame();
-	if( new_level == shown_zoom_level || !frame )
+	QImage frame = get_frame();
+	if( new_level == shown_zoom_level || frame.isNull() )
 		return;
 	
-	QSize img = frame->size();
+	QSize img = frame.size();
 	QRect old( shown_pos, shown_size );
 	shown_zoom_level = new_level;
 	auto_scale_on = false;
@@ -215,11 +215,11 @@ void imageViewer::change_zoom( double new_level, QPoint keep_on ){
 }
 
 void imageViewer::auto_zoom(){
-	QImage* frame = get_frame();
-	if( !frame )
+	QImage frame = get_frame();
+	if( frame.isNull() )
 		return;
 	
-	QSize img = frame->size();
+	QSize img = frame.size();
 	QRect old( shown_pos, shown_size );
 	double scaling_x = (double) size().width() / img.width();
 	double scaling_y = (double) size().height() / img.height();
@@ -396,13 +396,13 @@ void imageViewer::paintEvent( QPaintEvent* ){
 	
 	
 	//Everything went fine, start drawing the image
-	QImage *frame = image_cache->frame( current_frame );
+	QImage frame = image_cache->frame( current_frame );
 	
 	QPainter painter( this );
-	if( frame->width()*1.5 >= shown_size.width() )
+	if( frame.width()*1.5 >= shown_size.width() )
 		painter.setRenderHints( QPainter::SmoothPixmapTransform, true );
 	
-	painter.drawImage( QRect( shown_pos, shown_size ), *frame );
+	painter.drawImage( QRect( shown_pos, shown_size ), frame );
 }
 
 QSize imageViewer::sizeHint() const{
@@ -410,12 +410,12 @@ QSize imageViewer::sizeHint() const{
 		return QSize();
 	
 	if( image_cache->is_animated() )
-		return image_cache->frame( 0 )->size(); //Just return the first frame
+		return image_cache->frame( 0 ).size(); //Just return the first frame
 	else{
 		//Iterate over all frames and find the largest
 		QSize combined;
 		for( int i=0; i<image_cache->loaded(); i++ )
-			combined = combined.expandedTo( image_cache->frame( i )->size() );
+			combined = combined.expandedTo( image_cache->frame( i ).size() );
 		
 		return combined;
 	}

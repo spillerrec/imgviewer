@@ -221,8 +221,8 @@ void fileManager::loading_handler(){
 	if( current_file == -1 )
 		return;
 	
-	int loading_lenght = settings.value( "loading/lenght", 5 ).toInt();
-	for( int i=0; i<loading_lenght; i++ ){
+	int loading_lenght = settings.value( "loading/length", 2 ).toInt();
+	for( int i=0; i<=loading_lenght; i++ ){
 		if( current_file + i < files.count() && !cache[current_file+i] ){
 			load_image( current_file+i );
 			break;

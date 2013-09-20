@@ -31,8 +31,6 @@ void imageCache::init(){
 	if( !manager )
 		manager = new color( "" );
 	
-	frames = NULL;
-	frame_delays = NULL;
 	frames_loaded = 0;
 	memory_size = 0;
 	current_status = EMPTY;
@@ -51,8 +49,8 @@ imageCache::imageCache( QString filename ){
 
 imageCache::imageCache( QImage *preloaded ){
 	frame_amount = 1;
-	frames = new QImage*[ frame_amount ];
-	frames[0] = preloaded;
+	frames.clear();
+	frames.push_back( (preloaded) ? *preloaded : QImage() );
 	frames_loaded = 1;
 	
 	if( preloaded )
@@ -61,8 +59,8 @@ imageCache::imageCache( QImage *preloaded ){
 		memory_size = 0;
 	
 	animate = false;
-	frame_delays = new int[ frame_amount ];
-	frame_delays[0] = -1;
+	frame_delays.clear();
+	frame_delays.push_back( -1 );
 	loop_amount = -1;
 	
 	current_status = LOADED;
@@ -71,14 +69,7 @@ imageCache::imageCache( QImage *preloaded ){
 
 
 imageCache::~imageCache(){
-	if( frames ){
-		for( int i=0; i<frame_amount; i++ )
-			delete frames[i];
-		delete[] frames;
-	}
-	
-	if( frame_delays )
-		delete[] frame_delays;
+
 }
 
 
@@ -89,7 +80,8 @@ void imageCache::read( QString filename ){
 	
 	QImageReader image_reader( filename );
 	
-	if( image_reader.canRead() ){
+	bool more_frames;
+	if( (more_frames = image_reader.canRead()) ){
 		frame_amount = image_reader.imageCount();
 		animate = image_reader.supportsAnimation();
 		if( animate )
@@ -135,64 +127,59 @@ void imageCache::read( QString filename ){
 		current_status = INFO_READY;
 		emit info_loaded();
 		
-		if( frame_amount > 0 ){	//Make sure frames are readable
-			//Init arrays
-			frames = new QImage*[ frame_amount ];
-			if( animate )
-				frame_delays = new int[ frame_amount ];
-			else
-				frame_delays = NULL;
-			
-			//Read every frame and delay
-			for( int i=0; i<frame_amount; i++ ){
-				frames[i] = new QImage();
-				if( !image_reader.read( frames[i] ) ){
-					current_status = INVALID;
-					break;
-				}
-				
-				manager->transform( frames[i], transform );
-				
-				//Orient image
-				if( rot != 1 ){
-					//Mirror
-					switch( rot ){
-						case 2:
-						case 4:
-						case 5:
-						case 7:
-								*(frames[i]) = frames[i]->mirrored();
-							break;
-					}
-					
-					if( rot > 2 ) //1 and 2 is not rotated, all others are
-						*(frames[i]) = frames[i]->transformed( trans );
-				}
-				
-				if( animate )
-					frame_delays[i] = image_reader.nextImageDelay();
-				else
-					image_reader.jumpToImage( i+1 );
-				
-				memory_size += frames[i]->byteCount();
-				/* Increase loading time for debugging
-				QTime t;
-				t.start();
-				while( t.elapsed() < 1000 ); */
-				
-				current_status = FRAMES_READY;
-				frames_loaded++;
-				emit frame_loaded( i );
+		if( frame_amount > 0 ){
+			//We know amount already
+			frames.reserve( frame_amount );
+			frame_delays.reserve( frame_amount );
+		}
+		
+		//Read every frame and delay
+		for( int i=0; more_frames; i++, more_frames = image_reader.canRead() ){
+			frames.push_back( QImage() );
+			if( !image_reader.read( &(frames[i]) ) ){
+				frames.pop_back();
+				break;
 			}
 			
-			if( current_status == FRAMES_READY ) //All reads where successful
-				current_status = LOADED;
-			//TODO: What to do on fail?
+			manager->transform( &(frames[i]), transform );
+			
+			//Orient image
+			if( rot != 1 ){
+				//Mirror
+				switch( rot ){
+					case 2:
+					case 4:
+					case 5:
+					case 7:
+							frames[i] = frames[i].mirrored();
+						break;
+				}
+				
+				if( rot > 2 ) //1 and 2 is not rotated, all others are
+					frames[i] = frames[i].transformed( trans );
+			}
+			
+			if( animate )
+				frame_delays.push_back( image_reader.nextImageDelay() );
+			else
+				image_reader.jumpToImage( i+1 );
+			
+			memory_size += frames[i].byteCount();
+			/* Increase loading time for debugging
+			QTime t;
+			t.start();
+			while( t.elapsed() < 1000 ); */
+			
+			current_status = FRAMES_READY;
+			frames_loaded++;
+			if( frame_amount < i )
+				frame_amount = i;
+			emit frame_loaded( i );
 		}
-	}
-	else{
-		//If canRead failed, some error must have happened!
-		current_status = INVALID;
+		
+		if( current_status == FRAMES_READY ) //All reads where successful
+			current_status = LOADED;
+		//TODO: What to do on fail?
 	}
 }
 

@@ -19,6 +19,8 @@
 #define IMAGECACHE_H
 
 #include <QObject>
+#include <QImage>
+#include <vector>
 #include "color.h"
 
 class QImage;
@@ -33,11 +35,11 @@ class imageCache: public QObject{
 	private:
 	//Variables containing info about the image(s)
 		int frame_amount;
-		QImage **frames;
+		std::vector<QImage> frames;
 		int frames_loaded;
 		
 		bool animate;
-		int *frame_delays;
+		std::vector<int> frame_delays;
 		int loop_amount;	//Amount of times the loop should continue looping
 		
 		long memory_size;
@@ -72,7 +74,7 @@ class imageCache: public QObject{
 		
 		//Frame info
 		int frame_count() const{ return frame_amount; }
-		QImage* frame( unsigned int idx ) const{ return frames[ idx ]; }
+		QImage frame( unsigned int idx ) const{ return frames[ idx ]; }
 		int frame_delay( unsigned int idx ) const{ return frame_delays[ idx ]; } //How long a frame should be shown
 	
 	signals:

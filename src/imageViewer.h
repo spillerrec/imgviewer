@@ -39,7 +39,7 @@ class imageViewer: public QWidget{
 		int loop_counter;
 		bool continue_animating;
 		int waiting_on_frame;
-		QImage* get_frame() const;
+		QImage get_frame() const;
 	public:
 		int get_frame_amount() const{ return frame_amount; }
 		int get_current_frame() const{ return current_frame; }
