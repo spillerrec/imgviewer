@@ -20,10 +20,19 @@
 #include <libexif/exif-loader.h>
 #include <libexif/exif-utils.h>
 
+#include <QFile>
+#include <QByteArray>
 
 meta::meta( QString filepath ){
 	ExifLoader *l = exif_loader_new();
-	exif_loader_write_file( l, filepath.toLocal8Bit().data() );
+	
+	//Open file
+	QFile file( filepath );
+	if( file.open( QIODevice::ReadOnly ) ){
+		QByteArray data = file.readAll();
+		exif_loader_write( l, (unsigned char*)data.constData(), data.size() );
+		file.close();
+	}
 	data = exif_loader_get_data(l);
 	exif_loader_unref(l);
 	l = 0;
