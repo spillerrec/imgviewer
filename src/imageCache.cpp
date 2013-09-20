@@ -97,7 +97,8 @@ void imageCache::read( QString filename ){
 		}
 		
 		//Read every frame and delay
-		for( int i=0; more_frames; i++, more_frames = image_reader.canRead() ){
+		for( int i=0; more_frames || frame_amount > i; i++, more_frames = image_reader.canRead() ){
+			//NOTE: ICO files seem to return false on canRead, even though more frames are available
 			frames.push_back( QImage() );
 			if( !image_reader.read( &(frames[i]) ) ){
 				frames.pop_back();
