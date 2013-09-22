@@ -129,7 +129,7 @@ void fileManager::load_files( QDir dir ){
 		}
 	}
 	
-	//Sort using unicode or normal
+	//Sort using Unicode or normal
 	if( locale_aware )
 		qSort( files.begin(), files.end(), localecomp() );
 	else

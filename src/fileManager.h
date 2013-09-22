@@ -61,7 +61,7 @@ class fileManager : public QObject{
 		QLinkedList<oldCache> buffer;
 		void unload_image( int index );
 		
-		//Accessers to 'files'
+		//Accessors to 'files'
 		QString file( QString f ) const{ return prefix + f; }
 		QString file( int index ) const{ return file( files[index] ); }
 		QFileInfo fileinfo( int index ) const{

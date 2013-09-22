@@ -28,7 +28,7 @@
 	
 	Use the function bool load_image( imageCache*, QString ) to attempt
 	to add an imageCache for loading, returns true on success, false on
-	falure.
+	failure.
 	
 	Use delete_image( imageCache* ) to delete imageCache* which have been
 	loaded with the same object safely.

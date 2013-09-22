@@ -17,6 +17,7 @@
 
 #include "imageCache.h"
 #include "meta.h"
+#include "color.h"
 
 #include <QSize>
 #include <QImage>

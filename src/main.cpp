@@ -15,17 +15,15 @@
 	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <QCoreApplication>
 #include <QApplication>
 #include <QDir>
 
 #include "imageContainer.h"
 
 
-int main(int argc, char *argv[]){
-	QApplication a(argc, argv);
-	
-	QStringList args = QCoreApplication::arguments();
+int main( int argc, char *argv[] ){
+	QApplication a( argc, argv );
+	QStringList args = a.arguments();
 	
 	imageContainer test(NULL);
 	test.show();

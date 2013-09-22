@@ -290,7 +290,7 @@ void imageViewer::check_frame( unsigned int idx ){
 }
 
 void imageViewer::init_size(){
-	//TODO: custimize
+	//TODO: customize
 	if( initial_resize )
 		emit resize_wanted();
 	initial_resize = keep_resize;
@@ -315,7 +315,7 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 	current_frame = 0;
 	frame_amount = 0;
 	
-	auto_scale_on = true; //TODO: custimize?
+	auto_scale_on = true; //TODO: customize?
 	
 	shown_pos = QPoint( 0,0 );
 	shown_zoom_level = 0;

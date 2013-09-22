@@ -21,9 +21,8 @@
 #include <QObject>
 #include <QImage>
 #include <vector>
-#include "color.h"
 
-class QImage;
+class color;
 
 class imageCache: public QObject{
 	Q_OBJECT
