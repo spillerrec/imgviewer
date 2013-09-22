@@ -46,6 +46,15 @@ class imageViewer: public QWidget{
 		bool can_animate() const;
 		bool is_animating() const{ return continue_animating; }
 	
+	//Color managed cache
+	private:
+		QImage converted;
+		int converted_monitor;
+		void clear_converted(){
+			converted = QImage();
+			converted_monitor = -1;
+		}
+	
 	//How the image is to be viewed
 	private:
 		QPoint shown_pos;

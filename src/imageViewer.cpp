@@ -18,6 +18,7 @@
 #include "imageViewer.h"
 #include "imageCache.h"
 #include "qrect_extras.h"
+#include "color.h"
 
 using namespace std;
 
@@ -37,6 +38,9 @@ using namespace std;
 #include <QMouseEvent>
 #include <QWheelEvent>
 
+#include <QApplication>
+#include <QDesktopWidget>
+
 #include <cmath>
 #include <algorithm>
 
@@ -48,6 +52,7 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 	loop_counter = 0;
 	continue_animating = false;
 	waiting_on_frame = -1;
+	clear_converted();
 	
 	//Auto scale default settings
 	auto_scale_on = true;
@@ -98,6 +103,7 @@ bool imageViewer::moveable() const{
 void imageViewer::change_frame( int wanted ){
 	if( !image_cache )
 		return;
+	clear_converted();
 	
 	//Cycle backwards
 	if( wanted < 0 )
@@ -314,6 +320,7 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 	waiting_on_frame = -1;
 	current_frame = 0;
 	frame_amount = 0;
+	clear_converted();
 	
 	auto_scale_on = true; //TODO: customize?
 	
@@ -396,7 +403,23 @@ void imageViewer::paintEvent( QPaintEvent* ){
 	
 	
 	//Everything went fine, start drawing the image
-	QImage frame = image_cache->frame( current_frame );
+	QImage frame;
+	int current_monitor = QApplication::desktop()->screenNumber( this );
+	if( converted_monitor != current_monitor ){
+		//Cache invalid, refresh
+		frame = image_cache->frame( current_frame );
+		
+		//Transform colors to current monitor profile
+		color* manager = image_cache->get_manager();
+		cmsHTRANSFORM transform = manager->get_transform( image_cache->get_profile(), current_monitor );
+		manager->do_transform( &frame, current_monitor, transform );
+		manager->delete_transform( transform );
+			
+		converted = frame;
+		converted_monitor = current_monitor;
+	}
+	else
+		frame = converted;
 	
 	QPainter painter( this );
 	if( frame.width()*1.5 >= shown_size.width() )

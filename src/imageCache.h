@@ -21,6 +21,7 @@
 #include <QObject>
 #include <QImage>
 #include <vector>
+#include <lcms2.h>
 
 class color;
 
@@ -33,6 +34,8 @@ class imageCache: public QObject{
 		
 	private:
 	//Variables containing info about the image(s)
+		cmsHPROFILE profile;
+		
 		int frame_amount;
 		std::vector<QImage> frames;
 		int frames_loaded;
@@ -66,8 +69,14 @@ class imageCache: public QObject{
 			init();
 			read( filename );
 		}
+		~imageCache(){
+			if( profile )
+				cmsCloseProfile( profile );
+		}
 		
 		void read( QString filename );
+		cmsHPROFILE get_profile() const{ return profile; }
+		color* get_manager() const{ return manager; }
 		long get_memory_size() const{ return memory_size; }	//Notice, this is a rough number, not accurate!
 		
 		//Animation info
