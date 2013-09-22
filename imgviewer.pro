@@ -35,3 +35,7 @@ SOURCES += src/imageCache.cpp \
            src/fileManager.cpp \
            src/color.cpp
 RESOURCES += src/resources/resources.qrc
+
+#Application icons
+ICON = src/resources/appicon.icns
+RC_FILE = src/resources/icon.rc
