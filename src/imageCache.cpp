@@ -78,13 +78,15 @@ void imageCache::read( QString filename ){
 		}
 		
 		//ICC
-		cmsHTRANSFORM transform = 0;
+		cmsHPROFILE profile = NULL;
 		unsigned len;
 		unsigned char *data = rotation.get_icc( len );
-		if( data ){
-			transform = manager->get_transform( data, len );
-		//	qDebug( "Tried to get transform: %d", (int) transform );
-		}
+		if( data )
+			profile = manager->get_profile( data, len );
+		cmsHTRANSFORM transform = manager->get_transform( profile, 0 );
+		
+		if( profile ) //TODO: save this profile
+			cmsCloseProfile( profile );
 		
 		//Signal that status have changed
 		current_status = INFO_READY;
@@ -105,7 +107,7 @@ void imageCache::read( QString filename ){
 				break;
 			}
 			
-			manager->transform( &(frames[i]), transform );
+			manager->do_transform( &(frames[i]), 0, transform );
 			
 			//Orient image
 			if( rot != 1 ){
@@ -140,6 +142,8 @@ void imageCache::read( QString filename ){
 				frame_amount = i;
 			emit frame_loaded( i );
 		}
+		
+		manager->delete_transform( transform );
 		
 		if( current_status == FRAMES_READY ) //All reads where successful
 			current_status = LOADED;

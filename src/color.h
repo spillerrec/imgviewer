@@ -19,28 +19,34 @@
 #define COLOR_H
 
 #include <QString>
+#include <vector>
 #include <lcms2.h>
 
 class QImage;
 
 class color{
 	private:
+		struct MonitorIcc{
+			cmsHPROFILE profile;
+			cmsHTRANSFORM transform_srgb;
+			
+			MonitorIcc( cmsHPROFILE profile ) : profile( profile ) { }
+		};
+		std::vector<MonitorIcc> monitors;
+		
 		cmsHPROFILE p_srgb;
-		cmsHPROFILE p_monitor;
-		cmsHTRANSFORM t_default;
-	
-	private:
-		void do_transform( QImage *img, cmsHTRANSFORM transform ) const;
-	
+		
+		
 	public:
 		explicit color( QString filepath );
 		~color();
 		
-		void transform( QImage *img, cmsHTRANSFORM transform=0 ) const{
-			do_transform( img, (transform) ?  transform : t_default );
-		}
+		void do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM transform ) const;
 		
-		cmsHTRANSFORM get_transform( unsigned char *data, unsigned len ) const;
+		cmsHPROFILE get_profile( unsigned char *data, unsigned len ) const{
+			return cmsOpenProfileFromMem( (const void*)data, len );
+		}
+		cmsHTRANSFORM get_transform( cmsHPROFILE in, unsigned monitor ) const;
 		void delete_transform( cmsHTRANSFORM transform ) const{
 			if( transform )
 				cmsDeleteTransform( transform );

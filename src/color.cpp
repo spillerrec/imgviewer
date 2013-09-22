@@ -29,79 +29,89 @@
 color::color( QString filepath ){
 	//Init default profiles
 	p_srgb = cmsCreate_sRGBProfile();
-	p_monitor = NULL;
 	
 #ifdef Q_OS_WIN
-	//Try to grap it from the Windows APIs
-	DWORD size = 250;
-	wchar_t temp[size];
-	GetICMProfile( GetDC(NULL), &size, temp );
-	char temp2[size*2];
-	wcstombs( temp2, temp, size*2 );
-	qDebug( temp2 );
-	p_monitor = cmsOpenProfileFromFile( temp2, "r");
-	
-	//TODO: find a way to iterate over all displays
-/*	DISPLAY_DEVICE disp;
+	//Try to grab it from the Windows APIs
+	DISPLAY_DEVICE disp;
+	DWORD index = 0;
 	disp.cb = sizeof(DISPLAY_DEVICE);
-	if( EnumDisplayDevices( NULL, 0, &disp, 0 ) ){
-		qDebug( "Yes!" );
+	while( EnumDisplayDevices( NULL, index++, &disp, 0 ) != 0 ){
+		//Temporaries for converting
+		DWORD size = 250;
+		wchar_t icc_path[size];
+		char path_ancii[size*2];
 		
+		//Get profile
+		HDC hdc = CreateDC( NULL, disp.DeviceName, icc_path, NULL ); //TODO: what is icc_path used here for?
+		GetICMProfile( hdc, &size, icc_path );
+		DeleteDC( hdc );
+		
+		//Read and add
+		wcstombs( path_ancii, icc_path, size*2 );
+		monitors.push_back( MonitorIcc( cmsOpenProfileFromFile( path_ancii, "r") ) );
 	}
-	else
-		qDebug( "Noo : \\" );
-*/
 #else
 	QString app_path = QCoreApplication::applicationDirPath();
-	p_monitor = cmsOpenProfileFromFile( (app_path + "/1.icm").toLocal8Bit().data(), "r");
+	monitors.push_back( MonitorIcc( cmsOpenProfileFromFile( (app_path + "/1.icm").toLocal8Bit().data(), "r") ) );
 #endif
 	
-	//If there is a profile, make a default transform.
-	if( p_monitor ){
-		t_default = cmsCreateTransform(
-				p_srgb
-			,	TYPE_BGRA_8	//This might be incorrect on some systems???
-			,	p_monitor
-			,	TYPE_BGRA_8
-			,	INTENT_PERCEPTUAL
-			,	0
-			);
+	//Create default transforms
+	for( unsigned i=0; i<monitors.size(); ++i ){
+		MonitorIcc &icc( monitors[i] );
+		//If there is a profile, make a default transform.
+		if( icc.profile ){
+			icc.transform_srgb = cmsCreateTransform(
+					p_srgb
+				,	TYPE_BGRA_8	//This might be incorrect on some systems???
+				,	icc.profile
+				,	TYPE_BGRA_8
+				,	INTENT_PERCEPTUAL
+				,	0
+				);
+		}
+		else
+			icc.transform_srgb = NULL;
 	}
-	else
-		t_default = NULL;
 }
 color::~color(){
 	//Delete profiles and transforms
 	cmsCloseProfile( p_srgb );
-	if( p_monitor )
-		cmsCloseProfile( p_monitor );
-	if( t_default )
-		cmsDeleteTransform( t_default );
+	for( unsigned i=0; i<monitors.size(); ++i ){
+		if( monitors[i].profile )
+			cmsCloseProfile( monitors[i].profile );
+		if( monitors[i].transform_srgb )
+			cmsDeleteTransform( monitors[i].transform_srgb );
+	}
 }
 
 
 //Load a profile from memory and get its transform
-cmsHTRANSFORM color::get_transform( unsigned char *data, unsigned len ) const{
-	cmsHPROFILE in = cmsOpenProfileFromMem( (const void*)data, len );
-	if( in ){
+cmsHTRANSFORM color::get_transform( cmsHPROFILE in, unsigned monitor ) const{
+	if( in && monitors.size() > monitor ){
+		//Get monitor profile, or fall-back to sRGB
+		cmsHPROFILE use = monitors[monitor].profile;
+		if( !use )
+			use = p_srgb;
+			
 		//Create transform
-		cmsHTRANSFORM transform = cmsCreateTransform(
+		return cmsCreateTransform(
 				in
 			,	TYPE_BGRA_8
-			,	( p_monitor ) ? p_monitor : p_srgb //Fall back to sRGB
+			,	use
 			,	TYPE_BGRA_8
 			,	INTENT_PERCEPTUAL
 			,	0
 			);
-		cmsCloseProfile( in );
-		return transform;
 	}
 	else
 		return NULL;
 }
 
 
-void color::do_transform( QImage *img, cmsHTRANSFORM transform ) const{
+void color::do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM transform ) const{
+	if( !transform && monitors.size() > monitor )
+		transform = monitors[monitor].transform_srgb;
+	
 	if( transform ){
 		//Make sure the image is in the correct pixel format
 		QImage::Format format = img->format();
@@ -113,9 +123,8 @@ void color::do_transform( QImage *img, cmsHTRANSFORM transform ) const{
 			return;
 		//qDebug( "did transform %x", qRgba( 0xAA, 0xBB, 0xCC, 0xDD ) );
 		
-		
-		
 		//Convert
+		//TODO: use multiple threads?
 		for( int i=0; i < img->height(); i++ ){
 			char* line = (char*)img->scanLine( i );
 			cmsDoTransform( transform, line, line, img->width() );

@@ -32,7 +32,7 @@ windowManager::~windowManager(){
 
 
 //Resizes the window so that "content" will have "wanted" size.
-//Requires that only the only resizable widget contains "content".
+//Requires that only the only resizeable widget contains "content".
 //Window will be moved so that it does not cross monitors boundaries.
 //If "wanted" size can't fit on the monitor, it will be resized
 //depending on "keep_aspect". If false, height and width will be clipped.
@@ -42,11 +42,11 @@ QSize windowManager::resize_content( QSize wanted, QSize content, bool keep_aspe
 	//Get the difference in size between the content and the whole window
 	QSize difference = window->frameGeometry().size() - content;
 	
-	//Take the full area and substract the constant widths (which doesn't scale with aspect)
+	//Take the full area and subtract the constant widths (which doesn't scale with aspect)
 	QRect space = desktop->availableGeometry( window );
 	space.setSize( space.size() - difference );
 	
-	//Prepare resize dimentions, but keep it within "space"
+	//Prepare resize dimensions, but keep it within "space"
 	QRect position = constrain( space, QRect( contrain_point( space, window->pos() ), wanted ), keep_aspect );
 	
 	if( position.size() != wanted ){
@@ -66,7 +66,7 @@ QSize windowManager::resize_content( QSize wanted, QSize content, bool keep_aspe
 		}
 	}
 	
-	//Move and resize window. We need to convert dimentions to window size though.
+	//Move and resize window. We need to convert dimensions to window size though.
 	window->move( position.topLeft() );
 	window->resize( position.size() + window->size() - content );
 	
