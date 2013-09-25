@@ -69,6 +69,7 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 int fileManager::index_of( QString file ) const{
 	if( !locale_aware )
 		return qBinaryFind( files.begin(), files.end(), file ) - files.begin();
+		//TODO: this wouldn't return -1 on fail!
 	
 	return files.indexOf( file );
 }
@@ -264,14 +265,15 @@ static bool file_exists( QFileInfo file ){
 }
 
 void fileManager::dir_modified(){
-	if( !has_file() )
-		return;
-	
 	//Wait shortly to ensure files have been updated
 	//Solution by kshark27: http://stackoverflow.com/a/11487434/2248153
 	QTime wait = QTime::currentTime().addMSecs( 200 );
 	while( QTime::currentTime() < wait )
 		QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
+	
+	//processEvents can modify this object, so check this afterwards
+	if( !has_file() )
+		return;
 	
 	//TODO: replace this with a "lower-bound"
 	//Find the file to show now, considering it might have disappeared

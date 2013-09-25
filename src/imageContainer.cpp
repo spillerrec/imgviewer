@@ -178,8 +178,8 @@ imageContainer::~imageContainer(){
 void imageContainer::update_file(){
 	qDebug( "updating file: %s", files->file_name().toLocal8Bit().constData() );
 	setWindowTitle( files->file_name() );
-	update_controls();
 	viewer->change_image( files->file(), false );
+	update_controls();
 }
 
 

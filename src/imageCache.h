@@ -85,8 +85,8 @@ class imageCache: public QObject{
 		
 		//Frame info
 		int frame_count() const{ return frame_amount; }
-		QImage frame( unsigned int idx ) const{ return frames[ idx ]; }
-		int frame_delay( unsigned int idx ) const{ return frame_delays[ idx ]; } //How long a frame should be shown
+		QImage frame( unsigned int idx ) const{ return idx < frames.size() ? frames[ idx ] : QImage(); }
+		int frame_delay( unsigned int idx ) const{ return idx < frames.size() ? frame_delays[ idx ] : 0; } //How long a frame should be shown
 	
 	signals:
 		void info_loaded();
