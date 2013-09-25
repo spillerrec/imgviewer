@@ -358,6 +358,8 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 		
 		emit image_changed();
 	}
+	else
+		update();
 }
 
 
