@@ -241,8 +241,11 @@ void imageContainer::delete_file( bool ask ){
 
 void imageContainer::update_controls(){
 	//Show amount of frames in file
+	int current_frame = viewer->get_current_frame() + 1;
+	if( viewer->get_frame_amount() == 0 )
+		current_frame = 0;
 	ui->lbl_image_amount->setText(
-			QString::number( viewer->get_current_frame()+1 )
+			QString::number( current_frame )
 			+ "/" +
 			QString::number( viewer->get_frame_amount() )
 		);
