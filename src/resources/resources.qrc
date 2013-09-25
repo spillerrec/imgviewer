@@ -7,5 +7,6 @@
     <file>small_next.png</file>
     <file>small_prev.png</file>
     <file>start.png</file>
+    <file>appicon.png</file>
   </qresource>
 </RCC>
