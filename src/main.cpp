@@ -17,6 +17,7 @@
 
 #include <QApplication>
 #include <QDir>
+#include <QIcon>
 
 #include "imageContainer.h"
 
@@ -26,6 +27,7 @@ int main( int argc, char *argv[] ){
 	QStringList args = a.arguments();
 	
 	imageContainer test(NULL);
+	test.setWindowIcon( QIcon( ":/main/appicon.png" ) );
 	test.show();
 	
 	if( args.size() == 2 ){
