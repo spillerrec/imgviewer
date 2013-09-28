@@ -25,7 +25,7 @@
 class QImage;
 
 class color{
-	private:
+	public:
 		struct MonitorIcc{
 			cmsHPROFILE profile;
 			cmsHTRANSFORM transform_srgb;

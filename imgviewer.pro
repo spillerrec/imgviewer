@@ -12,6 +12,10 @@ win32{
 	DEFINES += PORTABLE
 }
 QT += widgets
+unix{
+	QT += x11extras
+	LIBS += -lxcb
+}
 
 # Input
 HEADERS += src/imageCache.h \

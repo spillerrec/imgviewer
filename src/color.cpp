@@ -18,13 +18,84 @@
 #include "color.h"
 
 #include <lcms2.h>
-#include <QCoreApplication>
+#include <QApplication>
 #include <QImage>
+using namespace std;
 
 #include <qglobal.h>
 #ifdef Q_OS_WIN
 	#include <qt_windows.h>
+#else
+	#include <QDesktopWidget>
+	#include <QX11Info>
+
+	#include <xcb/xcb.h>
+	#include <xcb/xproto.h>
+	#include <xcb/xcb_atom.h>
+
+	#include <string>
+	#include <vector>
+
+	struct x_mon{
+		xcb_atom_t atom;
+		xcb_intern_atom_cookie_t atom_cookie;
+		xcb_get_property_cookie_t prop_cookie;
+	};
+	
+	vector<color::MonitorIcc> get_x11_icc(){
+		xcb_connection_t *conn = QX11Info::connection();
+		xcb_window_t window = QX11Info::appRootWindow();
+		int monitor_amount = QApplication::desktop()->screenCount();
+		
+		vector<x_mon> x_mons;
+		x_mons.reserve( monitor_amount );
+		
+		//Get cookies for atoms
+		vector<xcb_atom_t> atoms;
+		for( int i=0; i<monitor_amount; i++ ){
+			string name = "_ICC_PROFILE";
+			if( i > 0 )
+				name += ( "_" + QString::number( i ) ).toUtf8().constData();
+			
+			x_mon mon;
+			mon.atom_cookie = xcb_intern_atom( conn, 1, name.size(), name.c_str() );
+			x_mons.push_back( mon );
+		}
+		
+		//Get atoms
+		for( int i=0; i<monitor_amount; i++ ){
+			xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply( conn, x_mons[i].atom_cookie, NULL );
+			if( reply ){
+				x_mons[i].atom = reply->atom;
+				free( reply );
+			}
+			else
+				x_mons[i].atom = XCB_NONE;
+		}
+		
+		//Get property cookies
+		for( int i=0; i<monitor_amount; i++ )
+			x_mons[i].prop_cookie = xcb_get_property( conn, 0, window, x_mons[i].atom, XCB_ATOM_CARDINAL, 0, UINT_MAX );
+		
+		//Load profiles
+		vector<color::MonitorIcc> iccs;
+		iccs.reserve( monitor_amount );
+		for( int i=0; i<monitor_amount; i++ ){
+			xcb_get_property_reply_t *reply = xcb_get_property_reply( conn, x_mons[i].prop_cookie, NULL );
+			
+			color::MonitorIcc icc( NULL );
+			if( reply ){
+				icc.profile = cmsOpenProfileFromMem( xcb_get_property_value( reply ), reply->length );
+				free( reply );
+			}
+			iccs.push_back( icc );
+		}
+		
+		return iccs;
+	}
+
 #endif
+
 
 color::color( QString filepath ){
 	//Init default profiles
@@ -51,8 +122,14 @@ color::color( QString filepath ){
 		monitors.push_back( MonitorIcc( cmsOpenProfileFromFile( path_ancii, "r") ) );
 	}
 #else
-	QString app_path = QCoreApplication::applicationDirPath();
-	monitors.push_back( MonitorIcc( cmsOpenProfileFromFile( (app_path + "/1.icm").toLocal8Bit().data(), "r") ) );
+	#ifdef Q_OS_UNIX
+		monitors = get_x11_icc();
+	#else
+		QString app_path = QApplication::applicationDirPath();
+		monitors.push_back( MonitorIcc( cmsOpenProfileFromFile( (app_path + "/1.icc").toLocal8Bit().constData(), "r") ) );
+		qDebug( "Warning, no proper support for color management on this platform" );
+	//TODO:
+	#endif
 #endif
 	
 	//Create default transforms
