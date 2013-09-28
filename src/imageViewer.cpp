@@ -275,6 +275,9 @@ void imageViewer::update_cursor(){
 
 
 void imageViewer::read_info(){
+	if( !image_cache )
+		return;
+	
 	frame_amount = image_cache->frame_count();
 	loop_counter = image_cache->loop_count();
 	continue_animating = image_cache->is_animated();
@@ -355,6 +358,8 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 		
 		emit image_changed();
 	}
+	else
+		update();
 }
 
 
