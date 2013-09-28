@@ -97,7 +97,7 @@ using namespace std;
 #endif
 
 
-color::color( QString filepath ){
+color::color(){
 	//Init default profiles
 	p_srgb = cmsCreate_sRGBProfile();
 	

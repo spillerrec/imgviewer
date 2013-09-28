@@ -38,7 +38,7 @@ class color{
 		
 		
 	public:
-		explicit color( QString filepath );
+		color();
 		~color();
 		
 		void do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM transform ) const;

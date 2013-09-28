@@ -30,7 +30,7 @@ color* imageCache::manager = NULL;
 
 void imageCache::init(){
 	if( !manager )
-		manager = new color( "" );
+		manager = new color();
 	
 	profile = NULL;
 	frames_loaded = 0;
