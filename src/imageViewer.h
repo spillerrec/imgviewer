@@ -26,8 +26,6 @@
 class imageCache;
 
 class QStaticText;
-class QPaintEvent;
-class QResizeEvent;
 
 class imageViewer: public QWidget{
 	Q_OBJECT
@@ -95,9 +93,14 @@ class imageViewer: public QWidget{
 		bool toogle_animation();
 	
 	protected:
-		void draw_message( QStaticText *text );
-		void paintEvent( QPaintEvent *event );
-		void resizeEvent( QResizeEvent * ){ if( auto_scale_on ) auto_zoom(); }
+		void draw_message( QStaticText* text );
+		void paintEvent( QPaintEvent* );
+		void resizeEvent( QResizeEvent* ){
+			if( auto_scale_on )
+				auto_zoom();
+			else
+				restrict_view();
+		}
 	
 	//Controlling mouse actions
 	protected:
