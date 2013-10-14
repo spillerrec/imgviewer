@@ -44,14 +44,9 @@ meta::~meta(){
 
 int meta::get_orientation(){
 	if( data ){
-		ExifEntry *orientation = exif_content_get_entry( data->ifd[0], EXIF_TAG_ORIENTATION ); //TODO: [0]!
-		ExifShort value = 1;
-		if( orientation ){
-			value = exif_get_short( orientation->data, exif_data_get_byte_order( data ) );
-			//exif_entry_unref( orientation );
-		}
-		
-		return value;
+		ExifEntry *orientation = exif_content_get_entry( data->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION ); //TODO: [0]!
+		if( orientation )
+			return exif_get_short( orientation->data, exif_data_get_byte_order( data ) );
 	}
 	
 	return 1;
@@ -59,8 +54,7 @@ int meta::get_orientation(){
 
 unsigned char* meta::get_icc( unsigned &len ){
 	if( data ){
-		qDebug( "Trying to fetch icc" );
-		ExifEntry *icc = exif_content_get_entry( data->ifd[EXIF_IFD_1], EXIF_TAG_INTER_COLOR_PROFILE ); //TODO: [0]!
+		ExifEntry *icc = exif_content_get_entry( data->ifd[EXIF_IFD_0], EXIF_TAG_INTER_COLOR_PROFILE );
 		if( icc ){
 			len = icc->size;
 			return icc->data;
