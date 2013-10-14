@@ -75,6 +75,7 @@ class imageContainer: public QWidget{
 	public slots:
 		void toogle_animation();
 		void toogle_fullscreen();
+		void restrain_window();
 		
 		void open_file();
 		void next_file();

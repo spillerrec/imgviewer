@@ -86,6 +86,7 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	//Center window on mouse cursor on start
 	QSize half_size( frameGeometry().size() / 2 );
 	move( QCursor::pos() - QPoint( half_size.width(), half_size.height() ) );
+	manager->restrain_window();
 	
 	//Connect signals
 	connect( viewer, SIGNAL( clicked() ),         this, SLOT( hide_menubar() ) );
@@ -393,5 +394,9 @@ void imageContainer::mousePressEvent( QMouseEvent* event ){
 void imageContainer::resize_window(){
 	if( !is_fullscreen ) //Buggy in fullscreen
 		manager->resize_content( viewer->sizeHint(), viewer->size(), true );
+}
+
+void imageContainer::restrain_window(){
+	manager->restrain_window();
 }
 

@@ -73,3 +73,21 @@ QSize windowManager::resize_content( QSize wanted, QSize content, bool keep_aspe
 	return position.size();
 }
 
+#include <algorithm>
+void windowManager::restrain_window(){
+	QRect space = desktop->availableGeometry( window );
+	QRect frame = window->frameGeometry();
+	frame.setTopLeft( window->pos() );
+	
+	if( frame.x() + frame.width() > space.x() + space.width() )
+		frame.moveLeft( std::max( space.x(), space.x() + space.width() - frame.width() ) );
+	if( frame.y() + frame.height() > space.y() + space.height() )
+		frame.moveTop( std::max( space.y(), space.y() + space.height() - frame.height() ) );
+	if( frame.x() < space.x() )
+		frame.moveLeft( space.x() );
+	if( frame.y() < space.y() )
+		frame.moveTop( space.y() );
+	window->move( frame.topLeft() );
+//	window->resize( frame.size() );
+}
+

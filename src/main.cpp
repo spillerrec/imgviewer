@@ -26,13 +26,14 @@ int main( int argc, char *argv[] ){
 	QApplication a( argc, argv );
 	QStringList args = a.arguments();
 	
-	imageContainer test(NULL);
-	test.setWindowIcon( QIcon( ":/main/appicon.png" ) );
-	test.show();
+	imageContainer main(NULL);
+	main.setWindowIcon( QIcon( ":/main/appicon.png" ) );
+	main.show();
+	main.restrain_window();
 	
 	if( args.size() == 2 ){
 		QDir file( args.at(1) );
-		test.load_image( file.path() );
+		main.load_image( file.path() );
 	}
 	
 	return a.exec();

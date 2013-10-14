@@ -31,6 +31,7 @@ class windowManager{
 		~windowManager();
 		
 		QSize resize_content( QSize wanted, QSize content, bool keep_aspect = false );
+		void restrain_window();
 };
 
 
