@@ -74,6 +74,10 @@ class imageCache: public QObject{
 				cmsCloseProfile( profile );
 		}
 		
+		void set_info( unsigned total_frames, bool is_animated=false, int loops=0 );
+		void add_frame( QImage frame, unsigned delay );
+		void set_fully_loaded();
+		
 		void read( QString filename );
 		cmsHPROFILE get_profile() const{ return profile; }
 		color* get_manager() const{ return manager; }

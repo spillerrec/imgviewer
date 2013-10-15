@@ -38,6 +38,27 @@ void imageCache::init(){
 	current_status = EMPTY;
 }
 
+void imageCache::set_info( unsigned total_frames, bool is_animated, int loops ){
+	current_status = INFO_READY;
+	animate = is_animated;
+	frame_amount = total_frames;
+	loop_amount = loops;
+	emit info_loaded();
+}
+
+void imageCache::add_frame( QImage frame, unsigned delay ){
+	frames_loaded++;
+	frame_amount = std::max( frame_amount, frames_loaded );
+	frames.push_back( frame );
+	frame_delays.push_back( delay );
+	current_status = FRAMES_READY;
+	emit frame_loaded( frames_loaded-1 );
+}
+
+void imageCache::set_fully_loaded(){
+	current_status = LOADED;
+}
+
 void imageCache::read( QString filename ){
 	//Make sure this cache is unloaded!
 	if( current_status != EMPTY )

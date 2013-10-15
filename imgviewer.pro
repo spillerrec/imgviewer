@@ -6,7 +6,7 @@ TEMPLATE = app
 TARGET = imgviewer
 DEPENDPATH += . debug src src/resources
 INCLUDEPATH += .
-LIBS += -lexif -llcms2
+LIBS += -lexif -llcms2 -lpng -lz
 win32{
 	LIBS += -lgdi32
 	DEFINES += PORTABLE
@@ -39,6 +39,14 @@ SOURCES += src/imageCache.cpp \
            src/fileManager.cpp \
            src/color.cpp
 RESOURCES += src/resources/resources.qrc
+
+#ImageReader
+HEADERS += src/ImageReader/ImageReader.hpp \
+           src/ImageReader/AReader.hpp \
+           src/ImageReader/ReaderPng.hpp
+SOURCES += src/ImageReader/ImageReader.cpp \
+           src/ImageReader/AReader.cpp \
+           src/ImageReader/ReaderPng.cpp
 
 #Application icons
 ICON = src/resources/appicon.icns
