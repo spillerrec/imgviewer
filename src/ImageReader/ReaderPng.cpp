@@ -20,6 +20,7 @@
 #include <QImage>
 #include <png.h>
 #include <cstring>
+#include <cmath>
 
 
 struct MemStream{
@@ -43,17 +44,46 @@ static void read_from_mem_stream( png_structp png_ptr, png_bytep bytes_out, png_
 }
 
 bool ReaderPng::can_read( const char* data, unsigned lenght ) const{
-	return png_sig_cmp( (unsigned char*)data, 0, 8 ) == 0;
+	return png_sig_cmp( (unsigned char*)data, 0, std::min( 8u, lenght ) ) == 0;
 }
 
 static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, unsigned height, png_bytepp row_pointers ){
-	//TODO: check if image has alpha
-	QImage frame( width, height, QImage::Format_ARGB32 );
+	unsigned color_type = png_get_color_type( png_ptr, info_ptr );
+	bool alpha = color_type == PNG_COLOR_TYPE_GRAY_ALPHA
+		||	color_type == PNG_COLOR_TYPE_RGB_ALPHA
+		;
+	unsigned bit_depth = png_get_bit_depth( png_ptr, info_ptr );
+	
+	//Set image type
+	QImage::Format format = QImage::Format_ARGB32;
+	if( !alpha ){
+		format = QImage::Format_RGB32;
+	}
+	
+	//TODO: support palette images
+	if( color_type == PNG_COLOR_TYPE_PALETTE )
+		png_set_palette_to_rgb( png_ptr );
+	
+	//Qt doesn't have gray-scale
+	if( color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA )
+		png_set_gray_to_rgb( png_ptr );
+	
+	//Use the format BGRA
+	png_set_filler( png_ptr, 255, PNG_FILLER_AFTER );
+	png_set_bgr( png_ptr );
+	
+	//Always use 8 bits
+	if( bit_depth < 8 )
+		png_set_packing( png_ptr );
+	else
+		png_set_strip_16( png_ptr );
+	
+	
+	//Initialize image
+	QImage frame( width, height, format );
 	for( unsigned iy=0; iy<height; iy++ )
 		row_pointers[iy] = (png_bytep)frame.scanLine( iy );
 	
-	png_set_filler( png_ptr, 255, PNG_FILLER_AFTER );
-	png_set_bgr( png_ptr );
 	png_read_image( png_ptr, row_pointers );
 	
 	return frame;
@@ -64,13 +94,17 @@ static QImage readRGBA( png_structp png_ptr, png_infop info_ptr ){
 	unsigned width = png_get_image_width( png_ptr, info_ptr );
 	
 	png_bytep* row_pointers = new png_bytep[ height ];
-		QImage frame = readRGB( png_ptr, info_ptr, width, height, row_pointers );
+	if( setjmp( png_jmpbuf( png_ptr ) ) ){
+		delete[] row_pointers;
+		return QImage();
+	}
+	
+	QImage frame = readRGB( png_ptr, info_ptr, width, height, row_pointers );
 	delete[] row_pointers;
 	
 	return frame;
 }
 
-#include <cmath>
 static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info_ptr ){
 	png_uint_32 width = png_get_image_width( png_ptr, info_ptr );
 	png_uint_32 height = png_get_image_height( png_ptr, info_ptr );
@@ -79,6 +113,10 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 	png_byte dispose_op, blend_op;
 	
 	png_bytep* row_pointers = new png_bytep[ height ];
+	if( setjmp( png_jmpbuf( png_ptr ) ) ){
+		delete[] row_pointers;
+		return;
+	}
 	
 	cache.set_info( png_get_num_frames( png_ptr, info_ptr ), true, -1 );
 	
@@ -121,6 +159,12 @@ AReader::Error ReaderPng::read( imageCache &cache, const char* data, unsigned le
 	if( !info_ptr ){
 		png_destroy_read_struct( &png_ptr, NULL, NULL );
 		return ERROR_INITIALIZATION;
+	}
+	
+	//Handle errors
+	if( setjmp( png_jmpbuf( png_ptr ) ) ){
+		png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
+		return ERROR_FILE_BROKEN;
 	}
 	
 	//Prepare reading
