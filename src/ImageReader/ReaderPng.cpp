@@ -18,6 +18,7 @@
 #include "ReaderPng.hpp"
 
 #include <QImage>
+#include <QPainter>
 #include <png.h>
 #include <cstring>
 #include <cmath>
@@ -47,7 +48,7 @@ bool ReaderPng::can_read( const char* data, unsigned lenght ) const{
 	return png_sig_cmp( (unsigned char*)data, 0, std::min( 8u, lenght ) ) == 0;
 }
 
-static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, unsigned height, png_bytepp row_pointers ){
+static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, unsigned height, png_bytepp row_pointers, unsigned frame_count=0 ){
 	unsigned color_type = png_get_color_type( png_ptr, info_ptr );
 	bool alpha = color_type == PNG_COLOR_TYPE_GRAY_ALPHA
 		||	color_type == PNG_COLOR_TYPE_RGB_ALPHA
@@ -84,6 +85,8 @@ static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, 
 	for( unsigned iy=0; iy<height; iy++ )
 		row_pointers[iy] = (png_bytep)frame.scanLine( iy );
 	
+	if( frame_count == 0 )
+		png_read_update_info( png_ptr, info_ptr );
 	png_read_image( png_ptr, row_pointers );
 	
 	return frame;
@@ -108,7 +111,7 @@ static QImage readRGBA( png_structp png_ptr, png_infop info_ptr ){
 static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info_ptr ){
 	png_uint_32 width = png_get_image_width( png_ptr, info_ptr );
 	png_uint_32 height = png_get_image_height( png_ptr, info_ptr );
-	png_uint_32 x_offset, y_offset;
+	png_uint_32 x_offset=0, y_offset=0;
 	png_uint_16 delay_num, delay_den;
 	png_byte dispose_op, blend_op;
 	
@@ -118,9 +121,20 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 		return;
 	}
 	
-	cache.set_info( png_get_num_frames( png_ptr, info_ptr ), true, -1 );
+	unsigned repeats = png_get_num_plays( png_ptr, info_ptr );
+	unsigned frames = png_get_num_frames( png_ptr, info_ptr );
 	
-	for( unsigned i=0; i < png_get_num_frames( png_ptr, info_ptr ); ++i ){
+	QImage default_frame;
+	if( png_get_first_frame_is_hidden( png_ptr, info_ptr ) ){
+		default_frame = readRGB( png_ptr, info_ptr, width, height, row_pointers );
+		--frames; //libpng appears to tell the total amount of images
+	}
+	
+	cache.set_info( frames, true, repeats>0 ? repeats-1 : -1 );
+	
+	QImage canvas( width, height, QImage::Format_ARGB32 );
+	canvas.fill( qRgba( 0,0,0,0 ) );
+	for( unsigned i=0; i < frames; ++i ){
 		png_read_frame_head( png_ptr, info_ptr );
 		
 		if( png_get_valid( png_ptr, info_ptr, PNG_INFO_fcTL ) ){
@@ -137,10 +151,27 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 		}
 		
 		
-		QImage frame = readRGB( png_ptr, info_ptr, width, height, row_pointers );
+		QImage frame = readRGB( png_ptr, info_ptr, width, height, row_pointers, i );
 		
 		qDebug( "timings: %d/%d", delay_num, delay_den );
-		cache.add_frame( frame, std::ceil( (double)delay_num / delay_den * 1000 ) );
+		
+		//Compose
+		QImage output = canvas;
+		QPainter painter( &output );
+		
+		if( blend_op == PNG_BLEND_OP_SOURCE )
+			painter.setCompositionMode( QPainter::CompositionMode_Source );
+		painter.drawImage( x_offset, y_offset, frame );
+		
+		delay_den = delay_den==0 ? 100 : delay_den;
+		cache.add_frame( output, std::ceil( (double)delay_num / delay_den * 1000 ) );
+		
+		//Dispose
+		if( dispose_op == PNG_DISPOSE_OP_NONE )
+			canvas = output;
+		else if( dispose_op == PNG_DISPOSE_OP_BACKGROUND )
+			canvas.fill( qRgba( 0,0,0,0 ) );
+		//else dispose previous, which will discard the output
 	}
 	
 	delete[] row_pointers;
