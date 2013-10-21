@@ -48,10 +48,14 @@ void imageCache::set_info( unsigned total_frames, bool is_animated, int loops ){
 
 void imageCache::add_frame( QImage frame, unsigned delay ){
 	frames_loaded++;
-	frame_amount = std::max( frame_amount, frames_loaded );
 	frames.push_back( frame );
 	frame_delays.push_back( delay );
 	current_status = FRAMES_READY;
+	
+	if( frame_amount < frames_loaded ){
+		frame_amount = frames_loaded;
+		emit info_loaded();
+	}
 	emit frame_loaded( frames_loaded-1 );
 }
 
@@ -154,8 +158,10 @@ void imageCache::read( QString filename ){
 			
 			current_status = FRAMES_READY;
 			frames_loaded++;
-			if( frame_amount < i )
+			if( frame_amount < i ){
 				frame_amount = i;
+				emit info_loaded();
+			}
 			emit frame_loaded( i );
 		}
 		

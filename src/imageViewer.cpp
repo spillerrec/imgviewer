@@ -350,6 +350,7 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 			
 			case imageCache::INFO_READY:
 			case imageCache::FRAMES_READY:
+					connect( image_cache, SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
 					connect( image_cache, SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
 					read_info();
 				break;
