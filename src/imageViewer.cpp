@@ -150,6 +150,14 @@ void imageViewer::goto_frame( int index ){
 	time->stop();
 	continue_animating = false;
 	change_frame( index );
+	
+	//Make sure it works if the new frame has different dimensions
+	if( auto_scale_on )
+		auto_zoom();
+	else{
+		change_zoom( shown_zoom_level, QPoint() );
+		restrict_view();
+	}
 }
 
 void imageViewer::restart_animation(){
@@ -197,7 +205,7 @@ void imageViewer::restrict_view( bool force ){
 
 void imageViewer::change_zoom( double new_level, QPoint keep_on ){
 	QImage frame = get_frame();
-	if( new_level == shown_zoom_level || frame.isNull() )
+	if( frame.isNull() )
 		return;
 	
 	QSize img = frame.size();
