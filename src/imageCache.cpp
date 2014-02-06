@@ -126,6 +126,8 @@ void imageCache::read( QString filename ){
 			frames.push_back( QImage() );
 			if( !image_reader.read( &(frames[i]) ) ){
 				frames.pop_back();
+				frame_amount = frames.size();
+				emit info_loaded();
 				break;
 			}
 			
