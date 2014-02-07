@@ -16,11 +16,11 @@
 */
 
 #include "fileManager.h"
-#include "viewer/imageCache.h"
 
+#include "viewer/imageCache.h"
+#include "ImageReader/ImageReader.hpp"
 
 #include <QDir>
-#include <QImageReader>
 #include <QStringList>
 #include <QCoreApplication>
 #include <QTime>
@@ -60,7 +60,7 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 	
 	//Initialize all supported image formats
 	if( supported_file_ext.count() == 0 ){
-		QList<QByteArray> supported = QImageReader::supportedImageFormats();
+		QList<QString> supported = ImageReader().supportedExtensions();
 		for( int i=0; i<supported.count(); i++ )
 			supported_file_ext << "*." + QString( supported.at( i ) );
 	}

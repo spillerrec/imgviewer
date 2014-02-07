@@ -58,3 +58,10 @@ AReader::Error ImageReader::read( imageCache &cache, QString filepath ) const{
 	
 	return reader->read( cache, data.constData(), data.size(), ext );
 }
+
+QList<QString> ImageReader::supportedExtensions() const{
+	QList<QString> extensions;
+	for( auto format : formats )
+		extensions << format.first;
+	return extensions;
+}

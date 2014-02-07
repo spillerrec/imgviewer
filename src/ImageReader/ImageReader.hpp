@@ -35,6 +35,8 @@ class ImageReader{
 		~ImageReader();
 		
 		AReader::Error read( imageCache &cache, QString filepath ) const;
+		
+		QList<QString> supportedExtensions() const;
 };
 
 
