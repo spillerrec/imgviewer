@@ -27,6 +27,9 @@
 #include <QDirIterator>
 #include <QtAlgorithms>
 
+#include <QMutex>
+#include <QMutexLocker>
+
 #include <qglobal.h>
 #ifdef Q_OS_WIN
 	#include <qt_windows.h>
@@ -264,12 +267,19 @@ static bool file_exists( QFileInfo file ){
 	return file.exists();
 }
 
+static QMutex mutex;
 void fileManager::dir_modified(){
+	//Make absolutely sure this is not called again before it finish loading
+	disconnect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
+	QMutexLocker locker(&mutex);
+	
 	//Wait shortly to ensure files have been updated
 	//Solution by kshark27: http://stackoverflow.com/a/11487434/2248153
 	QTime wait = QTime::currentTime().addMSecs( 200 );
 	while( QTime::currentTime() < wait )
 		QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
+	
+	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
 	
 	//processEvents can modify this object, so check this afterwards
 	if( !has_file() )
