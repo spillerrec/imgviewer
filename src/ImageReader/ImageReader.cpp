@@ -56,7 +56,22 @@ AReader::Error ImageReader::read( imageCache &cache, QString filepath ) const{
 	else
 		return AReader::ERROR_NO_FILE;
 	
-	return reader->read( cache, data.constData(), data.size(), ext );
+	AReader::Error err = reader->read( cache, data.constData(), data.size(), ext );
+	
+	if( err != AReader::ERROR_NONE ){
+		//Reading failed, lets try all the others and see if they can
+		for( auto r : readers ){
+			if( !r->can_read( data.constData(), data.size(), "" ) )
+				continue;
+			
+			if( r->read( cache, data.constData(), data.size(), "" ) == AReader::ERROR_NONE ){
+				//TODO: set warning
+				return AReader::ERROR_NONE;
+			}
+		}
+	}
+	
+	return err;
 }
 
 QList<QString> ImageReader::supportedExtensions() const{
