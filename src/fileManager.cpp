@@ -16,7 +16,7 @@
 */
 
 #include "fileManager.h"
-#include "imageCache.h"
+#include "viewer/imageCache.h"
 
 
 #include <QDir>

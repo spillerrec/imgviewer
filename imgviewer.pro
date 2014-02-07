@@ -17,36 +17,44 @@ unix{
 	LIBS += -lxcb
 }
 
+
+# C++11 support
+QMAKE_CXXFLAGS += -std=c++11
+
 # Input
-HEADERS += src/imageCache.h \
-           src/imageContainer.h \
+HEADERS += src/imageContainer.h \
            src/imageLoader.h \
-           src/imageViewer.h \
            src/meta.h \
-           src/qrect_extras.h \
            src/windowManager.h \
-           src/fileManager.h \
-           src/color.h
+           src/fileManager.h
 FORMS += src/controls_ui.ui
-SOURCES += src/imageCache.cpp \
-           src/imageContainer.cpp \
+SOURCES += src/imageContainer.cpp \
            src/imageLoader.cpp \
-           src/imageViewer.cpp \
            src/main.cpp \
            src/meta.cpp \
-           src/qrect_extras.cpp \
            src/windowManager.cpp \
-           src/fileManager.cpp \
-           src/color.cpp
+           src/fileManager.cpp
 RESOURCES += src/resources/resources.qrc
+
+#Viewer
+HEADERS += src/viewer/colorManager.h \
+           src/viewer/imageCache.h \
+           src/viewer/imageViewer.h \
+           src/viewer/qrect_extras.h
+SOURCES += src/viewer/colorManager.cpp \
+           src/viewer/imageCache.cpp \
+           src/viewer/imageViewer.cpp \
+           src/viewer/qrect_extras.cpp
 
 #ImageReader
 HEADERS += src/ImageReader/ImageReader.hpp \
            src/ImageReader/AReader.hpp \
-           src/ImageReader/ReaderPng.hpp
+           src/ImageReader/ReaderPng.hpp \
+           src/ImageReader/ReaderQt.hpp
 SOURCES += src/ImageReader/ImageReader.cpp \
            src/ImageReader/AReader.cpp \
-           src/ImageReader/ReaderPng.cpp
+           src/ImageReader/ReaderPng.cpp \
+           src/ImageReader/ReaderQt.cpp
 
 #Application icons
 ICON = src/resources/appicon.icns

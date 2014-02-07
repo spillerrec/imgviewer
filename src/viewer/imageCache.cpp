@@ -16,7 +16,7 @@
 */
 
 #include "imageCache.h"
-#include "color.h"
+#include "colorManager.h"
 
 #include <QSize>
 #include <QImage>
@@ -25,11 +25,11 @@
 #include <QPainter>
 #include <QTime>
 
-color* imageCache::manager = NULL;
+colorManager* imageCache::manager = NULL;
 
 void imageCache::init(){
 	if( !manager )
-		manager = new color();
+		manager = new colorManager();
 	
 	profile = NULL;
 	frames_loaded = 0;
@@ -38,7 +38,8 @@ void imageCache::init(){
 }
 
 void imageCache::set_profile( cmsHPROFILE profile ){
-	delete this->profile;
+	if( profile )
+		cmsCloseProfile( this->profile );
 	this->profile = profile;
 	emit info_loaded();
 }

@@ -17,7 +17,7 @@
 
 #include "ReaderQt.hpp"
 #include "../meta.h"
-#include "../color.h"
+#include "../viewer/colorManager.h"
 
 #include <QImageReader>
 #include <QBuffer>

@@ -16,7 +16,7 @@
 */
 
 #include "windowManager.h"
-#include "qrect_extras.h"
+#include "viewer/qrect_extras.h"
 #include <QApplication>
 #include <QDesktopWidget>
 

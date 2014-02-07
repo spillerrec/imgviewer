@@ -17,7 +17,7 @@
 
 #include "imageLoader.h"
 
-#include "imageCache.h"
+#include "viewer/imageCache.h"
 #include <QMutexLocker>
 #include <QFileInfo>
 

@@ -18,7 +18,7 @@
 #include "imageViewer.h"
 #include "imageCache.h"
 #include "qrect_extras.h"
-#include "color.h"
+#include "colorManager.h"
 
 using namespace std;
 
@@ -424,7 +424,7 @@ void imageViewer::paintEvent( QPaintEvent* ){
 		frame = image_cache->frame( current_frame );
 		
 		//Transform colors to current monitor profile
-		color* manager = image_cache->get_manager();
+		colorManager* manager = image_cache->get_manager();
 		cmsHTRANSFORM transform = manager->get_transform( image_cache->get_profile(), current_monitor );
 		manager->do_transform( &frame, current_monitor, transform );
 		manager->delete_transform( transform );

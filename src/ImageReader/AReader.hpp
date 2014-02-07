@@ -18,7 +18,7 @@
 #ifndef A_READER_HPP
 #define A_READER_HPP
 
-#include "../imageCache.h"
+#include "../viewer/imageCache.h"
 
 #include <QString>
 #include <QList>

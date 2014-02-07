@@ -15,7 +15,7 @@
 	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "color.h"
+#include "colorManager.h"
 
 #include <lcms2.h>
 #include <QApplication>
@@ -97,7 +97,7 @@ using namespace std;
 #endif
 
 
-color::color(){
+colorManager::colorManager(){
 	//Init default profiles
 	p_srgb = cmsCreate_sRGBProfile();
 	
@@ -150,7 +150,7 @@ color::color(){
 			icc.transform_srgb = NULL;
 	}
 }
-color::~color(){
+colorManager::~colorManager(){
 	//Delete profiles and transforms
 	cmsCloseProfile( p_srgb );
 	for( unsigned i=0; i<monitors.size(); ++i ){
@@ -163,7 +163,7 @@ color::~color(){
 
 
 //Load a profile from memory and get its transform
-cmsHTRANSFORM color::get_transform( cmsHPROFILE in, unsigned monitor ) const{
+cmsHTRANSFORM colorManager::get_transform( cmsHPROFILE in, unsigned monitor ) const{
 	if( in && monitors.size() > monitor ){
 		//Get monitor profile, or fall-back to sRGB
 		cmsHPROFILE use = monitors[monitor].profile;
@@ -185,7 +185,7 @@ cmsHTRANSFORM color::get_transform( cmsHPROFILE in, unsigned monitor ) const{
 }
 
 
-void color::do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM transform ) const{
+void colorManager::do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM transform ) const{
 	if( !transform && monitors.size() > monitor )
 		transform = monitors[monitor].transform_srgb;
 	

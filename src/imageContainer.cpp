@@ -16,8 +16,8 @@
 */
 
 #include "imageContainer.h"
-#include "imageViewer.h"
-#include "imageCache.h"
+#include "viewer/imageViewer.h"
+#include "viewer/imageCache.h"
 #include "fileManager.h"
 #include "windowManager.h"
 

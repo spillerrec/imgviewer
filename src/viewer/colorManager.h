@@ -15,8 +15,8 @@
 	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef COLOR_H
-#define COLOR_H
+#ifndef COLOR_MANAGER_H
+#define COLOR_MANAGER_H
 
 #include <QString>
 #include <vector>
@@ -24,7 +24,7 @@
 
 class QImage;
 
-class color{
+class colorManager{
 	public:
 		struct MonitorIcc{
 			cmsHPROFILE profile;
@@ -38,8 +38,8 @@ class color{
 		
 		
 	public:
-		color();
-		~color();
+		colorManager();
+		~colorManager();
 		
 		void do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM transform ) const;
 		

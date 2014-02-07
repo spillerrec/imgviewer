@@ -23,14 +23,14 @@
 #include <vector>
 #include <lcms2.h>
 
-class color;
+class colorManager;
 
 class imageCache: public QObject{
 	Q_OBJECT
 	
 	private:
 		void init();
-		static color* manager;
+		static colorManager* manager;
 		
 	private:
 	//Variables containing info about the image(s)
@@ -65,6 +65,12 @@ class imageCache: public QObject{
 		explicit imageCache(){
 			init();
 		}
+		explicit imageCache( QImage img ){
+			init();
+			set_info( 1, false );
+			add_frame( img, 0 );
+			set_fully_loaded();
+		}
 		~imageCache(){
 			if( profile )
 				cmsCloseProfile( profile );
@@ -76,7 +82,7 @@ class imageCache: public QObject{
 		void set_fully_loaded();
 		
 		cmsHPROFILE get_profile() const{ return profile; }
-		color* get_manager() const{ return manager; }
+		colorManager* get_manager() const{ return manager; }
 		long get_memory_size() const{ return memory_size; }	//Notice, this is a rough number, not accurate!
 		
 		//Animation info
