@@ -8,7 +8,7 @@ Customizable image viewer with minimalistic interface. Configuration and usage d
 - Multi-monitor support
 - Extensive mouse-actions, for example rocker-gestures
 - Minimalistic user interface
-- Animation support
+- Animation support + APNG support
 - Low-level configuration options
 - Cross-platform
 
