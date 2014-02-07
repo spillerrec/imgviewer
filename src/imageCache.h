@@ -65,20 +65,16 @@ class imageCache: public QObject{
 		explicit imageCache(){
 			init();
 		}
-		explicit imageCache( QString filename ){
-			init();
-			read( filename );
-		}
 		~imageCache(){
 			if( profile )
 				cmsCloseProfile( profile );
 		}
 		
+		void set_profile( cmsHPROFILE profile );
 		void set_info( unsigned total_frames, bool is_animated=false, int loops=0 );
 		void add_frame( QImage frame, unsigned delay );
 		void set_fully_loaded();
 		
-		void read( QString filename );
 		cmsHPROFILE get_profile() const{ return profile; }
 		color* get_manager() const{ return manager; }
 		long get_memory_size() const{ return memory_size; }	//Notice, this is a rough number, not accurate!

@@ -23,16 +23,10 @@
 #include <QFile>
 #include <QByteArray>
 
-meta::meta( QString filepath ){
+meta::meta( const char* file_data, unsigned lenght ){
 	ExifLoader *l = exif_loader_new();
 	
-	//Open file
-	QFile file( filepath );
-	if( file.open( QIODevice::ReadOnly ) ){
-		QByteArray data = file.readAll();
-		exif_loader_write( l, (unsigned char*)data.constData(), data.size() );
-		file.close();
-	}
+	exif_loader_write( l, (unsigned char*)file_data, lenght );
 	data = exif_loader_get_data(l);
 	exif_loader_unref(l);
 	l = 0;

@@ -43,10 +43,10 @@ class AReader{
 		virtual QList<QString> extensions() const = 0; // List of extensions files of this type can have
 		
 		
-		virtual bool can_read( const char* data, unsigned lenght ) const = 0; //Test if this file can be read
+		virtual bool can_read( const char* data, unsigned lenght, QString format ) const = 0; //Test if this file can be read
 		
 		//virtual bool read( imageCache &cache, QString filepath ){ return false; }
-		virtual Error read( imageCache &cache, const char* data, unsigned lenght ) const = 0;
+		virtual Error read( imageCache &cache, const char* data, unsigned lenght, QString format ) const = 0;
 		
 };
 

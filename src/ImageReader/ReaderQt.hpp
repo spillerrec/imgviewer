@@ -15,24 +15,19 @@
 	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef META_H
-#define META_H
+#ifndef READER_QT_HPP
+#define READER_QT_HPP
 
-#include <QString>
+#include "AReader.hpp"
+#include <QStringList>
 
-#include <libexif/exif-data.h>
-
-class meta{
-	private:
-		QString file;
-		ExifData *data;
+class ReaderQt: public AReader{
 	
 	public:
-		meta( const char* file_data, unsigned lenght );
-		~meta();
-		
-		int get_orientation();
-		unsigned char* get_icc( unsigned &len);
+		QList<QString> extensions() const;
+		virtual Error read( imageCache &cache, const char* data, unsigned lenght, QString format ) const;
+		virtual bool can_read( const char* data, unsigned lenght, QString format ) const;
+	
 };
 
 

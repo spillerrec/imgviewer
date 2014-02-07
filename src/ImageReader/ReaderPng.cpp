@@ -44,7 +44,7 @@ static void read_from_mem_stream( png_structp png_ptr, png_bytep bytes_out, png_
 		return; //Error!
 }
 
-bool ReaderPng::can_read( const char* data, unsigned lenght ) const{
+bool ReaderPng::can_read( const char* data, unsigned lenght, QString ) const{
 	return png_sig_cmp( (unsigned char*)data, 0, std::min( 8u, lenght ) ) == 0;
 }
 
@@ -183,8 +183,8 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 	delete[] row_pointers;
 }
 
-AReader::Error ReaderPng::read( imageCache &cache, const char* data, unsigned lenght ) const{
-	if( !can_read( data, lenght ) )
+AReader::Error ReaderPng::read( imageCache &cache, const char* data, unsigned lenght, QString format ) const{
+	if( !can_read( data, lenght, format ) )
 		return ERROR_TYPE_UNKNOWN;
 	
 	// Initialize libpng

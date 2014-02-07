@@ -18,23 +18,43 @@
 #include "ImageReader.hpp"
 
 #include <QFile>
+#include <QFileInfo>
 #include "ReaderPng.hpp"
+#include "ReaderQt.hpp"
 
 ImageReader::ImageReader(){
-	readers.push_back( new ReaderPng );
+	add_reader( new ReaderPng );
+	add_reader( new ReaderQt );
 }
 ImageReader::~ImageReader(){
 	for( unsigned i=0; i<readers.size(); ++i )
 		delete readers[i];
 }
 
+void ImageReader::add_reader( AReader* reader ){
+	readers.push_back( reader );
+	for( auto ext : reader->extensions() )
+		formats.insert( std::make_pair( ext.toLower(), reader ) );
+}
+
 AReader::Error ImageReader::read( imageCache &cache, QString filepath ) const{
+	QString ext = QFileInfo(filepath).suffix().toLower();
+	
+	AReader* reader = nullptr;
+	auto it = formats.find( ext );
+	if( it != formats.end() )
+		reader = it->second;
+	else
+		return AReader::ERROR_TYPE_UNKNOWN;
+	
 	QFile file( filepath );
 	QByteArray data;
 	if( file.open( QIODevice::ReadOnly ) ){
 		data = file.readAll();
 		file.close();
 	}
+	else
+		return AReader::ERROR_NO_FILE;
 	
-	return readers[0]->read( cache, data.constData(), data.size() );
+	return reader->read( cache, data.constData(), data.size(), ext );
 }

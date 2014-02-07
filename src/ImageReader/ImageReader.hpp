@@ -20,11 +20,15 @@
 
 #include <QString>
 #include <vector>
+#include <map>
 #include "AReader.hpp"
 
 class ImageReader{
 	protected:
 		std::vector<AReader*> readers;
+		std::map<QString,AReader*> formats;
+		
+		void add_reader( AReader* reader );
 		
 	public:
 		ImageReader();

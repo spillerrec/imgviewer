@@ -40,12 +40,8 @@ void imageLoader::run(){
 		mutex.unlock();
 		emit image_fetched();
 		
-		if( QFileInfo(filepath).suffix().toLower() == "png" ){
-			ImageReader reader;
-			reader.read( *img, filepath );
-		}
-		else
-			img->read( filepath );
+		ImageReader reader; //TODO: initialize in constructor?
+		reader.read( *img, filepath );
 		
 		mutex.lock();	//Make sure to lock it again, as wee need it at the while loop check
 		loading = NULL;
