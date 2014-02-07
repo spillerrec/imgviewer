@@ -55,12 +55,6 @@ static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, 
 		;
 	unsigned bit_depth = png_get_bit_depth( png_ptr, info_ptr );
 	
-	//Set image type
-	QImage::Format format = QImage::Format_ARGB32;
-	if( !alpha ){
-		format = QImage::Format_RGB32;
-	}
-	
 	//TODO: support palette images
 	if( color_type == PNG_COLOR_TYPE_PALETTE )
 		png_set_palette_to_rgb( png_ptr );
@@ -68,6 +62,12 @@ static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, 
 	//Qt doesn't have gray-scale
 	if( color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA )
 		png_set_gray_to_rgb( png_ptr );
+	
+	//Apply transparency information
+	if( png_get_valid( png_ptr, info_ptr, PNG_INFO_tRNS ) ){
+		png_set_tRNS_to_alpha( png_ptr );
+		alpha = true;
+	}
 	
 	//Use the format BGRA
 	png_set_filler( png_ptr, 255, PNG_FILLER_AFTER );
@@ -79,6 +79,12 @@ static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, 
 	else
 		png_set_strip_16( png_ptr );
 	
+	
+	//Set image type
+	QImage::Format format = QImage::Format_ARGB32;
+	if( !alpha ){
+		format = QImage::Format_RGB32;
+	}
 	
 	//Initialize image
 	QImage frame( width, height, format );
