@@ -341,8 +341,11 @@ void fileManager::dir_modified(){
 	current_file = index_of( new_file );
 	emit file_changed(); //The file and position could have changed
 	
-	if( current_file == -1 )
+	if( current_file == -1 ){
+		if( settings.value( "loading/quit-on-empty", false ).toBool() )
+			QCoreApplication::quit();
 		return;
+	}
 	
 	//Now delete images which are no longer here
 	//We can't do it earlier than emit file_changed(), as imageViewer needs to disconnect first
