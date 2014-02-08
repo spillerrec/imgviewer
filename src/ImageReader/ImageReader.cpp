@@ -53,22 +53,29 @@ AReader::Error ImageReader::read( imageCache &cache, QString filepath ) const{
 		data = file.readAll();
 		file.close();
 	}
-	else
+	else{
+		cache.set_status( imageCache::EMPTY );
 		return AReader::ERROR_NO_FILE;
+	}
 	
 	AReader::Error err = reader->read( cache, data.constData(), data.size(), ext );
 	
 	if( err != AReader::ERROR_NONE ){
+		//TODO: we should check for the error more specifically
 		//Reading failed, lets try all the others and see if they can
+		cache.reset();
 		for( auto r : readers ){
 			if( !r->can_read( data.constData(), data.size(), "" ) )
 				continue;
 			
 			if( r->read( cache, data.constData(), data.size(), "" ) == AReader::ERROR_NONE ){
-				//TODO: set warning
+				cache.error_msgs.append( QObject::tr( "Warning, wrong file extension" ) );
 				return AReader::ERROR_NONE;
 			}
+			cache.reset();
 		}
+		
+		cache.set_status( imageCache::INVALID );
 	}
 	
 	return err;
