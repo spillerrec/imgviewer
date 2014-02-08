@@ -10,6 +10,8 @@ LIBS += -lexif -llcms2 -lpng -lz
 win32{
 	LIBS += -lgdi32
 	DEFINES += PORTABLE
+	DEFINES += WIN_TOOLBAR
+	QT += winextras
 }
 QT += widgets
 unix{

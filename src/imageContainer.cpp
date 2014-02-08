@@ -104,7 +104,39 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	connect( ui->btn_next,     SIGNAL( pressed() ), this, SLOT( next_file() ) );
 	connect( ui->btn_prev,     SIGNAL( pressed() ), this, SLOT( prev_file() ) );
 	connect( files, SIGNAL( file_changed() ), this, SLOT( update_file() ) );
+	
+	
+	
 }
+
+#ifdef WIN_TOOLBAR
+void imageContainer::init_win_toolbar(){
+	auto *thumbnail_bar = new QWinThumbnailToolBar( this );
+	thumbnail_bar->setWindow( windowHandle() );
+	
+	btn_prev = new QWinThumbnailToolButton( thumbnail_bar );
+	btn_prev->setEnabled( false );
+	btn_prev->setToolTip( tr( "Previous" ) );
+	btn_prev->setIcon( QIcon(":/main/prev.png") );
+	connect( btn_prev, SIGNAL( clicked() ), this, SLOT( prev_file() ) );
+	
+	btn_pause = new QWinThumbnailToolButton( thumbnail_bar );
+	btn_pause->setEnabled( false );
+	btn_pause->setToolTip( tr( "Pause" ) );
+	btn_pause->setIcon( QIcon(":/main/start.png") );
+	connect( btn_pause, SIGNAL( clicked() ), this, SLOT( toogle_animation() ) );
+	
+	btn_next = new QWinThumbnailToolButton( thumbnail_bar );
+	btn_next->setEnabled( false );
+	btn_next->setToolTip( tr( "Next" ) );
+	btn_next->setIcon( QIcon(":/main/next.png") );
+	connect( btn_next, SIGNAL( clicked() ), this, SLOT( next_file() ) );
+	
+	thumbnail_bar->addButton( btn_prev );
+	thumbnail_bar->addButton( btn_pause );
+	thumbnail_bar->addButton( btn_next );
+}
+#endif
 
 
 void imageContainer::create_menubar(){
@@ -274,13 +306,26 @@ void imageContainer::update_controls(){
 	//Disable left or right buttons
 	ui->btn_next->setEnabled( files->has_next() );
 	ui->btn_prev->setEnabled( files->has_previous() );
+	
+	
+#ifdef WIN_TOOLBAR
+	if( btn_prev && btn_pause && btn_next ){
+		btn_pause->setEnabled( viewer->can_animate() );
+		btn_next->setEnabled( files->has_next() );
+		btn_prev->setEnabled( files->has_previous() );
+	}
+#endif
 }
 
 
 void imageContainer::update_toogle_btn(){
-	ui->btn_pause->setIcon( QIcon( 
-			viewer->is_animating() ? ":/main/pause.png" : ":/main/start.png"
-		) );
+	QIcon icon( viewer->is_animating() ? ":/main/pause.png" : ":/main/start.png" );
+	ui->btn_pause->setIcon( icon );
+	
+#ifdef WIN_TOOLBAR
+	if( btn_pause )
+		btn_pause->setIcon( icon );
+#endif
 }
 
 

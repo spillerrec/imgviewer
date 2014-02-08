@@ -25,6 +25,10 @@
 #include <QSettings>
 #include <QContextMenuEvent>
 
+#ifdef WIN_TOOLBAR
+	#include <QtWinExtras>
+#endif
+
 class imageViewer;
 class imageCache;
 class windowManager;
@@ -87,6 +91,15 @@ class imageContainer: public QWidget{
 		~imageContainer();
 		
 		void load_image( QString filepath );
+		
+#ifdef WIN_TOOLBAR
+	private:
+		QWinThumbnailToolButton* btn_prev{ nullptr };
+		QWinThumbnailToolButton* btn_pause{ nullptr };
+		QWinThumbnailToolButton* btn_next{ nullptr };
+	public:
+		void init_win_toolbar();
+#endif
 };
 
 

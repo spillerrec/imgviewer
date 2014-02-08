@@ -31,6 +31,10 @@ int main( int argc, char *argv[] ){
 	main.show();
 	main.restrain_window();
 	
+#ifdef WIN_TOOLBAR
+	main.init_win_toolbar();
+#endif
+	
 	if( args.size() == 2 ){
 		QDir file( args.at(1) );
 		main.load_image( file.path() );
