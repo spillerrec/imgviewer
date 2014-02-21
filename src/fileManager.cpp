@@ -227,13 +227,15 @@ void fileManager::loading_handler(){
 	
 	int loading_lenght = settings.value( "loading/length", 2 ).toInt();
 	for( int i=0; i<=loading_lenght; i++ ){
-		if( current_file + i < files.count() && !cache[current_file+i] ){
-			load_image( current_file+i );
+		int next = move( i );
+		if( !cache[next] ){
+			load_image( next );
 			break;
 		}
 		
-		if( current_file - i >= 0 && !cache[current_file-i] ){
-			load_image( current_file-i );
+		int prev = move( -i );
+		if( !cache[prev] ){
+			load_image( prev );
 			break;
 		}
 	}
