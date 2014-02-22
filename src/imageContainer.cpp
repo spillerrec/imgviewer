@@ -438,7 +438,7 @@ void imageContainer::mousePressEvent( QMouseEvent* event ){
 
 void imageContainer::resize_window(){
 	if( !is_fullscreen ) //Buggy in fullscreen
-		manager->resize_content( viewer->sizeHint(), viewer->size(), true );
+		manager->resize_content( viewer->sizeHint(), viewer->size(), viewer->auto_zoom_active() );
 }
 
 void imageContainer::restrain_window(){
