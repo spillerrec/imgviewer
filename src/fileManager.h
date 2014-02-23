@@ -25,6 +25,7 @@
 #include <QFileSystemWatcher>
 #include <QSettings>
 #include <QLinkedList>
+#include <QCollator>
 
 #include "imageLoader.h"
 
@@ -43,37 +44,39 @@ class fileManager : public QObject{
 		bool show_hidden;
 		bool force_hidden;
 		bool recursive;
-		bool locale_aware;
 		bool wrap;
 		
-		QString dir;       ///Current directory (without last '/')
-		QString prefix;    ///prefix for 'files' to get full path
-		QStringList files; ///relative paths to files
-		QList<imageCache*> cache; ///loaded files
-		int current_file;  ///Index to currently used file
-		
-		//Struct for keeping old caches
-		struct oldCache{
-			QString file;
-			imageCache* cache;
+		QCollator collator;
+		struct File{
+			QString name; //relative file path
+			QCollatorSortKey key;
+			imageCache* cache{ nullptr };
+			
+			File( QString name, const QCollator& c ) : name(name), key(c.sortKey( name )) { }
+			//TODO: on win8.1 in release mode, if name are equals, key::compare returns a random value
+			bool operator<( const File& other ) const{ return name != other.name && key < other.key; }
+			bool operator==( const File& other ) const{ return key.compare(other.key) == 0; }
 		};
+		QString dir;       //Current directory (without last '/')
+		QString prefix;    //prefix for 'files' to get full path
+		QList<File> files;
+		int current_file;  //Index to currently used file
+		
 		unsigned buffer_max;
-		QLinkedList<oldCache> buffer;
+		QLinkedList<File> buffer;
 		void unload_image( int index );
 		
 		//Accessors to 'files'
 		QString file( QString f ) const{ return prefix + f; }
-		QString file( int index ) const{ return file( files[index] ); }
+		QString file( int index ) const{ return file( files[index].name ); }
 		QFileInfo fileinfo( int index ) const{
 			return QFileInfo( file( index ) );
 		}
-		int index_of( QString file ) const;
+		int index_of( File file ) const;
 		
 		void load_image( int pos );
 		
-		void load_files( QDir dir );
-		void init_cache( int start );
-		void init_cache( QString start ){ init_cache( index_of( start ) ); }
+		void load_files( QFileInfo dir );
 		void clear_cache();
 		
 	public:
@@ -87,7 +90,7 @@ class fileManager : public QObject{
 		void set_files( QString file ){ set_files( QFileInfo( file ) ); }
 		void set_files( QFileInfo file );
 		
-		bool has_file( int index ) const{ return index >= 0 && index < cache.count(); }
+		bool has_file( int index ) const{ return index >= 0 && index < files.size(); }
 		bool has_file() const{ return has_file( current_file ); }
 		int move( int offset ) const;
 		
@@ -101,7 +104,7 @@ class fileManager : public QObject{
 		void delete_current_file();
 		
 		QString get_dir() const{ return dir; }
-		imageCache* file() const{ return has_file() ? cache[current_file] : NULL; }
+		imageCache* file() const{ return has_file() ? files[current_file].cache : nullptr; }
 		QString file_name() const;
 		
 		

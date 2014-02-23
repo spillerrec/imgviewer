@@ -30,6 +30,8 @@
 #include <QMutex>
 #include <QMutexLocker>
 
+#include <QDebug>
+
 #include <qglobal.h>
 #ifdef Q_OS_WIN
 	#include <qt_windows.h>
@@ -56,25 +58,27 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 	show_hidden = settings.value( "loading/show-hidden-files", hidden_default ).toBool();
 	force_hidden = false;
 	recursive = settings.value( "loading/recursive", false ).toBool();
-	locale_aware = settings.value( "loading/locale-sorting", true ).toBool();
 	wrap = settings.value( "loading/wrap", true ).toBool();
 	buffer_max = settings.value( "loading/buffer-max", 3 ).toInt();
 	
+	//Set collation settings
+	collator.setNumericMode( settings.value( "loading/natural-number-order", true ).toBool() );
+	bool case_sensitivity = settings.value( "loading/case-sensitive", false ).toBool();
+	collator.setCaseSensitivity( case_sensitivity ? Qt::CaseSensitive : Qt::CaseInsensitive );
+	collator.setIgnorePunctuation( settings.value( "loading/ignore-punctuation", false ).toBool() );
+	
 	
 	//Initialize all supported image formats
-	if( supported_file_ext.count() == 0 ){
+	if( supported_file_ext.size() == 0 ){
 		QList<QString> supported = ImageReader().supportedExtensions();
-		for( int i=0; i<supported.count(); i++ )
+		for( int i=0; i<supported.size(); i++ )
 			supported_file_ext << "*." + QString( supported.at( i ) );
 	}
 }
 
-int fileManager::index_of( QString file ) const{
-	if( !locale_aware )
-		return qBinaryFind( files.begin(), files.end(), file ) - files.begin();
-		//TODO: this wouldn't return -1 on fail!
-	
-	return files.indexOf( file );
+int fileManager::index_of( File file ) const{
+	auto it = qBinaryFind( files.begin(), files.end(), file );
+	return it != files.end() ? it - files.begin() : -1;
 }
 
 void fileManager::set_files( QFileInfo file ){
@@ -88,27 +92,28 @@ void fileManager::set_files( QFileInfo file ){
 	force_hidden = file.isHidden();
 	
 	//Begin caching
+	//TODO: if it is the same directory, simply refresh as it keeps cache
 	dir = file.dir().absolutePath();
-	load_files( dir );
-	init_cache( recursive ? file.filePath() : file.fileName() );
+	load_files( file );
 	
-	watcher.addPath( dir );
+	current_file = index_of( {	recursive ? file.filePath() : file.fileName(), collator });
+	if( has_file() ){
+		load_image( current_file );
+		loading_handler();
+		
+		watcher.addPath( dir );
+	}
 }
 
-
-struct localecomp{
-	bool operator()( const QString& f1, const QString& f2 ) const{
-		return QString::localeAwareCompare( f1, f2 ) < 0;
-	}
-};
-void fileManager::load_files( QDir dir ){
+void fileManager::load_files( QFileInfo file ){
+	QDir dir( file.dir().absolutePath() );
 	//If hidden, include hidden files
-	QDir::Filters filters = QDir::Files | QDir::Readable;
+	QDir::Filters filters = QDir::Files;
 	if( show_hidden || force_hidden )
 		filters |= QDir::Hidden;
 	
 	//Begin caching
-	files.clear();
+	clear_cache();
 	
 	//This folder, or all sub-folders as well
 	if( recursive ){
@@ -120,7 +125,7 @@ void fileManager::load_files( QDir dir ){
 			);
 		while( it.hasNext() ){
 			it.next();
-			files.append( it.filePath() );
+			files.push_back( {it.filePath(), collator} );
 		}
 	}
 	else{
@@ -129,26 +134,22 @@ void fileManager::load_files( QDir dir ){
 		QDirIterator it( dir.path(), supported_file_ext, filters );
 		while( it.hasNext() ){
 			it.next();
-			files.append( it.fileName() );
+			files.push_back( {it.fileName(), collator} );
 		}
 	}
 	
-	//Sort using Unicode or normal
-	if( locale_aware )
-		qSort( files.begin(), files.end(), localecomp() );
-	else
-		qSort( files );
+	qSort( files.begin(), files.end() );
 }
 
 void fileManager::load_image( int pos ){
-	if( cache[pos] )
+	if( files[pos].cache )
 		return;
 	
 	//Check buffer first
-	QLinkedList<oldCache>::iterator it = buffer.begin();
+	QLinkedList<File>::iterator it = buffer.begin();
 	for( ; it != buffer.end(); ++it )
-		if( (*it).file == files[pos] ){
-			cache[pos] = (*it).cache;
+		if( *it == files[pos] ){
+			files[pos] = *it;
 			buffer.erase( it );
 			if( pos == current_file )
 				emit file_changed();
@@ -158,8 +159,8 @@ void fileManager::load_image( int pos ){
 	//Load image
 	imageCache *img = new imageCache();
 	if( loader.load_image( img, file( pos ) ) ){
-		qDebug( "loading image: %s", file( pos ).toLocal8Bit().constData() );
-		cache[pos] = img;
+		qDebug() << "loading image: " << file( pos );
+		files[pos].cache = img;
 		if( pos == current_file )
 			emit file_changed();
 	}
@@ -167,33 +168,17 @@ void fileManager::load_image( int pos ){
 		delete img;	//If it is already loading an image
 }
 
-void fileManager::init_cache( int start ){
-	clear_cache();
-	current_file = start;
-	
-	qDebug( "current_file: %d", current_file );
-	if( current_file == -1 )
-		return;
-	
-	cache.reserve( files.count() );
-	for( int i=0; i<files.count(); i++ )
-		cache << NULL;
-	
-	load_image( current_file );
-	loading_handler();
-}
-
 int fileManager::move( int offset ) const{
 	int wanted = current_file + offset;
 	
-	if( !wrap || cache.count() <= 0 )
-		return wanted; //empty cache would cause infinite loop
+	if( !wrap || files.size() <= 0 )
+		return wanted; //empty list would cause infinite loop
 	
 	//Keep warping until we reached a valid index
 	while( wanted < 0 )
-		wanted += cache.count();
-	while( wanted >= cache.count() )
-		wanted -= cache.count();
+		wanted += files.size();
+	while( wanted >= files.size() )
+		wanted -= files.size();
 	
 	return wanted;
 }
@@ -208,16 +193,16 @@ void fileManager::goto_file( int index ){
 
 
 void fileManager::unload_image( int index ){
-	if( !cache[index] )
+	if( !files[index].cache )
 		return;
 	
+	qDebug() << "Unloading file: " << files[index].name;
 	//Save cache in buffer
-	oldCache abandoned = { files[index], cache[index] };
-	buffer << abandoned;
-	cache[index] = NULL;
+	buffer << files[index];
+	files[index].cache = nullptr;
 	
 	//Remove if there becomes too many
-	while( (unsigned)buffer.count() > buffer_max )
+	while( (unsigned)buffer.size() > buffer_max )
 		loader.delete_image( buffer.takeFirst().cache );
 }
 
@@ -228,20 +213,21 @@ void fileManager::loading_handler(){
 	int loading_lenght = settings.value( "loading/length", 2 ).toInt();
 	for( int i=0; i<=loading_lenght; i++ ){
 		int next = move( i );
-		if( !cache[next] ){
+		if( has_file(next) && !files[next].cache ){
 			load_image( next );
 			break;
 		}
 		
 		int prev = move( -i );
-		if( !cache[prev] ){
+		if( has_file(prev) && !files[prev].cache ){
 			load_image( prev );
 			break;
 		}
 	}
 	
-	//* Unload everything after loading length
-	for( int i=current_file+loading_lenght; i<cache.count(); i++ )
+	// Unload everything after loading length
+	//TODO: make it work with the new loading strategy!
+	for( int i=current_file+loading_lenght; i<files.size(); i++ )
 		unload_image( i );
 	for( int i=current_file-loading_lenght; i>=0; i-- )
 		unload_image( i );
@@ -249,24 +235,19 @@ void fileManager::loading_handler(){
 
 
 void fileManager::clear_cache(){
-	if( watcher.directories().count() > 0 )
+	if( watcher.directories().size() > 0 )
 		watcher.removePaths( watcher.directories() );
 	current_file = -1;
 	emit file_changed();
 	
 	//Delete any images in the buffer and cache
-	for( int i=0; i<cache.count(); ++i )
-		loader.delete_image( cache[i] );
-	cache.clear();
+	for( int i=0; i<files.size(); ++i )
+		loader.delete_image( files[i].cache );
+	files.clear();
 	
+	//Delete buffer
 	while( !buffer.isEmpty() )
 		loader.delete_image( buffer.takeFirst().cache );
-}
-
-//Make sure that this is done without caching
-static bool file_exists( QFileInfo file ){
-	file.setCaching( false );
-	return file.exists();
 }
 
 static QMutex mutex;
@@ -287,60 +268,31 @@ void fileManager::dir_modified(){
 	if( !has_file() )
 		return;
 	
-	//TODO: replace this with a "lower-bound"
-	//Find the file to show now, considering it might have disappeared
-	QString new_file = files[current_file];
-	if( !file_exists( fileinfo( current_file ) ) ){
-		//Keep trying until we find a file which still exists
-		int prev = current_file-1;
-		int next = current_file+1;
-		while( prev >= 0 || next < files.count() ){
-			if( next < files.count() ){
-				if( file_exists( fileinfo( next ) ) ){
-					new_file = files[next];
-					break;
-				}
-				else
-					next++;
-			}
-			
-			if( prev >= 0 ){
-				if( file_exists( fileinfo( prev ) ) ){
-					new_file = files[prev];
-					break;
-				}
-				else
-					prev--;
-			}
-		}
-	}
-	
 	//Save imageCache's which might still be valid
-	QList<oldCache> old;
-	for( int i=0; i<cache.count(); i++ )
-		if( cache[i] ){
-			oldCache temp = { files[i], cache[i] };
-			old << temp;
+	QList<File> old;
+	for( int i=0; i<files.size(); i++ )
+		if( files[i].cache ){
+			old << files[i];
+			files[i].cache = nullptr;
 		}
+	
+	//Keep the name of the old file, for restoring position
+	File old_file = files[current_file];
 	
 	//Prepare the QLists
-	cache.clear();
-	load_files( QFileInfo( file( new_file ) ).dir() );
-	cache.reserve( files.count() );
-	for( int i=0; i<files.count(); i++ )
-		cache << NULL;
+	load_files( QFileInfo( file( old_file.name ) ) );
 	
 	//Restore old elements
-	for( int i=0; i<old.count(); i++ ){
-		int new_index = index_of( old[i].file );
+	for( int i=0; i<old.size(); i++ ){
+		int new_index = index_of( old[i] );
 		if( new_index != -1 ){
-			cache[new_index] = old[i].cache;
-			old[i].cache = NULL;
+			files[new_index] = old[i];
+			old[i].cache = nullptr;
 		}
 	}
 	
 	//Set image position
-	current_file = index_of( new_file );
+	current_file = qLowerBound( files.begin(), files.end(), old_file ) - files.begin();
 	emit file_changed(); //The file and position could have changed
 	
 	if( current_file == -1 ){
@@ -351,12 +303,12 @@ void fileManager::dir_modified(){
 	
 	//Now delete images which are no longer here
 	//We can't do it earlier than emit file_changed(), as imageViewer needs to disconnect first
-	for( int i=0; i<old.count(); i++ )
+	for( int i=0; i<old.size(); i++ )
 		if( old[i].cache )
 			loader.delete_image( old[i].cache );
 		
 	//Start loading the new files
-	if( !cache[ current_file ] )
+	if( !files[ current_file ].cache )
 		load_image( current_file );
 	loading_handler();
 }
@@ -364,7 +316,7 @@ void fileManager::dir_modified(){
 
 bool fileManager::supports_extension( QString filename ) const{
 	filename = filename.toLower();
-	for( int i=0; i<supported_file_ext.count(); i++ )
+	for( int i=0; i<supported_file_ext.size(); i++ )
 		if( filename.endsWith( QString( supported_file_ext[i] ).remove( 0, 1 ) ) ) //Remove "*" from "*.ext"
 			return true;
 	return false;
@@ -385,9 +337,9 @@ QString fileManager::file_name() const{
 	
 	//TODO: once we have a meta-data system, check if it contains a title
 	return QString( "%1 - [%2/%3]" )
-		.arg( files[current_file] )
+		.arg( files[current_file].name )
 		.arg( QString::number( current_file+1 ) )
-		.arg( QString::number( files.count() ) )
+		.arg( QString::number( files.size() ) )
 		;
 }
 
