@@ -86,28 +86,34 @@ void fileManager::set_files( QFileInfo file ){
 	//Stop if it does not support file
 	if( !supports_extension( file.fileName() ) ){
 		clear_cache();
+		emit file_changed();
 		return;
 	}
 	
 	//If hidden, include hidden files
 	force_hidden = file.isHidden();
 	
+	//Old filename
+	QString old_name = has_file() ? files[current_file].name : "";
+	
 	//Begin caching
-	//TODO: if it is the same directory, simply refresh as it keeps cache
-	dir = file.dir().absolutePath();
-	load_files( file );
+	if( dir == file.dir().absolutePath() )
+		dir_modified();
+	else
+		load_files( file );
 	
 	current_file = index_of( {	recursive ? file.filePath() : file.fileName(), collator });
+	emit position_changed();
 	if( has_file() ){
+		if( old_name != files[current_file].name )
+			emit file_changed();
 		load_image( current_file );
 		loading_handler();
-		
-		watcher.addPath( dir );
 	}
 }
 
 void fileManager::load_files( QFileInfo file ){
-	QDir dir( file.dir().absolutePath() );
+	QDir current_dir( file.dir().absolutePath() );
 	//If hidden, include hidden files
 	QDir::Filters filters = QDir::Files;
 	if( show_hidden || force_hidden )
@@ -120,7 +126,7 @@ void fileManager::load_files( QFileInfo file ){
 	if( recursive ){
 		prefix = "";
 		
-		QDirIterator it( dir.path()
+		QDirIterator it( current_dir.path()
 			,	supported_file_ext, filters
 			,	QDirIterator::Subdirectories
 			);
@@ -130,9 +136,9 @@ void fileManager::load_files( QFileInfo file ){
 		}
 	}
 	else{
-		prefix = dir.path() + "/";
+		prefix = current_dir.path() + "/";
 		
-		QDirIterator it( dir.path(), supported_file_ext, filters );
+		QDirIterator it( current_dir.path(), supported_file_ext, filters );
 		while( it.hasNext() ){
 			it.next();
 			files.push_back( {it.fileName(), collator} );
@@ -140,6 +146,12 @@ void fileManager::load_files( QFileInfo file ){
 	}
 	
 	qSort( files.begin(), files.end() );
+	
+	QString new_dir = current_dir.absolutePath();
+	if( new_dir != dir ){
+		dir = new_dir;
+		watcher.addPath( dir );
+	}
 }
 
 void fileManager::load_image( int pos ){
@@ -188,13 +200,14 @@ void fileManager::goto_file( int index ){
 	if( has_file( index ) ){
 		current_file = index;
 		emit file_changed();
+		emit position_changed();
 		loading_handler();
 	}
 }
 
 
 void fileManager::unload_image( int index ){
-	if( !files[index].cache )
+	if( has_file(index) || !files[index].cache )
 		return;
 	
 	qDebug() << "Unloading file: " << files[index].name;
@@ -227,19 +240,25 @@ void fileManager::loading_handler(){
 	}
 	
 	// Unload everything after loading length
-	//TODO: make it work with the new loading strategy!
-	for( int i=current_file+loading_lenght; i<files.size(); i++ )
-		unload_image( i );
-	for( int i=current_file-loading_lenght; i>=0; i-- )
-		unload_image( i );
+	int last = move( loading_lenght+1 );
+	int first = move( -loading_lenght-1 );
+	if( last > first ){
+		for( int i=last; i<files.size(); i++ )
+			unload_image( i );
+		for( int i=first; i>=0; i-- )
+			unload_image( i );
+	}
+	else
+		for( int i=last; i<=first; i++ )
+			unload_image( i );
 }
 
 
 void fileManager::clear_cache(){
 	if( watcher.directories().size() > 0 )
 		watcher.removePaths( watcher.directories() );
+	dir = "";
 	current_file = -1;
-	emit file_changed();
 	
 	//Delete any images in the buffer and cache
 	for( int i=0; i<files.size(); ++i )
@@ -294,13 +313,17 @@ void fileManager::dir_modified(){
 	
 	//Set image position
 	current_file = qLowerBound( files.begin(), files.end(), old_file ) - files.begin();
-	emit file_changed(); //The file and position could have changed
+	emit position_changed();
 	
 	if( current_file == -1 ){
 		if( settings.value( "loading/quit-on-empty", false ).toBool() )
 			QCoreApplication::quit();
+		emit file_changed();
 		return;
 	}
+	
+	if( files[current_file] != old_file )
+		emit file_changed();
 	
 	//Now delete images which are no longer here
 	//We can't do it earlier than emit file_changed(), as imageViewer needs to disconnect first
@@ -309,8 +332,10 @@ void fileManager::dir_modified(){
 			loader.delete_image( old[i].cache );
 		
 	//Start loading the new files
-	if( !files[ current_file ].cache )
+	if( !files[ current_file ].cache ){
+		emit file_changed();
 		load_image( current_file );
+	}
 	loading_handler();
 }
 

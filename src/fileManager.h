@@ -56,6 +56,7 @@ class fileManager : public QObject{
 			//TODO: on win8.1 in release mode, if name are equals, key::compare returns a random value
 			bool operator<( const File& other ) const{ return name != other.name && key < other.key; }
 			bool operator==( const File& other ) const{ return key.compare(other.key) == 0; }
+			bool operator!=( const File& other ) const{ return !(*this == other); }
 		};
 		QString dir;       //Current directory (without last '/')
 		QString prefix;    //prefix for 'files' to get full path
@@ -114,6 +115,7 @@ class fileManager : public QObject{
 		
 	signals:
 		void file_changed();
+		void position_changed();
 };
 
 
