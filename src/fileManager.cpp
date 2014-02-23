@@ -42,18 +42,19 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
 	
 	bool hidden_default = false;
+	bool extension_default = false;
 #ifdef Q_OS_WIN
 	//Set show_hidden on Windows to match Windows Explorer setting
 	SHELLSTATE lpss;
 	SHGetSetSettings( &lpss, SSF_SHOWALLOBJECTS | SSF_SHOWEXTENSIONS, false );
 	
-	if( lpss.fShowAllObjects )
-		hidden_default = true;
-	//TODO: also match "show extensions"? It is stored in: fShowExtensions
+	hidden_default = lpss.fShowAllObjects;
+	extension_default = !lpss.fShowExtensions;
 #endif
 	
 	current_file = -1;
 	show_hidden = settings.value( "loading/show-hidden-files", hidden_default ).toBool();
+	extension_hidden = settings.value( "loading/show-extensions", extension_default ).toBool();
 	force_hidden = false;
 	recursive = settings.value( "loading/recursive", false ).toBool();
 	wrap = settings.value( "loading/wrap", true ).toBool();
@@ -357,9 +358,15 @@ QString fileManager::file_name() const{
 	if( !has_file() )
 		return "No file!";
 	
+	//File name
+	QString name = files[current_file].name;
+	int dot = name.lastIndexOf( '.' );
+	if( extension_hidden && dot != -1 )
+		name = name.left( dot );
+	
 	//TODO: once we have a meta-data system, check if it contains a title
 	return QString( "%1 - [%2/%3]" )
-		.arg( files[current_file].name )
+		.arg( name )
 		.arg( QString::number( current_file+1 ) )
 		.arg( QString::number( files.size() ) )
 		;

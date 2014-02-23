@@ -43,6 +43,7 @@ class fileManager : public QObject{
 		
 		bool show_hidden;
 		bool force_hidden;
+		bool extension_hidden;
 		bool recursive;
 		bool wrap;
 		
