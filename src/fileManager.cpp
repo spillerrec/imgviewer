@@ -54,7 +54,7 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 	
 	current_file = -1;
 	show_hidden = settings.value( "loading/show-hidden-files", hidden_default ).toBool();
-	extension_hidden = settings.value( "loading/show-extensions", extension_default ).toBool();
+	extension_hidden = settings.value( "loading/hide-extensions", extension_default ).toBool();
 	force_hidden = false;
 	recursive = settings.value( "loading/recursive", false ).toBool();
 	wrap = settings.value( "loading/wrap", true ).toBool();
