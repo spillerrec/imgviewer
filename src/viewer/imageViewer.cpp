@@ -177,6 +177,7 @@ bool imageViewer::toogle_animation(){
 			next_frame();
 		}
 	}
+	emit image_changed();
 	
 	return continue_animating;
 }
@@ -580,6 +581,7 @@ void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
 		}
 		else if( event->button() == button_context ){
 			//Open context menu
+			mouse_active &= ~event->button(); //Prevents rocker-gestures from activating
 			create_context_event( *event );
 		}
 	}
