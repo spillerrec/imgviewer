@@ -16,7 +16,7 @@ Customizable image viewer with minimalistic interface. Configuration and usage d
 
 **Dependencies**
 
-- Qt5
+- Qt 5.2
 - libexif
 - lcms2
 - libpng
