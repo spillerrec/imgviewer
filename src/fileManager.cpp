@@ -30,8 +30,6 @@
 #include <QMutex>
 #include <QMutexLocker>
 
-#include <QDebug>
-
 #include <qglobal.h>
 #ifdef Q_OS_WIN
 	#include <qt_windows.h>
@@ -172,7 +170,6 @@ void fileManager::load_image( int pos ){
 	//Load image
 	imageCache *img = new imageCache();
 	if( loader.load_image( img, file( pos ) ) ){
-		qDebug() << "loading image: " << file( pos );
 		files[pos].cache = img;
 		if( pos == current_file )
 			emit file_changed();
@@ -207,10 +204,9 @@ void fileManager::goto_file( int index ){
 
 
 void fileManager::unload_image( int index ){
-	if( has_file(index) || !files[index].cache )
+	if( !has_file(index) || !files[index].cache )
 		return;
 	
-	qDebug() << "Unloading file: " << files[index].name;
 	//Save cache in buffer
 	buffer << files[index];
 	files[index].cache = nullptr;

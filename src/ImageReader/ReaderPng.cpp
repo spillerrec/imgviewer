@@ -159,8 +159,6 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 		
 		QImage frame = readRGB( png_ptr, info_ptr, width, height, row_pointers, i );
 		
-		qDebug( "timings: %d/%d", delay_num, delay_den );
-		
 		//Compose
 		QImage output = canvas;
 		QPainter painter( &output );
