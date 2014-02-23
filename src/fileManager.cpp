@@ -62,10 +62,11 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 	buffer_max = settings.value( "loading/buffer-max", 3 ).toInt();
 	
 	//Set collation settings
-	collator.setNumericMode( settings.value( "loading/natural-number-order", true ).toBool() );
+	collator.setNumericMode( settings.value( "loading/natural-number-order", false ).toBool() );
 	bool case_sensitivity = settings.value( "loading/case-sensitive", false ).toBool();
 	collator.setCaseSensitivity( case_sensitivity ? Qt::CaseSensitive : Qt::CaseInsensitive );
-	collator.setIgnorePunctuation( settings.value( "loading/ignore-punctuation", false ).toBool() );
+	bool punctuation = settings.value( "loading/ignore-punctuation", collator.ignorePunctuation() ).toBool();
+	collator.setIgnorePunctuation( punctuation );
 	
 	
 	//Initialize all supported image formats
