@@ -64,7 +64,7 @@ RC_FILE = src/resources/icon.rc
 
 
 # Generate both debug and release on Linux (disabled)
-# CONFIG += debug_and_release
+CONFIG += debug_and_release
 
 # Position of binaries and build files
 Release:DESTDIR = release
