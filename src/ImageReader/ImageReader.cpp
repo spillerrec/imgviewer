@@ -48,6 +48,7 @@ AReader::Error ImageReader::read( imageCache &cache, QString filepath ) const{
 		return AReader::ERROR_TYPE_UNKNOWN;
 	
 	QFile file( filepath );
+	cache.url = QUrl::fromLocalFile( filepath );
 	QByteArray data;
 	if( file.open( QIODevice::ReadOnly ) ){
 		data = file.readAll();

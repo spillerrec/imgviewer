@@ -41,6 +41,9 @@ using namespace std;
 #include <QApplication>
 #include <QDesktopWidget>
 
+#include <QDrag>
+#include <QMimeData>
+
 #include <cmath>
 #include <algorithm>
 
@@ -534,9 +537,21 @@ void imageViewer::mouseDoubleClickEvent( QMouseEvent *event ){
 	}
 }
 
-
 void imageViewer::mouseMoveEvent( QMouseEvent *event ){
-	if( !(mouse_active & button_drag) )
+	if( mouse_active & button_context && image_cache ){
+		QDrag *drag = new QDrag( this );
+		QMimeData *mimeData = new QMimeData;
+		
+		mimeData->setText( image_cache->url.toString() );
+		mimeData->setUrls( QList<QUrl>() << image_cache->url );
+		mimeData->setImageData( get_frame() );
+
+		drag->setMimeData( mimeData );
+		drag->exec( Qt::CopyAction | Qt::MoveAction );
+		mouse_active = 0;
+		return;
+	}
+	else if( !(mouse_active & button_drag) )
 		return;
 	
 	if( event->modifiers() & Qt::ControlModifier ){

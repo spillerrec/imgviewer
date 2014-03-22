@@ -21,6 +21,7 @@
 #include <QObject>
 #include <QImage>
 #include <QStringList>
+#include <QUrl>
 #include <vector>
 #include <lcms2.h>
 
@@ -56,6 +57,7 @@ class imageCache: public QObject{
 			FRAMES_READY,	//Some frames have been loaded
 			LOADED	//All frames have been loaded
 		};
+		QUrl url;
 	private:
 		status current_status;
 	public:
