@@ -34,15 +34,7 @@ AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned len
 	QBuffer buffer( &byte_data );
 	QImageReader image_reader( &buffer, format.toLocal8Bit() );
 	
-	bool more_frames;
-	if( (more_frames = image_reader.canRead()) ){
-		int frame_amount = image_reader.imageCount();
-		bool animate = image_reader.supportsAnimation();
-		if( animate )
-			cache.set_info( frame_amount, animate, image_reader.loopCount() );
-		else
-			cache.set_info( frame_amount, animate, -1 );
-		
+	if( image_reader.canRead() ){
 		//Try to get orientation info
 		meta rotation( data, lenght );
 		int rot = rotation.get_orientation();
@@ -74,16 +66,19 @@ AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned len
 		if( data )
 			cache.set_profile( cache.get_manager()->get_profile( data, len ) );
 		
-		//Read every frame and delay
-		for( int i=0; more_frames || frame_amount > i; i++, more_frames = image_reader.canRead() ){
-			QImage frame;
-			
-			//NOTE: ICO files seem to return false on canRead, even though more frames are available
-			if( !image_reader.read( &frame ) ){
-				//TODO: ?
-				break;
-			}
-			
+		//Read first image
+		QImage frame;
+		if( !image_reader.read( &frame ) )
+			return ERROR_TYPE_UNKNOWN;
+		
+		int frame_amount = image_reader.imageCount();
+		if( image_reader.supportsAnimation() )
+			cache.set_info( frame_amount, true, image_reader.loopCount() );
+		else
+			cache.set_info( frame_amount, false, -1 );
+		
+		int current_frame = 1;
+		do{
 			//Orient image
 			if( rot != 1 ){
 				//Mirror
@@ -100,18 +95,13 @@ AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned len
 					frame = frame.transformed( trans );
 			}
 			
-			int delay = 0;
-			if( animate )
-				delay = image_reader.nextImageDelay();
-			else
-				image_reader.jumpToImage( i+1 );
-			cache.add_frame( frame, delay );
-			
-			/* Increase loading time for debugging
-			QTime t;
-			t.start();
-			while( t.elapsed() < 1000 ); */
+			cache.add_frame( frame, image_reader.nextImageDelay() );
+			if( frame_amount > 0 && current_frame >= frame_amount )
+				break;
+			current_frame++;
+			image_reader.jumpToNextImage();
 		}
+		while( image_reader.read( &frame ) );
 		
 		cache.set_fully_loaded();
 		//TODO: What to do on fail?
