@@ -255,7 +255,10 @@ void fileManager::clear_cache(){
 	if( watcher.directories().size() > 0 )
 		watcher.removePaths( watcher.directories() );
 	dir = "";
-	current_file = -1;
+	if( current_file != -1 ){
+		current_file = -1;
+		emit file_changed();
+	}
 	
 	//Delete any images in the buffer and cache
 	for( int i=0; i<files.size(); ++i )
