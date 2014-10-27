@@ -106,7 +106,8 @@ class fileManager : public QObject{
 		void delete_current_file();
 		
 		QString get_dir() const{ return dir; }
-		imageCache* file() const{ return has_file() ? files[current_file].cache : nullptr; }
+		imageCache* file() const{ qDebug( "file() : %d, %s", current_file, (has_file() ? "true" : "false" ) );
+		return has_file() ? files[current_file].cache : nullptr; }
 		QString file_name() const;
 		
 		

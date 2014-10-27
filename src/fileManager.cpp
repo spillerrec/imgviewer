@@ -308,16 +308,19 @@ void fileManager::dir_modified(){
 		}
 	}
 	
-	//Set image position
-	current_file = qLowerBound( files.begin(), files.end(), old_file ) - files.begin();
-	emit position_changed();
-	
-	if( current_file == -1 ){
+	if( files.size() == 0 ){
 		if( settings.value( "loading/quit-on-empty", false ).toBool() )
 			QCoreApplication::quit();
+		current_file = -1;
 		emit file_changed();
-		return;
+		return; //TODO: can't do this!
 	}
+	
+	//Set image position
+	auto it = qLowerBound( files.begin(), files.end(), old_file );
+	current_file = (it != files.end()) ? it - files.begin() : files.size()-1;
+	qDebug( "current_file: %d", current_file );
+	emit position_changed();
 	
 	if( files[current_file] != old_file )
 		emit file_changed();
