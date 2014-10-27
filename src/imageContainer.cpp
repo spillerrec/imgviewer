@@ -341,12 +341,16 @@ void imageContainer::toogle_animation(){
 void imageContainer::toogle_fullscreen(){
 	if( is_fullscreen ){
 		setStyleSheet( "" ); //Reset it
-		showNormal();
+		if( was_maximized )
+			showMaximized();
+		else
+			showNormal();
 		ui->control_sub->show();
 		if( menubar && !menubar_autohide )
 			menubar->show();
 	}
 	else{
+		was_maximized = isMaximized();
 		settings.beginGroup( "fullscreen" );
 		
 		setStyleSheet( settings.value( "style"

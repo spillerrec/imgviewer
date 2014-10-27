@@ -53,6 +53,7 @@ class imageContainer: public QWidget{
 		
 	private:
 		bool is_fullscreen;
+		bool was_maximized{ false };
 		
 		void create_menubar();
 		void create_context();
