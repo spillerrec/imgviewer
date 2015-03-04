@@ -28,6 +28,7 @@
 #include <QCollator>
 
 #include "imageLoader.h"
+#include "FileSystem/ExtensionChecker.hpp"
 
 
 class imageCache;
@@ -38,7 +39,7 @@ class fileManager : public QObject{
 	private:
 		const QSettings& settings;
 		QFileSystemWatcher watcher;
-		QStringList supported_file_ext;
+		ExtensionChecker have_ext;
 		imageLoader loader;
 		
 		bool show_hidden;
@@ -85,8 +86,6 @@ class fileManager : public QObject{
 		explicit fileManager( const QSettings& settings );
 		virtual ~fileManager(){ clear_cache(); }
 		
-		QStringList supported_extensions() const{ return supported_file_ext; }
-		
 		void set_show_hidden_files( bool value ){ show_hidden = value; }
 		
 		void set_files( QString file ){ set_files( QFileInfo( file ) ); }
@@ -102,7 +101,7 @@ class fileManager : public QObject{
 		void next_file(){ goto_file( move( 1 ) ); }
 		void previous_file(){ goto_file( move( -1 ) ); }
 		
-		bool supports_extension( QString filename ) const;
+		bool supports_extension( QString filename ) const{ return have_ext.matches( filename ); }
 		void delete_current_file();
 		
 		QString get_dir() const{ return dir; }

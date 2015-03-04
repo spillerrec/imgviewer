@@ -37,7 +37,7 @@
 #endif
 
 
-fileManager::fileManager( const QSettings& settings ) : settings( settings ){
+fileManager::fileManager( const QSettings& settings ) : settings( settings ), have_ext( ImageReader().supportedExtensions() ){
 	connect( &loader, SIGNAL( image_fetched() ), this, SLOT( loading_handler() ) );
 	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
 	
@@ -66,14 +66,6 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ){
 	collator.setCaseSensitivity( case_sensitivity ? Qt::CaseSensitive : Qt::CaseInsensitive );
 	bool punctuation = settings.value( "loading/ignore-punctuation", collator.ignorePunctuation() ).toBool();
 	collator.setIgnorePunctuation( punctuation );
-	
-	
-	//Initialize all supported image formats
-	if( supported_file_ext.size() == 0 ){
-		QList<QString> supported = ImageReader().supportedExtensions();
-		for( int i=0; i<supported.size(); i++ )
-			supported_file_ext << "*." + QString( supported.at( i ) );
-	}
 }
 
 int fileManager::index_of( File file ) const{
@@ -123,12 +115,14 @@ void fileManager::load_files( QFileInfo file ){
 	
 	//This folder, or all sub-folders as well
 	prefix = recursive ? "" : current_dir.path() + "/";
-	QDirIterator it( current_dir.path(), supported_file_ext, filters
+	QDirIterator it( current_dir.path(), {}, filters
 		,	recursive ? QDirIterator::Subdirectories : QDirIterator::NoIteratorFlags
 		);
 	while( it.hasNext() ){
 		it.next();
-		files.push_back( {recursive ? it.filePath() : it.fileName(), collator} );
+		auto file = recursive ? it.filePath() : it.fileName();
+		if( supports_extension( file ) )
+			files.push_back( {file, collator} );
 	}
 	
 	qSort( files.begin(), files.end() );
@@ -327,15 +321,6 @@ void fileManager::dir_modified(){
 		load_image( current_file );
 	}
 	loading_handler();
-}
-
-
-bool fileManager::supports_extension( QString filename ) const{
-	filename = filename.toLower();
-	for( int i=0; i<supported_file_ext.size(); i++ )
-		if( filename.endsWith( QString( supported_file_ext[i] ).remove( 0, 1 ) ) ) //Remove "*" from "*.ext"
-			return true;
-	return false;
 }
 
 void fileManager::delete_current_file(){

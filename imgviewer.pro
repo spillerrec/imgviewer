@@ -38,6 +38,10 @@ SOURCES += src/imageContainer.cpp \
            src/fileManager.cpp
 RESOURCES += src/resources/resources.qrc
 
+#FileSystem
+HEADERS += src/FileSystem/ExtensionChecker.hpp
+SOURCES += src/FileSystem/ExtensionChecker.cpp
+
 #Viewer
 HEADERS += src/viewer/colorManager.h \
            src/viewer/imageCache.h \

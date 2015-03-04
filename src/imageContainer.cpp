@@ -16,6 +16,7 @@
 */
 
 #include "imageContainer.h"
+#include "ImageReader/ImageReader.hpp"
 #include "viewer/imageViewer.h"
 #include "viewer/imageCache.h"
 #include "fileManager.h"
@@ -218,7 +219,7 @@ void imageContainer::update_file(){
 
 void imageContainer::open_file(){
 	//Make filter
-	QStringList ext = files->supported_extensions();
+	QStringList ext = ImageReader().supportedExtensions();
 	QString filter = "Images (";
 	for( int i=0; i<ext.count(); ++i )
 		filter += ext[i] + " ";
