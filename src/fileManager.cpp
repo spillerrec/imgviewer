@@ -122,26 +122,13 @@ void fileManager::load_files( QFileInfo file ){
 	clear_cache();
 	
 	//This folder, or all sub-folders as well
-	if( recursive ){
-		prefix = "";
-		
-		QDirIterator it( current_dir.path()
-			,	supported_file_ext, filters
-			,	QDirIterator::Subdirectories
-			);
-		while( it.hasNext() ){
-			it.next();
-			files.push_back( {it.filePath(), collator} );
-		}
-	}
-	else{
-		prefix = current_dir.path() + "/";
-		
-		QDirIterator it( current_dir.path(), supported_file_ext, filters );
-		while( it.hasNext() ){
-			it.next();
-			files.push_back( {it.fileName(), collator} );
-		}
+	prefix = recursive ? "" : current_dir.path() + "/";
+	QDirIterator it( current_dir.path(), supported_file_ext, filters
+		,	recursive ? QDirIterator::Subdirectories : QDirIterator::NoIteratorFlags
+		);
+	while( it.hasNext() ){
+		it.next();
+		files.push_back( {recursive ? it.filePath() : it.fileName(), collator} );
 	}
 	
 	qSort( files.begin(), files.end() );
