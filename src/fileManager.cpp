@@ -281,14 +281,15 @@ void fileManager::dir_modified(){
 	File old_file = files[current_file];
 	
 	//Prepare the QLists
+	current_file = -1; //TODO: we need this to avoid clear_cache() to notify the viewer. FIX
 	load_files( QFileInfo( file( old_file.name ) ) );
 	
 	//Restore old elements
-	for( int i=0; i<old.size(); i++ ){
-		int new_index = index_of( old[i] );
+	for( auto& elem : old ){
+		int new_index = index_of( elem );
 		if( new_index != -1 ){
-			files[new_index] = old[i];
-			old[i].cache = nullptr;
+			files[new_index] = elem;
+			elem.cache = nullptr;
 		}
 	}
 	
@@ -300,7 +301,7 @@ void fileManager::dir_modified(){
 		return; //TODO: can't do this!
 	}
 	
-	//Set image position
+	//Set image position, using lower bound to find the closest
 	auto it = qLowerBound( files.begin(), files.end(), old_file );
 	current_file = (it != files.end()) ? it - files.begin() : files.size()-1;
 	qDebug( "current_file: %d", current_file );
