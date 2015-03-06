@@ -194,8 +194,10 @@ void fileManager::unload_image( int index ){
 	files[index].cache = nullptr;
 	
 	//Remove if there becomes too many
-	while( (unsigned)buffer.size() > buffer_max )
-		loader.delete_image( buffer.takeFirst().cache );
+	while( (unsigned)buffer.size() > buffer_max ){
+		auto buf = buffer.takeFirst();
+		loader.delete_image( buf.cache );
+	}
 }
 
 void fileManager::loading_handler(){
@@ -242,13 +244,8 @@ void fileManager::clear_cache(){
 	}
 	
 	//Delete any images in the buffer and cache
-	for( int i=0; i<files.size(); ++i )
-		loader.delete_image( files[i].cache );
-	files.clear();
-	
-	//Delete buffer
-	while( !buffer.isEmpty() )
-		loader.delete_image( buffer.takeFirst().cache );
+	clear_files( files );
+	clear_files( buffer );
 }
 
 static QMutex mutex;
@@ -271,10 +268,10 @@ void fileManager::dir_modified(){
 	
 	//Save imageCache's which might still be valid
 	QList<File> old;
-	for( int i=0; i<files.size(); i++ )
-		if( files[i].cache ){
-			old << files[i];
-			files[i].cache = nullptr;
+	for( auto& file : files )
+		if( file.cache ){
+			old << file;
+			file.cache = nullptr;
 		}
 	
 	//Keep the name of the old file, for restoring position
@@ -312,9 +309,7 @@ void fileManager::dir_modified(){
 	
 	//Now delete images which are no longer here
 	//We can't do it earlier than emit file_changed(), as imageViewer needs to disconnect first
-	for( int i=0; i<old.size(); i++ )
-		if( old[i].cache )
-			loader.delete_image( old[i].cache );
+	clear_files( old );
 		
 	//Start loading the new files
 	if( !files[ current_file ].cache ){

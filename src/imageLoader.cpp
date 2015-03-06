@@ -82,7 +82,7 @@ bool imageLoader::load_image( imageCache *img, QString filepath ){
 	[img] will be NULL when this function returns, however the actual
 	delete might not have been performed yet.
 */
-void imageLoader::delete_image( imageCache *img ){
+void imageLoader::delete_image( imageCache *&img ){
 	if( !img )
 		return;
 	
@@ -90,20 +90,19 @@ void imageLoader::delete_image( imageCache *img ){
 	
 	if( img == image ){
 		delete image;
-		image = NULL;
-		img = NULL;
+		img = image = nullptr;
 		return;
 	}
 	
 	if( img == loading ){
 		delete_after_load = true;
-		img = NULL;
+		img = nullptr;
 		return;
 	}
 	
 	//img isn't affected by this loader, delete
 	delete img;
-	img = NULL;
+	img = nullptr;
 }
 
 

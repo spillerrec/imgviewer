@@ -55,7 +55,7 @@ class imageLoader: public QThread{
 	public:
 		explicit imageLoader();
 		bool load_image( imageCache *img, QString filepath );
-		void delete_image( imageCache *img );
+		void delete_image( imageCache *&img );
 		
 	signals:
 		void image_fetched();

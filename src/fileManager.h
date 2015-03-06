@@ -60,6 +60,11 @@ class fileManager : public QObject{
 			bool operator==( const File& other ) const{ return key.compare(other.key) == 0; }
 			bool operator!=( const File& other ) const{ return !(*this == other); }
 		};
+		template<class T> void clear_files( T& files ){
+			for( auto& file : files )
+				loader.delete_image( file.cache );
+			files.clear();
+		}
 		QString dir;       //Current directory (without last '/')
 		QString prefix;    //prefix for 'files' to get full path
 		QList<File> files;
@@ -72,9 +77,6 @@ class fileManager : public QObject{
 		//Accessors to 'files'
 		QString file( QString f ) const{ return prefix + f; }
 		QString file( int index ) const{ return file( files[index].name ); }
-		QFileInfo fileinfo( int index ) const{
-			return QFileInfo( file( index ) );
-		}
 		int index_of( File file ) const;
 		
 		void load_image( int pos );

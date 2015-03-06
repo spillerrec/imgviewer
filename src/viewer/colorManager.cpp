@@ -51,7 +51,6 @@ using namespace std;
 		x_mons.reserve( monitor_amount );
 		
 		//Get cookies for atoms
-		vector<xcb_atom_t> atoms;
 		for( int i=0; i<monitor_amount; i++ ){
 			string name = "_ICC_PROFILE";
 			if( i > 0 )
