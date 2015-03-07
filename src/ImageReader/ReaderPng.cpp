@@ -119,7 +119,7 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 	png_uint_32 height = png_get_image_height( png_ptr, info_ptr );
 	png_uint_32 x_offset=0, y_offset=0;
 	png_uint_16 delay_num, delay_den;
-	png_byte dispose_op, blend_op;
+	png_byte dispose_op = PNG_DISPOSE_OP_NONE, blend_op = PNG_BLEND_OP_SOURCE;
 	
 	png_bytep* row_pointers = new png_bytep[ height ];
 	if( setjmp( png_jmpbuf( png_ptr ) ) ){
