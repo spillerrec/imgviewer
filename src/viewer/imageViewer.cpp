@@ -294,7 +294,6 @@ void imageViewer::read_info(){
 	loop_counter = image_cache->loop_count();
 	continue_animating = image_cache->is_animated();
 	
-	current_frame = 0;
 	emit image_info_read();
 }
 void imageViewer::check_frame( unsigned int idx ){

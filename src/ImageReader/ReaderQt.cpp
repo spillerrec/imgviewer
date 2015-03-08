@@ -72,10 +72,8 @@ AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned len
 			return ERROR_TYPE_UNKNOWN;
 		
 		int frame_amount = image_reader.imageCount();
-		if( image_reader.supportsAnimation() )
-			cache.set_info( frame_amount, true, image_reader.loopCount() );
-		else
-			cache.set_info( frame_amount, false, -1 );
+		auto isAnim = image_reader.supportsAnimation();
+		cache.set_info( frame_amount, isAnim, isAnim ? image_reader.loopCount() : -1 );
 		
 		int current_frame = 1;
 		do{
