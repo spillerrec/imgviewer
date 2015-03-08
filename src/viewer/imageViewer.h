@@ -37,7 +37,6 @@ class imageViewer: public QWidget{
 		int loop_counter;
 		bool continue_animating;
 		int waiting_on_frame;
-		QImage get_frame() const;
 	public:
 		int get_frame_amount() const{ return frame_amount; }
 		int get_current_frame() const{ return current_frame; }
@@ -137,6 +136,7 @@ class imageViewer: public QWidget{
 		
 		bool auto_zoom_active() const{ return auto_scale_on; }
 		QSize sizeHint() const;
+		QImage get_frame() const;
 	
 	signals:
 		void image_info_read();

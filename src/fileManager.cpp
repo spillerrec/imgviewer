@@ -321,8 +321,7 @@ void fileManager::dir_modified(){
 
 void fileManager::delete_current_file(){
 	//QFileWatcher will ensure that the list will be updated
-	if( has_file() )
-		QFile::remove( file( current_file ) );
+	QFile::remove( file_path() );
 }
 
 

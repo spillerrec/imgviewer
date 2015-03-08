@@ -76,6 +76,8 @@ class imageContainer: public QWidget{
 		void context_menu( QContextMenuEvent event ){
 			contextMenuEvent( &event );
 		}
+		void copy_file();
+		void copy_file_path();
 	
 	public slots:
 		void toogle_animation();

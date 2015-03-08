@@ -110,6 +110,7 @@ class fileManager : public QObject{
 		imageCache* file() const{ qDebug( "file() : %d, %s", current_file, (has_file() ? "true" : "false" ) );
 		return has_file() ? files[current_file].cache : nullptr; }
 		QString file_name() const;
+		QString file_path() const{ return has_file() ? file( current_file ) : ""; }
 		
 		
 	private slots:

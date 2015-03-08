@@ -190,6 +190,8 @@ void imageContainer::create_context(){
 	context = new QMenu();
 	context->addAction( "&Open", this, SLOT( open_file() ) );
 	context->addAction( "&Delete", this, SLOT( delete_file() ) );
+	context->addAction( "&Copy", this, SLOT( copy_file() ) );
+	context->addAction( "Copy &Path", this, SLOT( copy_file_path() ) );
 	context->addAction( "E&xit", qApp, SLOT( quit() ) );
 }
 
@@ -271,6 +273,13 @@ void imageContainer::delete_file( bool ask ){
 	
 	if( result == QMessageBox::Yes )
 		files->delete_current_file();
+}
+
+void imageContainer::copy_file(){
+	QApplication::clipboard()->setImage( viewer->get_frame() );
+}
+void imageContainer::copy_file_path(){
+	QApplication::clipboard()->setText( files->file_path() );
 }
 
 void imageContainer::update_controls(){
