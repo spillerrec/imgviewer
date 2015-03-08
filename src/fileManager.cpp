@@ -90,15 +90,23 @@ void fileManager::set_files( QFileInfo file ){
 	//Begin caching
 	if( dir == file.dir().absolutePath() )
 		dir_modified();
-	else
+	else{
+		//Start loading image instantly
+		auto img = new imageCache();
+		if( !loader.load_image( img, file.absoluteFilePath() ) ){
+			delete img;
+			img = nullptr;
+		}
+		
 		load_files( file );
-	
-	current_file = index_of( {	recursive ? file.filePath() : file.fileName(), collator });
-	emit position_changed();
-	if( has_file() ){
-		if( old_name != files[current_file].name )
-			emit file_changed();
-		load_image( current_file );
+		
+		current_file = index_of( {	recursive ? file.filePath() : file.fileName(), collator });
+		files[current_file].cache = img;
+		emit position_changed();
+		emit file_changed();
+		
+		if( !img )
+			load_image( current_file );
 		loading_handler();
 	}
 }
