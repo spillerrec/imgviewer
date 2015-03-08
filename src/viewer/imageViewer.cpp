@@ -233,11 +233,10 @@ void imageViewer::change_zoom( double new_level, QPoint keep_on ){
 }
 
 void imageViewer::auto_zoom(){
-	QImage frame = get_frame();
-	if( frame.isNull() )
+	QSize img = get_frame().size();
+	if( img.isNull() )
 		return;
 	
-	QSize img = frame.size();
 	QRect old( shown_pos, shown_size );
 	double scaling_x = (double) size().width() / img.width();
 	double scaling_y = (double) size().height() / img.height();
@@ -314,13 +313,24 @@ void imageViewer::init_size(){
 	if( initial_resize )
 		emit resize_wanted();
 	initial_resize = keep_resize;
-	auto_zoom();
+	
+	//Only reset zoom if size differ
+	if( get_frame().size() != old_size ){
+		shown_pos = QPoint( 0,0 );
+		shown_size = QSize( 0,0 );
+		shown_zoom_level = 0;
+	
+		auto_scale_on = true; //TODO: customize?
+		auto_zoom();
+	}
+	
 	change_frame( 0 );
 }
 
 
 void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 	time->stop(); //Prevent previous animation to interfere
+	old_size = get_frame().size();
 	
 	//TODO: Delete old cache even used?
 	if( image_cache ){
@@ -335,12 +345,6 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 	current_frame = 0;
 	frame_amount = 0;
 	clear_converted();
-	
-	auto_scale_on = true; //TODO: customize?
-	
-	shown_pos = QPoint( 0,0 );
-	shown_size = QSize( 0,0 );
-	shown_zoom_level = 0;
 	
 	if( image_cache ){
 		switch( image_cache->get_status() ){
