@@ -19,13 +19,12 @@
 
 using namespace std;
 
-bool ExtensionChecker::ExtensionGroup::matches( QString str ) const{
+bool ExtensionChecker::ExtensionGroup::matches( const QString& str ) const{
 	//Must be able to contain the extension and start the extension with '.'
 	if( str.size() < lenght + 1 || str[str.size() - lenght - 1] != '.' )
 		return false;
 	
-	auto ext = str.right( lenght );
-	return any_of( exts.begin(), exts.end(), [=]( QString s ){ return s == ext; } );
+	return qBinaryFind( exts.begin(), exts.end(), str.right( lenght ).toLower() ) != exts.end();
 }
 
 ExtensionChecker::ExtensionChecker( QStringList exts ){

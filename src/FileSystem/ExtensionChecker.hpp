@@ -34,17 +34,16 @@ class ExtensionChecker{
 				
 			public:
 				ExtensionGroup( int lenght, std::vector<QString>&& exts ) : lenght(lenght), exts(exts)
-					{ std::sort( exts.begin(), exts.end() ); }
+					{ std::sort( this->exts.begin(), this->exts.end() ); }
 				
-				bool matches( QString str ) const;
+				bool matches( const QString& str ) const;
 		};
 		std::vector<ExtensionGroup> groups;
 		
 	public:
 		explicit ExtensionChecker( QStringList exts );
 		
-		bool matches( QString str ) const{
-			str = str.toLower();
+		bool matches( const QString& str ) const{
 			for( auto& group : groups )
 				if( group.matches( str ) )
 					return true;
