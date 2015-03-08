@@ -19,6 +19,7 @@
 
 #include <lcms2.h>
 #include <QApplication>
+#include <QtConcurrent>
 #include <QImage>
 using namespace std;
 
@@ -192,6 +193,7 @@ void colorManager::do_transform( QImage& img, unsigned monitor, cmsHTRANSFORM tr
 		QImage::Format format = img.format();
 		//qDebug( "Format: %d", (int)format );
 		
+		//For indexed images, we only need to transform the color table
 		if( format == QImage::Format_Indexed8 ){
 			auto colors = img.colorTable();
 			cmsDoTransform( transform, colors.data(), colors.data(), colors.size() );
@@ -199,19 +201,17 @@ void colorManager::do_transform( QImage& img, unsigned monitor, cmsHTRANSFORM tr
 			return;
 		}
 		
-		if(	format != QImage::Format_RGB32
-			&&	format != QImage::Format_ARGB32
-			&&	format != QImage::Format_ARGB32_Premultiplied
-			)
-			return;
-		//qDebug( "did transform %x", qRgba( 0xAA, 0xBB, 0xCC, 0xDD ) );
+		//Make sure the image is in a format we support
+		if( format != QImage::Format_RGB32 && format != QImage::Format_ARGB32 )
+			img = img.convertToFormat( QImage::Format_ARGB32 );
 		
 		//Convert
-		//TODO: use multiple threads?
-		for( int i=0; i < img.height(); i++ ){
-			auto line = (char*)img.scanLine( i );
-			cmsDoTransform( transform, line, line, img.width() );
-		}
+		vector<char*> lines;
+		for( int i=0; i < img.height(); i++ )
+			lines.push_back( (char*)img.scanLine( i ) );
+		QtConcurrent::blockingMap( lines.begin(), lines.end()
+			,	[&]( char* line ){ cmsDoTransform( transform, line, line, img.width() ); }
+			);
 	}
 }
 

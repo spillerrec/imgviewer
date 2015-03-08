@@ -13,7 +13,7 @@ win32{
 	DEFINES += WIN_TOOLBAR
 	QT += winextras
 }
-QT += widgets
+QT += widgets concurrent
 unix{
 	QT += x11extras
 	LIBS += -lxcb
