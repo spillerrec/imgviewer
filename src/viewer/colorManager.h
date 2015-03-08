@@ -41,7 +41,7 @@ class colorManager{
 		colorManager();
 		~colorManager();
 		
-		void do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM transform ) const;
+		void do_transform( QImage& img, unsigned monitor, cmsHTRANSFORM transform ) const;
 		
 		cmsHPROFILE get_profile( unsigned char *data, unsigned len ) const{
 			return cmsOpenProfileFromMem( (const void*)data, len );

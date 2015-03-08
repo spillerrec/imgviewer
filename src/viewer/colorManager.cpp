@@ -183,15 +183,22 @@ cmsHTRANSFORM colorManager::get_transform( cmsHPROFILE in, unsigned monitor ) co
 		return NULL;
 }
 
-
-void colorManager::do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM transform ) const{
+void colorManager::do_transform( QImage& img, unsigned monitor, cmsHTRANSFORM transform ) const{
 	if( !transform && monitors.size() > monitor )
 		transform = monitors[monitor].transform_srgb;
 	
 	if( transform ){
 		//Make sure the image is in the correct pixel format
-		QImage::Format format = img->format();
+		QImage::Format format = img.format();
 		//qDebug( "Format: %d", (int)format );
+		
+		if( format == QImage::Format_Indexed8 ){
+			auto colors = img.colorTable();
+			cmsDoTransform( transform, colors.data(), colors.data(), colors.size() );
+			img.setColorTable( colors );
+			return;
+		}
+		
 		if(	format != QImage::Format_RGB32
 			&&	format != QImage::Format_ARGB32
 			&&	format != QImage::Format_ARGB32_Premultiplied
@@ -201,9 +208,9 @@ void colorManager::do_transform( QImage *img, unsigned monitor, cmsHTRANSFORM tr
 		
 		//Convert
 		//TODO: use multiple threads?
-		for( int i=0; i < img->height(); i++ ){
-			char* line = (char*)img->scanLine( i );
-			cmsDoTransform( transform, line, line, img->width() );
+		for( int i=0; i < img.height(); i++ ){
+			auto line = (char*)img.scanLine( i );
+			cmsDoTransform( transform, line, line, img.width() );
 		}
 	}
 }

@@ -431,9 +431,9 @@ void imageViewer::paintEvent( QPaintEvent* ){
 		//Transform colors to current monitor profile
 		colorManager* manager = image_cache->get_manager();
 		cmsHTRANSFORM transform = manager->get_transform( image_cache->get_profile(), current_monitor );
-		manager->do_transform( &frame, current_monitor, transform );
+		manager->do_transform( frame, current_monitor, transform );
 		manager->delete_transform( transform );
-			
+		
 		converted = frame;
 		converted_monitor = current_monitor;
 	}
