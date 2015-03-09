@@ -20,15 +20,8 @@
 #include <QApplication>
 #include <QDesktopWidget>
 
-
-windowManager::windowManager( QWidget *widget ){
-	window = widget;
-	desktop = QApplication::desktop();
-}
-
-
-windowManager::~windowManager(){
-}
+#include <algorithm>
+#include <utility>
 
 
 //Resizes the window so that "content" will have "wanted" size.
@@ -38,46 +31,37 @@ windowManager::~windowManager(){
 //depending on "keep_aspect". If false, height and width will be clipped.
 //If true, it will be scaled so "content" keeps it aspect ratio.
 //Function returns "content"'s new size.
-QSize windowManager::resize_content( QSize wanted, QSize content, bool keep_aspect ){
+QSize windowManager::resize_content( QSize wanted, QSize content, bool keep_aspect, bool only_upscale ){
+	auto desktop = QApplication::desktop();
 	//Get the difference in size between the content and the whole window
-	QSize difference = window->frameGeometry().size() - content;
-	
-	//Take the full area and subtract the constant widths (which doesn't scale with aspect)
-	QRect space = desktop->availableGeometry( window );
-	space.setSize( space.size() - difference );
+	QSize difference = window.frameGeometry().size() - content;
 	
 	//Prepare resize dimensions, but keep it within "space"
-	QRect position = constrain( space, QRect( contrain_point( space, window->pos() ), wanted ), keep_aspect );
-	
-	if( position.size() != wanted ){
-		int best = qsize_area( position.size() );
+	auto getPosition = [&]( int monitor ){
+		//Take the full area and subtract the constant widths (which doesn't scale with aspect)
+		QRect space = desktop->availableGeometry( monitor );
+		space.setSize( space.size() - difference );
 		
-		for( int i=0; i<desktop->screenCount(); i++ ){
-			QRect space_new = desktop->availableGeometry( i );
-			space_new.setSize( space_new.size() - difference );
-			
-			QRect position_new = constrain( space_new, QRect( contrain_point( space_new, window->pos() ), wanted ), keep_aspect );
-			
-			int area = qsize_area( position_new.size() );
-			if( area > best ){
-				best = area;
-				position = position_new;
-			}
-		}
-	}
+		QRect position = constrain( space, QRect( contrain_point( space, window.pos() ), wanted ), keep_aspect );
+		return std::make_pair( position, qsize_area( position.size() ) );
+	};
+	
+	//Find the best monitor, but stay on the first monitor if several can fit the entire window
+	auto best = getPosition( desktop->screenNumber( &window ) );
+	for( int i=0; i<desktop->screenCount(); i++ )
+		best = std::max( best, getPosition( i ), []( std::pair<QRect,int> a, std::pair<QRect,int> b ){ return a.second < b.second; } );
 	
 	//Move and resize window. We need to convert dimensions to window size though.
-	window->move( position.topLeft() );
-	window->resize( position.size() + window->size() - content );
+	window.move( best.first.topLeft() );
+	window.resize( best.first.size() + window.size() - content );
 	
-	return position.size();
+	return best.first.size();
 }
 
-#include <algorithm>
 void windowManager::restrain_window(){
-	QRect space = desktop->availableGeometry( window );
-	QRect frame = window->frameGeometry();
-	frame.setTopLeft( window->pos() );
+	QRect space = QApplication::desktop()->availableGeometry( &window );
+	QRect frame = window.frameGeometry();
+	frame.setTopLeft( window.pos() );
 	
 	if( frame.x() + frame.width() > space.x() + space.width() )
 		frame.moveLeft( std::max( space.x(), space.x() + space.width() - frame.width() ) );
@@ -87,7 +71,7 @@ void windowManager::restrain_window(){
 		frame.moveLeft( space.x() );
 	if( frame.y() < space.y() )
 		frame.moveTop( space.y() );
-	window->move( frame.topLeft() );
-//	window->resize( frame.size() );
+	window.move( frame.topLeft() );
+//	window.resize( frame.size() );
 }
 

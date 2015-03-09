@@ -75,7 +75,7 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	//Init components
 	viewer = new imageViewer( settings, this );
 	files = new fileManager( settings );
-	manager = new windowManager( this );
+	manager = new windowManager( *this );
 	ui->setupUi( this );
 
 	//Add and refresh widgets
@@ -106,9 +106,6 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	connect( ui->btn_prev,     SIGNAL( pressed() ), this, SLOT( prev_file() ) );
 	connect( files, SIGNAL( file_changed() ),     this, SLOT( update_file() ) );
 	connect( files, SIGNAL( position_changed() ), this, SLOT( update_controls() ) );
-	
-	
-	
 }
 
 #ifdef WIN_TOOLBAR
@@ -419,7 +416,7 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 			break;
 		case Qt::Key_A:
 				if( mods & Qt::ControlModifier )
-					resize_window();
+					resize_window( mods & Qt::ShiftModifier );
 				else
 					event->ignore();
 			break;
@@ -452,9 +449,9 @@ void imageContainer::mousePressEvent( QMouseEvent* event ){
 		viewer->create_context_event( *event );
 }
 
-void imageContainer::resize_window(){
+void imageContainer::resize_window( bool only_upscale ){
 	if( !is_fullscreen ) //Buggy in fullscreen
-		manager->resize_content( viewer->sizeHint(), viewer->size(), viewer->auto_zoom_active() );
+		manager->resize_content( viewer->sizeHint(), viewer->size(), viewer->auto_zoom_active(), only_upscale );
 }
 
 void imageContainer::restrain_window(){

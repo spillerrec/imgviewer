@@ -19,18 +19,15 @@
 #define WINDOWMANAGER_H
 
 #include <QWidget>
-class QDesktopWidget;
 
 class windowManager{
 	private:
-		QDesktopWidget *desktop;
-		QWidget *window;
+		QWidget& window;
 		
 	public:
-		explicit windowManager( QWidget *widget );
-		~windowManager();
+		explicit windowManager( QWidget& widget ) : window(widget) { };
 		
-		QSize resize_content( QSize wanted, QSize content, bool keep_aspect = false );
+		QSize resize_content( QSize wanted, QSize content, bool keep_aspect = false, bool only_upscale = false );
 		void restrain_window();
 };
 

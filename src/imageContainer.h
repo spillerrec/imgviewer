@@ -70,7 +70,7 @@ class imageContainer: public QWidget{
 		void update_controls();
 		void update_toogle_btn();
 		void hide_menubar();
-		void resize_window();
+		void resize_window( bool only_upscale=false );
 		
 		void update_file();
 		void context_menu( QContextMenuEvent event ){

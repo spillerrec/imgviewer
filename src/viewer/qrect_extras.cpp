@@ -59,14 +59,8 @@ QRect constrain( QRect outer, QRect inner, bool keep_aspect ){
 }
 
 QPoint contrain_point( QRect outer, QPoint inner ){
-	if( outer.x() > inner.x() )
-		inner.setX( outer.x() );
-	else if( outer.x() + outer.width() < inner.x() )
-		inner.setX( outer.x() + outer.width() );
-	
-	if( outer.y() > inner.y() )
-		inner.setY( outer.y() );
-	else if( outer.y() + outer.height() < inner.y() )
-		inner.setY( outer.y() + outer.height() );
-	return inner;
+	auto bottom = outer.topLeft() + QPoint( outer.width(), outer.height() );
+	//     |     constrain if above outer      |       constrain if below outer       | already inside
+	return { outer.x() > inner.x() ? outer.x() : (bottom.x() < inner.x() ? bottom.x() : inner.x())
+	       , outer.y() > inner.y() ? outer.y() : (bottom.y() < inner.y() ? bottom.y() : inner.y()) };
 }
