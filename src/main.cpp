@@ -29,7 +29,7 @@ int main( int argc, char *argv[] ){
 	imageContainer main(NULL);
 	main.setWindowIcon( QIcon( ":/main/appicon.png" ) );
 	main.show();
-	main.restrain_window();
+	main.center_window();
 	
 #ifdef WIN_TOOLBAR
 	main.init_win_toolbar();

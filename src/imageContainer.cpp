@@ -84,11 +84,6 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	update_controls();
 	create_context();
 	
-	//Center window on mouse cursor on start
-	QSize half_size( frameGeometry().size() / 2 );
-	move( QCursor::pos() - QPoint( half_size.width(), half_size.height() ) );
-	manager->restrain_window();
-	
 	//Connect signals
 	connect( viewer, SIGNAL( clicked() ),         this, SLOT( hide_menubar() ) );
 	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
@@ -113,27 +108,19 @@ void imageContainer::init_win_toolbar(){
 	auto *thumbnail_bar = new QWinThumbnailToolBar( this );
 	thumbnail_bar->setWindow( windowHandle() );
 	
-	btn_prev = new QWinThumbnailToolButton( thumbnail_bar );
-	btn_prev->setEnabled( false );
-	btn_prev->setToolTip( tr( "Previous" ) );
-	btn_prev->setIcon( QIcon(":/main/prev.png") );
-	connect( btn_prev, SIGNAL( clicked() ), this, SLOT( prev_file() ) );
+	auto make_btn = [&]( const char* name, const char* icon, void (imageContainer::*slot)() ){
+			auto btn = new QWinThumbnailToolButton( thumbnail_bar );
+			btn->setEnabled( false );
+			btn->setToolTip( tr( name ) );
+			btn->setIcon( QIcon( icon ) );
+			connect( btn, &QWinThumbnailToolButton::clicked, this, slot );
+			thumbnail_bar->addButton( btn );
+			return btn;
+		};
 	
-	btn_pause = new QWinThumbnailToolButton( thumbnail_bar );
-	btn_pause->setEnabled( false );
-	btn_pause->setToolTip( tr( "Pause" ) );
-	btn_pause->setIcon( QIcon(":/main/start.png") );
-	connect( btn_pause, SIGNAL( clicked() ), this, SLOT( toogle_animation() ) );
-	
-	btn_next = new QWinThumbnailToolButton( thumbnail_bar );
-	btn_next->setEnabled( false );
-	btn_next->setToolTip( tr( "Next" ) );
-	btn_next->setIcon( QIcon(":/main/next.png") );
-	connect( btn_next, SIGNAL( clicked() ), this, SLOT( next_file() ) );
-	
-	thumbnail_bar->addButton( btn_prev );
-	thumbnail_bar->addButton( btn_pause );
-	thumbnail_bar->addButton( btn_next );
+	btn_prev  = make_btn( "Previous", ":/main/prev.png" , prev_file );
+	btn_pause = make_btn( "Pause"   , ":/main/start.png", toogle_animation );
+	btn_next  = make_btn( "Next"    , ":/main/next.png" , next_file );
 }
 #endif
 
@@ -167,11 +154,11 @@ void imageContainer::create_menubar(){
 	file_menu->addAction( "E&xit", qApp, SLOT( quit() ) );
 	
 	//Animation actions
-	anim_menu->addAction( "&Pause/resume", viewer, SLOT( toogle_animation() ) );
-	anim_menu->addAction( "&Restart", viewer, SLOT( restart_animation() ) );
+	anim_menu->addAction( "&Pause/resume",   viewer, SLOT( toogle_animation()  ) );
+	anim_menu->addAction( "&Restart",        viewer, SLOT( restart_animation() ) );
 	anim_menu->addSeparator();
-	anim_menu->addAction( "&Next frame", viewer, SLOT( goto_next_frame() ) );
-	anim_menu->addAction( "Pre&vious frame", viewer, SLOT( goto_prev_frame() ) );
+	anim_menu->addAction( "&Next frame",     viewer, SLOT( goto_next_frame()   ) );
+	anim_menu->addAction( "Pre&vious frame", viewer, SLOT( goto_prev_frame()   ) );
 	//TODO: goto a specific frame
 	
 	//Actions related to the interface
@@ -185,11 +172,11 @@ void imageContainer::create_context(){
 		return;
 	
 	context = new QMenu();
-	context->addAction( "&Open", this, SLOT( open_file() ) );
-	context->addAction( "&Delete", this, SLOT( delete_file() ) );
-	context->addAction( "&Copy", this, SLOT( copy_file() ) );
+	context->addAction( "&Open",      this, SLOT( open_file()      ) );
+	context->addAction( "&Delete",    this, SLOT( delete_file()    ) );
+	context->addAction( "&Copy",      this, SLOT( copy_file()      ) );
 	context->addAction( "Copy &Path", this, SLOT( copy_file_path() ) );
-	context->addAction( "E&xit", qApp, SLOT( quit() ) );
+	context->addAction( "E&xit",      qApp, SLOT( quit()           ) );
 }
 
 void imageContainer::hide_menubar(){
@@ -233,12 +220,7 @@ void imageContainer::open_file(){
 	}
 	
 	//Show open file dialog and load the file on success
-	QString file = QFileDialog::getOpenFileName( this
-		,	tr( "Open image" )
-		,	folder
-		,	filter
-		);
-	
+	QString file = QFileDialog::getOpenFileName( this, tr( "Open image" ), folder, filter );
 	if( !file.isEmpty() )
 		load_image( file );
 }
@@ -257,19 +239,14 @@ void imageContainer::prev_file(){
 }
 
 void imageContainer::delete_file( bool ask ){
-	if( !ask ){
-		//Delete without warning
-		files->delete_current_file();
-		return;
+	//Ask user before deleting
+	if( ask ){
+		auto message = tr( "Do you want to permanently delete the following file?\n" ) + files->file_name();
+		if( QMessageBox::question( this, "Delete?", message ) != QMessageBox::Yes )
+			return;
 	}
 	
-	QMessageBox::StandardButton result = QMessageBox::question(
-			this, "Delete?"
-		,	tr( "Do you want to permanently delete the following file?\n" ) + files->file_name()
-		);
-	
-	if( result == QMessageBox::Yes )
-		files->delete_current_file();
+	files->delete_current_file();
 }
 
 void imageContainer::copy_file(){
@@ -454,7 +431,9 @@ void imageContainer::resize_window( bool only_upscale ){
 		manager->resize_content( viewer->sizeHint(), viewer->size(), viewer->auto_zoom_active(), only_upscale );
 }
 
-void imageContainer::restrain_window(){
+void imageContainer::center_window(){
+	QSize half_size( frameGeometry().size() / 2 );
+	move( QCursor::pos() - QPoint( half_size.width(), half_size.height() ) );
 	manager->restrain_window();
 }
 
