@@ -74,9 +74,6 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 	button_scaling = translate_button( "mouse/cycle-scales", 'M' );
 	button_context = translate_button( "mouse/context-menu", 'R' );
 	
-	shown_pos = QPoint( 0,0 );
-	shown_zoom_level = 0;
-	
 	time = new QTimer( this );
 	time->setSingleShot( true );
 	connect( time, SIGNAL( timeout() ), this, SLOT( next_frame() ) );
@@ -97,10 +94,6 @@ QImage imageViewer::get_frame() const{
 
 bool imageViewer::can_animate() const{
 	return image_cache ? image_cache->is_animated() : false;
-}
-
-bool imageViewer::moveable() const{
-	return ( shown_size.width() > size().width() ) || ( shown_size.height() > size().height() );
 }
 
 void imageViewer::change_frame( int wanted ){
@@ -158,7 +151,7 @@ void imageViewer::goto_frame( int index ){
 	if( auto_scale_on )
 		auto_zoom();
 	else{
-		change_zoom( shown_zoom_level, QPoint() );
+		change_zoom( zoom.level(), QPoint() );
 		restrict_view();
 	}
 }
@@ -186,95 +179,29 @@ bool imageViewer::toogle_animation(){
 }
 
 void imageViewer::restrict_view( bool force ){
-	if( restrict_viewpoint || force ){
-		//Make sure it doesn't leave the screen
-		QSize diff = size() - shown_size;
-		if( diff.width() >= 0 )
-			shown_pos.setX( diff.width() / 2.0 + 0.5 );
-		else{
-			shown_pos.setX( min( 0, shown_pos.x() ) );
-			if( shown_pos.x() + shown_size.width() < size().width() )
-				shown_pos.setX( size().width() - shown_size.width() );
-		}
-		
-		if( diff.height() >= 0 )
-			shown_pos.setY( diff.height() / 2.0 + 0.5 );
-		else{
-			shown_pos.setY( min( 0, shown_pos.y() ) );
-			if( shown_pos.y() + shown_size.height() < size().height() )
-				shown_pos.setY( size().height() - shown_size.height() );
-		}
-	}
+	if( restrict_viewpoint || force )
+		zoom.restrict( size() );
 }
 
 void imageViewer::change_zoom( double new_level, QPoint keep_on ){
-	QImage frame = get_frame();
-	if( frame.isNull() )
-		return;
-	
-	QSize img = frame.size();
-	QRect old( shown_pos, shown_size );
-	shown_zoom_level = new_level;
 	auto_scale_on = false;
 	
-	//Calculate zoom to 2^(x/2)
-	double current_scale = pow( 2.0, shown_zoom_level * 0.5 );
-	
-	//Keep on mouse cursor
-	if( !keep_on.isNull() && !shown_size.isEmpty() ) //Don't divide with shown_size if it is 0
-		shown_pos = keep_on + (QPointF(shown_pos-keep_on) * img * current_scale / shown_size).toPoint();
-	shown_size = img * current_scale;
-	
-	restrict_view();
-	
-	if( old != QRect( shown_pos, shown_size ) )
+	if( zoom.change_scale( new_level, keep_on ) ){
+		restrict_view();
 		update();
+	}
 	update_cursor();
 }
 
 void imageViewer::auto_zoom(){
-	QSize img = get_frame().size();
-	if( img.isNull() )
-		return;
-	
-	QRect old( shown_pos, shown_size );
-	double scaling_x = (double) size().width() / img.width();
-	double scaling_y = (double) size().height() / img.height();
-	
-	//Prevent certain types of scaling
-	if( auto_downscale_only ){
-		scaling_x = min( scaling_x, 1.0 );
-		scaling_y = min( scaling_y, 1.0 );
-	}
-	if( auto_upscale_only ){
-		scaling_x = max( scaling_x, 1.0 );
-		scaling_y = max( scaling_y, 1.0 );
-	}
-	
-	//Keep aspect ratio
-	if( auto_aspect_ratio ){
-		if( scaling_y < scaling_x )
-			scaling_x = scaling_y;
-		else
-			scaling_y = scaling_x;
-	}
-	
-	//Apply scaling
-	shown_size.setWidth( scaling_x * img.width() + 0.5 );
-	shown_size.setHeight( scaling_y * img.height() + 0.5 );
-	
-	restrict_view( true );
-	if( old != QRect( shown_pos, shown_size ) )
+	zoom.resize( size(), auto_downscale_only, auto_upscale_only, auto_aspect_ratio );
 		update();
 	update_cursor();
-	
-	//TODO: what to base zoom_level on?
-	shown_zoom_level = log2( scaling_x ) * (2.0 / log2( 2 ));
 }
 
 void imageViewer::update_cursor(){
 	//Show hand-cursor if image can be moved/is being moved
-	if( shown_size.width() <= size().width() && shown_size.height() <= size().height() )
+	if( zoom.moveable(size()) )
 		setCursor( Qt::ArrowCursor );
 	else{
 		if( mouse_active & Qt::LeftButton )
@@ -315,11 +242,7 @@ void imageViewer::init_size(){
 	initial_resize = keep_resize;
 	
 	//Only reset zoom if size differ
-	if( get_frame().size() != old_size ){
-		shown_pos = QPoint( 0,0 );
-		shown_size = QSize( 0,0 );
-		shown_zoom_level = 0;
-	
+	if( zoom.change_content( get_frame().size(), true ) ){
 		auto_scale_on = true; //TODO: customize?
 		auto_zoom();
 	}
@@ -330,7 +253,6 @@ void imageViewer::init_size(){
 
 void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 	time->stop(); //Prevent previous animation to interfere
-	old_size = get_frame().size();
 	
 	//TODO: Delete old cache even used?
 	if( image_cache ){
@@ -444,10 +366,10 @@ void imageViewer::paintEvent( QPaintEvent* ){
 		frame = converted;
 	
 	QPainter painter( this );
-	if( frame.width()*1.5 >= shown_size.width() )
+	if( zoom.scale() >= 1.5 )
 		painter.setRenderHints( QPainter::SmoothPixmapTransform, true );
 	
-	painter.drawImage( QRect( shown_pos, shown_size ), frame );
+	painter.drawImage( zoom.area(), frame );
 }
 
 QSize imageViewer::sizeHint() const{
@@ -463,7 +385,7 @@ QSize imageViewer::sizeHint() const{
 			size = size.expandedTo( image_cache->frame( i ).size() );
 	}
 	
-	return size.expandedTo( shown_size );
+	return size.expandedTo( zoom.size() );
 }
 
 
@@ -525,7 +447,7 @@ void imageViewer::mousePressEvent( QMouseEvent *event ){
 	
 	//Change cursor when dragging
 	if( event->button() == button_drag )
-		if( moveable() )
+		if( zoom.moveable(size()) )
 			setCursor( Qt::ClosedHandCursor );
 }
 
@@ -560,7 +482,7 @@ void imageViewer::mouseMoveEvent( QMouseEvent *event ){
 	if( event->modifiers() & Qt::ControlModifier ){
 		if( !is_zooming ){
 			is_zooming = true;
-			start_zoom = shown_zoom_level;
+			start_zoom = zoom.level();
 		}
 		
 		QPoint diff = mouse_last_pos - event->pos();
@@ -572,25 +494,23 @@ void imageViewer::mouseMoveEvent( QMouseEvent *event ){
 			mouse_last_pos = event->pos();
 		}
 		
-		QPoint old_pos = shown_pos;
-		shown_pos -= mouse_last_pos - event->pos();
-		mouse_last_pos = event->pos();
-		restrict_view();
-		
-		if( old_pos != shown_pos )
+		if( zoom.move( event->pos() - mouse_last_pos ) ){
+			restrict_view();
 			update();
+		}
+		mouse_last_pos = event->pos();
 	}
 }
 
 
 void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
-	setCursor( ( (mouse_active & button_drag) && moveable() ) ? Qt::OpenHandCursor : Qt::ArrowCursor );
+	setCursor( ( (mouse_active & button_drag) && zoom.moveable(size()) ) ? Qt::OpenHandCursor : Qt::ArrowCursor );
 	
 	//If only one button was pressed
 	if( !multi_button ){
 		if( event->button() == button_scaling ){
 			//Cycle through scalings
-			if( auto_scale_on || !moveable() )
+			if( auto_scale_on || !zoom.moveable(size()) )
 				change_zoom( 0, event->pos() );
 			else{
 				auto_zoom();
@@ -631,7 +551,7 @@ void imageViewer::wheelEvent( QWheelEvent *event ){
 		goto_frame( current_frame + amount );
 	}
 	else //Change zoom-level
-		change_zoom( shown_zoom_level + amount, event->pos() );
+		change_zoom( zoom.level() + amount, event->pos() );
 }
 
 

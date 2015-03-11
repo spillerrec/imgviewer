@@ -46,10 +46,12 @@ SOURCES += src/FileSystem/ExtensionChecker.cpp
 HEADERS += src/viewer/colorManager.h \
            src/viewer/imageCache.h \
            src/viewer/imageViewer.h \
+           src/viewer/ZoomBox.hpp \
            src/viewer/qrect_extras.h
 SOURCES += src/viewer/colorManager.cpp \
            src/viewer/imageCache.cpp \
            src/viewer/imageViewer.cpp \
+           src/viewer/ZoomBox.cpp \
            src/viewer/qrect_extras.cpp
 
 #ImageReader

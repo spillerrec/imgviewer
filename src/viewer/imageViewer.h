@@ -23,6 +23,8 @@
 #include <QSettings>
 #include <QContextMenuEvent>
 
+#include "ZoomBox.hpp"
+
 class imageCache;
 
 class QStaticText;
@@ -54,11 +56,7 @@ class imageViewer: public QWidget{
 	
 	//How the image is to be viewed
 	private:
-		QSize old_size; //For detecting if the new image has the same dimensions
-		QPoint shown_pos;
-		QSize shown_size;
-		double shown_zoom_level;
-		bool moveable() const;
+		ZoomBox zoom;
 		
 	//Settings to autoscale
 	private:
