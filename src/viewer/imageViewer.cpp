@@ -366,7 +366,7 @@ void imageViewer::paintEvent( QPaintEvent* ){
 		frame = converted;
 	
 	QPainter painter( this );
-	if( zoom.scale() >= 1.5 )
+	if( zoom.scale() <= 1.5 )
 		painter.setRenderHints( QPainter::SmoothPixmapTransform, true );
 	
 	painter.drawImage( zoom.area(), frame );
