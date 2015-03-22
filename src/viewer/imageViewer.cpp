@@ -148,11 +148,11 @@ void imageViewer::goto_frame( int index ){
 	change_frame( index );
 	
 	//Make sure it works if the new frame has different dimensions
-	if( auto_scale_on )
-		auto_zoom();
-	else{
-		change_zoom( zoom.level(), QPoint() );
-		restrict_view();
+	if( zoom.change_content( get_frame().size(), true ) ){
+		if( auto_scale_on )
+			auto_zoom();
+		else
+			restrict_view();
 	}
 }
 
