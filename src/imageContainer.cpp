@@ -29,6 +29,7 @@
 #include <QDragEnterEvent>
 #include <QUrl>
 
+#include <QClipboard>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QCursor>
