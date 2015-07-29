@@ -20,8 +20,8 @@ unix{
 }
 
 
-# C++11 support
-QMAKE_CXXFLAGS += -std=c++11
+# C++14 support
+CONFIG += c++14
 
 # Input
 HEADERS += src/imageContainer.h \

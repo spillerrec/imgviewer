@@ -48,43 +48,64 @@ bool ReaderPng::can_read( const char* data, unsigned lenght, QString ) const{
 	return png_sig_cmp( (unsigned char*)data, 0, std::min( 8u, lenght ) ) == 0;
 }
 
+
+class PngInfo{
+	public: //NOTE: for now...
+		png_structp png_ptr;
+		png_infop info_ptr;
+		
+	public:
+		PngInfo( png_structp png_ptr, png_infop info_ptr )
+			:	png_ptr(png_ptr), info_ptr(info_ptr) { }
+		
+		auto width(){  return png_get_image_width(  png_ptr, info_ptr ); }
+		auto height(){ return png_get_image_height( png_ptr, info_ptr ); }
+		
+		auto colorType(){ return png_get_color_type( png_ptr, info_ptr ); }
+		auto bitDepth(){  return png_get_bit_depth(  png_ptr, info_ptr ); }
+		
+		bool isPalette(){   return colorType() == PNG_COLOR_TYPE_PALETTE;    }
+		bool isGray(){      return colorType() == PNG_COLOR_TYPE_GRAY;       }
+		bool isGrayAlpha(){ return colorType() == PNG_COLOR_TYPE_GRAY_ALPHA; }
+		bool isRgb(){       return colorType() == PNG_COLOR_TYPE_RGB;        }
+		bool isRgbAlpha(){  return colorType() == PNG_COLOR_TYPE_RGB_ALPHA;  }
+};
+
 static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, unsigned height, png_bytepp row_pointers, unsigned frame_count=0 ){
-	unsigned color_type = png_get_color_type( png_ptr, info_ptr );
-	bool alpha = color_type == PNG_COLOR_TYPE_GRAY_ALPHA
-		||	color_type == PNG_COLOR_TYPE_RGB_ALPHA
-		;
-	unsigned bit_depth = png_get_bit_depth( png_ptr, info_ptr );
+	PngInfo info( png_ptr, info_ptr );
 	
 	//TODO: support palette images
-	if( color_type == PNG_COLOR_TYPE_PALETTE )
+	if( info.isPalette() )
 		png_set_palette_to_rgb( png_ptr );
 	
-	//Qt doesn't have gray-scale
-	if( color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA )
-		png_set_gray_to_rgb( png_ptr );
-	
 	//Apply transparency information
+	bool alpha = info.isGrayAlpha() || info.isRgbAlpha();
 	if( png_get_valid( png_ptr, info_ptr, PNG_INFO_tRNS ) ){
 		png_set_tRNS_to_alpha( png_ptr );
 		alpha = true;
 	}
 	
+	//Qt doesn't have alpha-gray-scale
+	bool use_gray = info.isGray() && !alpha;
+	if( (info.isGray() && !use_gray) || info.isGrayAlpha() )
+		png_set_gray_to_rgb( png_ptr );
+	
 	//Use the format BGRA
-	png_set_filler( png_ptr, 255, PNG_FILLER_AFTER );
-	png_set_bgr( png_ptr );
+	if( !use_gray ){
+		png_set_filler( png_ptr, 255, PNG_FILLER_AFTER );
+		png_set_bgr( png_ptr );
+	}
 	
 	//Always use 8 bits
-	if( bit_depth < 8 )
+	if( info.bitDepth() < 8 )
 		png_set_packing( png_ptr );
 	else
 		png_set_strip_16( png_ptr );
 	
-	
 	//Set image type
-	QImage::Format format = QImage::Format_ARGB32;
-	if( !alpha ){
-		format = QImage::Format_RGB32;
-	}
+	auto format = alpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
+	if( use_gray )
+		format = QImage::Format_Grayscale8;
 	
 	//Initialize image
 	QImage frame( width, height, format );
