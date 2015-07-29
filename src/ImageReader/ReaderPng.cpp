@@ -52,110 +52,136 @@ bool ReaderPng::can_read( const char* data, unsigned lenght, QString ) const{
 
 class PngInfo{
 	public: //NOTE: for now...
-		png_structp png_ptr;
-		png_infop info_ptr;
+		png_structp png{ nullptr };
+		png_infop  info{ nullptr };
+		QImage frame;
+		std::vector<png_bytep> row_pointers;
 		
 	public:
-		PngInfo( png_structp png_ptr, png_infop info_ptr )
-			:	png_ptr(png_ptr), info_ptr(info_ptr) { }
+		PngInfo(){
+			png = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
+			if( png )
+				info = png_create_info_struct( png );
+		}
+		PngInfo( const PngInfo& copy ) = delete;
+		~PngInfo(){ png_destroy_read_struct( &png, &info, NULL ); }
 		
-		auto width(){  return png_get_image_width(  png_ptr, info_ptr ); }
-		auto height(){ return png_get_image_height( png_ptr, info_ptr ); }
+		bool isValid() const{ return png && info; }
 		
-		auto colorType(){ return png_get_color_type( png_ptr, info_ptr ); }
-		auto bitDepth(){  return png_get_bit_depth(  png_ptr, info_ptr ); }
+	public:
+		void read( unsigned w, unsigned h, QImage::Format f, bool update ){
+			frame = QImage( w, h, f );
+			row_pointers.clear();
+			row_pointers.reserve( h );
+			for( unsigned i=0; i<h; i++ )
+				row_pointers.push_back( (png_bytep)frame.scanLine( i ) );
+			
+			if( update )
+				png_read_update_info( png, info );
+			png_read_image( png, row_pointers.data() );
+		}
+		
+	public:
+		auto width(){  return png_get_image_width(  png, info ); }
+		auto height(){ return png_get_image_height( png, info ); }
+		
+		auto colorType(){ return png_get_color_type( png, info ); }
+		auto bitDepth(){  return png_get_bit_depth(  png, info ); }
 		
 		bool isPalette(){   return colorType() == PNG_COLOR_TYPE_PALETTE;    }
 		bool isGray(){      return colorType() == PNG_COLOR_TYPE_GRAY;       }
 		bool isGrayAlpha(){ return colorType() == PNG_COLOR_TYPE_GRAY_ALPHA; }
 		bool isRgb(){       return colorType() == PNG_COLOR_TYPE_RGB;        }
 		bool isRgbAlpha(){  return colorType() == PNG_COLOR_TYPE_RGB_ALPHA;  }
+		
+		void force8bit(){
+			if( bitDepth() < 8 )
+				png_set_packing( png );
+			else
+				png_set_strip_16( png );
+		}
 };
 
-static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, unsigned height, unsigned frame_count=0 ){
-	PngInfo info( png_ptr, info_ptr );
-	
-	//TODO: support palette images
-	if( info.isPalette() )
-		png_set_palette_to_rgb( png_ptr );
-	
+static void readRgb( PngInfo& info, unsigned width, unsigned height, bool update ){
 	//Apply transparency information
 	bool alpha = info.isGrayAlpha() || info.isRgbAlpha();
-	if( png_get_valid( png_ptr, info_ptr, PNG_INFO_tRNS ) ){
-		png_set_tRNS_to_alpha( png_ptr );
+	if( png_get_valid( info.png, info.info, PNG_INFO_tRNS ) ){
+		png_set_tRNS_to_alpha( info.png );
 		alpha = true;
 	}
 	
-	//Qt doesn't have alpha-gray-scale
-	bool use_gray = info.isGray() && !alpha;
-	if( (info.isGray() && !use_gray) || info.isGrayAlpha() )
-		png_set_gray_to_rgb( png_ptr );
+	//Convert Grayscale
+	if( info.isGray() || info.isGrayAlpha() )
+		png_set_gray_to_rgb( info.png );
 	
 	//Use the format BGRA
-	if( !use_gray ){
-		png_set_filler( png_ptr, 255, PNG_FILLER_AFTER );
-		png_set_bgr( png_ptr );
-	}
-	
-	//Always use 8 bits
-	if( info.bitDepth() < 8 )
-		png_set_packing( png_ptr );
-	else
-		png_set_strip_16( png_ptr );
-	
-	//Set image type
-	auto format = alpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
-	if( use_gray )
-		format = QImage::Format_Grayscale8;
+	info.force8bit();
+	png_set_filler( info.png, 255, PNG_FILLER_AFTER );
+	png_set_bgr( info.png );
 	
 	//Initialize image
-	QImage frame( width, height, format );
-	std::vector<png_bytep> row_pointers( height, nullptr );
-	for( unsigned iy=0; iy<height; iy++ )
-		row_pointers[iy] = (png_bytep)frame.scanLine( iy );
-	
-	if( frame_count == 0 )
-		png_read_update_info( png_ptr, info_ptr );
-	png_read_image( png_ptr, row_pointers.data() );
-	
-	return frame;
+	auto format = alpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
+	info.read( width, height, format, update );
 }
 
-static QImage readRGBA( PngInfo info ){
-	if( setjmp( png_jmpbuf( info.png_ptr ) ) )
-		return QImage();
+static void readGray( PngInfo& info, unsigned width, unsigned height, bool update ){
+	Q_ASSERT( info.isGray() );
 	
-	return readRGB( info.png_ptr, info.info_ptr, info.width(), info.height() );
+	if( png_get_valid( info.png, info.info, PNG_INFO_tRNS ) ){
+		//TODO: make it paletted!
+		readRgb( info, width, height, update );
+	}
+	else{
+		info.force8bit();
+		info.read( width, height, QImage::Format_Grayscale8, update );
+	}
 }
 
-static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info_ptr ){
-	png_uint_32 width = png_get_image_width( png_ptr, info_ptr );
-	png_uint_32 height = png_get_image_height( png_ptr, info_ptr );
+static void readPaletted( PngInfo& info, unsigned width, unsigned height, bool update ){
+	Q_ASSERT( info.isPalette() );
+	
+	//TODO: support paletted images
+	png_set_palette_to_rgb( info.png );
+	readRgb( info, width, height, update );
+}
+
+static void readImage( PngInfo& info, unsigned width, unsigned height, bool update=true ){
+	if( info.isPalette() )
+		readPaletted( info, width, height, update );
+	else if( info.isGray() )
+		readGray( info, width, height, update );
+	else
+		readRgb( info, width, height, update );
+}
+
+static void readAnimated( imageCache &cache, PngInfo& png ){
+	auto width  = png.width();
+	auto height = png.height();
 	png_uint_32 x_offset=0, y_offset=0;
 	png_uint_16 delay_num, delay_den;
 	png_byte dispose_op = PNG_DISPOSE_OP_NONE, blend_op = PNG_BLEND_OP_SOURCE;
+	QImage canvas( width, height, QImage::Format_ARGB32 );
+	canvas.fill( qRgba( 0,0,0,0 ) );
 	
-	if( setjmp( png_jmpbuf( png_ptr ) ) )
+	if( setjmp( png_jmpbuf( png.png ) ) )
 		return;
 	
-	unsigned repeats = png_get_num_plays( png_ptr, info_ptr );
-	unsigned frames = png_get_num_frames( png_ptr, info_ptr );
+	unsigned repeats = png_get_num_plays( png.png, png.info );
+	unsigned frames = png_get_num_frames( png.png, png.info );
 	
 	//NOTE: We discard the frame if it is not a part of the animation
-	if( png_get_first_frame_is_hidden( png_ptr, info_ptr ) ){
-		readRGB( png_ptr, info_ptr, width, height );
+	if( png_get_first_frame_is_hidden( png.png, png.info ) ){
+		readImage( png, width, height );
 		--frames; //libpng appears to tell the total amount of images
 	}
 	
 	cache.set_info( frames, true, repeats>0 ? repeats-1 : -1 );
 	
-	QImage canvas( width, height, QImage::Format_ARGB32 );
-	canvas.fill( qRgba( 0,0,0,0 ) );
 	for( unsigned i=0; i < frames; ++i ){
-		png_read_frame_head( png_ptr, info_ptr );
+		png_read_frame_head( png.png, png.info );
 		
-		if( png_get_valid( png_ptr, info_ptr, PNG_INFO_fcTL ) ){
-			png_get_next_frame_fcTL( png_ptr, info_ptr
+		if( png_get_valid( png.png, png.info, PNG_INFO_fcTL ) ){
+			png_get_next_frame_fcTL( png.png, png.info
 				,	&width, &height
 				,	&x_offset, &y_offset
 				,	&delay_num, &delay_den
@@ -163,12 +189,12 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 				);
 		}
 		else{
-			width = png_get_image_width( png_ptr, info_ptr );
-			height = png_get_image_height( png_ptr, info_ptr );
+			width  = png.width();
+			height = png.height();
 		}
 		
 		
-		QImage frame = readRGB( png_ptr, info_ptr, width, height, i );
+		readImage( png, width, height, i==0 );
 		
 		//Compose
 		QImage output = canvas;
@@ -176,7 +202,7 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 		
 		if( blend_op == PNG_BLEND_OP_SOURCE )
 			painter.setCompositionMode( QPainter::CompositionMode_Source );
-		painter.drawImage( x_offset, y_offset, frame );
+		painter.drawImage( x_offset, y_offset, png.frame );
 		
 		delay_den = delay_den==0 ? 100 : delay_den;
 		unsigned delay = std::ceil( (double)delay_num / delay_den * 1000 );
@@ -201,39 +227,31 @@ AReader::Error ReaderPng::read( imageCache &cache, const char* data, unsigned le
 		return ERROR_TYPE_UNKNOWN;
 	
 	// Initialize libpng
-	png_structp png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
-	if( !png_ptr )
+	PngInfo png;
+	if( !png.isValid() )
 		return ERROR_INITIALIZATION;
-	
-	png_infop info_ptr = png_create_info_struct( png_ptr );
-	if( !info_ptr ){
-		png_destroy_read_struct( &png_ptr, NULL, NULL );
-		return ERROR_INITIALIZATION;
-	}
 	
 	//Handle errors
-	if( setjmp( png_jmpbuf( png_ptr ) ) ){
-		png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
+	if( setjmp( png_jmpbuf( png.png ) ) )
 		return ERROR_FILE_BROKEN;
-	}
 	
 	//Prepare reading
 	MemStream stream = { 8, data, lenght };
-	png_set_read_fn( png_ptr, &stream, read_from_mem_stream );
-	png_set_sig_bytes( png_ptr, 8 ); //Ignore the first 8 bytes
+	png_set_read_fn( png.png, &stream, read_from_mem_stream );
+	png_set_sig_bytes( png.png, 8 ); //Ignore the first 8 bytes
 	
 	//Start reading
-	png_read_info( png_ptr, info_ptr );
-	if( png_get_valid( png_ptr, info_ptr, PNG_INFO_acTL ) )
-		readAnimated( cache, png_ptr, info_ptr );
+	png_read_info( png.png, png.info );
+	if( png_get_valid( png.png, png.info, PNG_INFO_acTL ) )
+		readAnimated( cache, png );
 	else{
 		cache.set_info( 1 );
-		cache.add_frame( readRGBA( {png_ptr, info_ptr} ), 0 );
+		readImage( png, png.width(), png.height() );
+		cache.add_frame( png.frame, 0 );
 	}
 	
 	//Cleanup and return
 	cache.set_fully_loaded();
-	png_destroy_read_struct( &png_ptr, &info_ptr, NULL );
 	return ERROR_NONE;
 }
 
