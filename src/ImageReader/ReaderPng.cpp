@@ -22,6 +22,7 @@
 #include <png.h>
 #include <cstring>
 #include <cmath>
+#include <vector>
 
 
 struct MemStream{
@@ -71,7 +72,7 @@ class PngInfo{
 		bool isRgbAlpha(){  return colorType() == PNG_COLOR_TYPE_RGB_ALPHA;  }
 };
 
-static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, unsigned height, png_bytepp row_pointers, unsigned frame_count=0 ){
+static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, unsigned height, unsigned frame_count=0 ){
 	PngInfo info( png_ptr, info_ptr );
 	
 	//TODO: support palette images
@@ -109,30 +110,22 @@ static QImage readRGB( png_structp png_ptr, png_infop info_ptr, unsigned width, 
 	
 	//Initialize image
 	QImage frame( width, height, format );
+	std::vector<png_bytep> row_pointers( height, nullptr );
 	for( unsigned iy=0; iy<height; iy++ )
 		row_pointers[iy] = (png_bytep)frame.scanLine( iy );
 	
 	if( frame_count == 0 )
 		png_read_update_info( png_ptr, info_ptr );
-	png_read_image( png_ptr, row_pointers );
+	png_read_image( png_ptr, row_pointers.data() );
 	
 	return frame;
 }
 
-static QImage readRGBA( png_structp png_ptr, png_infop info_ptr ){
-	unsigned height = png_get_image_height( png_ptr, info_ptr );
-	unsigned width = png_get_image_width( png_ptr, info_ptr );
-	
-	png_bytep* row_pointers = new png_bytep[ height ];
-	if( setjmp( png_jmpbuf( png_ptr ) ) ){
-		delete[] row_pointers;
+static QImage readRGBA( PngInfo info ){
+	if( setjmp( png_jmpbuf( info.png_ptr ) ) )
 		return QImage();
-	}
 	
-	QImage frame = readRGB( png_ptr, info_ptr, width, height, row_pointers );
-	delete[] row_pointers;
-	
-	return frame;
+	return readRGB( info.png_ptr, info.info_ptr, info.width(), info.height() );
 }
 
 static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info_ptr ){
@@ -142,18 +135,15 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 	png_uint_16 delay_num, delay_den;
 	png_byte dispose_op = PNG_DISPOSE_OP_NONE, blend_op = PNG_BLEND_OP_SOURCE;
 	
-	png_bytep* row_pointers = new png_bytep[ height ];
-	if( setjmp( png_jmpbuf( png_ptr ) ) ){
-		delete[] row_pointers;
+	if( setjmp( png_jmpbuf( png_ptr ) ) )
 		return;
-	}
 	
 	unsigned repeats = png_get_num_plays( png_ptr, info_ptr );
 	unsigned frames = png_get_num_frames( png_ptr, info_ptr );
 	
-	QImage default_frame;
+	//NOTE: We discard the frame if it is not a part of the animation
 	if( png_get_first_frame_is_hidden( png_ptr, info_ptr ) ){
-		default_frame = readRGB( png_ptr, info_ptr, width, height, row_pointers );
+		readRGB( png_ptr, info_ptr, width, height );
 		--frames; //libpng appears to tell the total amount of images
 	}
 	
@@ -178,7 +168,7 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 		}
 		
 		
-		QImage frame = readRGB( png_ptr, info_ptr, width, height, row_pointers, i );
+		QImage frame = readRGB( png_ptr, info_ptr, width, height, i );
 		
 		//Compose
 		QImage output = canvas;
@@ -204,8 +194,6 @@ static void readAnimated( imageCache &cache, png_structp png_ptr, png_infop info
 		}
 		//else dispose previous, which will discard the output
 	}
-	
-	delete[] row_pointers;
 }
 
 AReader::Error ReaderPng::read( imageCache &cache, const char* data, unsigned lenght, QString format ) const{
@@ -240,7 +228,7 @@ AReader::Error ReaderPng::read( imageCache &cache, const char* data, unsigned le
 		readAnimated( cache, png_ptr, info_ptr );
 	else{
 		cache.set_info( 1 );
-		cache.add_frame( readRGBA( png_ptr, info_ptr ), 0 );
+		cache.add_frame( readRGBA( {png_ptr, info_ptr} ), 0 );
 	}
 	
 	//Cleanup and return
