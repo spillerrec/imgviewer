@@ -158,7 +158,7 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 	auto width  = png.width();
 	auto height = png.height();
 	png_uint_32 x_offset=0, y_offset=0;
-	png_uint_16 delay_num, delay_den;
+	png_uint_16 delay_num=0, delay_den=0;
 	png_byte dispose_op = PNG_DISPOSE_OP_NONE, blend_op = PNG_BLEND_OP_SOURCE;
 	QImage canvas( width, height, QImage::Format_ARGB32 );
 	canvas.fill( qRgba( 0,0,0,0 ) );

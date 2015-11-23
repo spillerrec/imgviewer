@@ -28,7 +28,7 @@ class colorManager{
 	public:
 		struct MonitorIcc{
 			cmsHPROFILE profile;
-			cmsHTRANSFORM transform_srgb;
+			cmsHTRANSFORM transform_srgb{ nullptr };
 			
 			MonitorIcc( cmsHPROFILE profile ) : profile( profile ) { }
 		};

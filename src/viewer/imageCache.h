@@ -36,17 +36,17 @@ class imageCache: public QObject{
 		
 	private:
 	//Variables containing info about the image(s)
-		cmsHPROFILE profile;
+		cmsHPROFILE profile{ nullptr };
 		
-		int frame_amount;
+		int frame_amount{ 0 };
 		std::vector<QImage> frames;
-		int frames_loaded;
+		int frames_loaded{ 0 };
 		
-		bool animate;
+		bool animate{ false };
 		std::vector<int> frame_delays;
 		int loop_amount;	//Amount of times the loop should continue looping
 		
-		long memory_size;
+		long memory_size{ 0 };
 		
 	//Info about loading
 	public:
@@ -59,7 +59,7 @@ class imageCache: public QObject{
 		};
 		QUrl url;
 	private:
-		status current_status;
+		status current_status{ EMPTY };
 	public:
 		void set_status( status new_status ){
 			current_status = new_status;

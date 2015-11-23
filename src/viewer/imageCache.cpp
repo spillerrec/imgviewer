@@ -25,16 +25,11 @@
 #include <QPainter>
 #include <QTime>
 
-colorManager* imageCache::manager = NULL;
+colorManager* imageCache::manager = nullptr;
 
 void imageCache::init(){
 	if( !manager )
 		manager = new colorManager();
-	
-	profile = NULL;
-	frames_loaded = 0;
-	memory_size = 0;
-	current_status = EMPTY;
 }
 
 void imageCache::reset(){

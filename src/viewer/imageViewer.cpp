@@ -55,6 +55,7 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 	loop_counter = 0;
 	continue_animating = false;
 	waiting_on_frame = -1;
+	start_zoom = 1.0;
 	clear_converted();
 	
 	//Auto scale default settings

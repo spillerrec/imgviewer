@@ -41,6 +41,8 @@ using namespace std;
 		xcb_atom_t atom;
 		xcb_intern_atom_cookie_t atom_cookie;
 		xcb_get_property_cookie_t prop_cookie;
+		
+		x_mon( xcb_intern_atom_cookie_t atom_cookie ) : atom_cookie(atom_cookie) { }
 	};
 	
 	vector<colorManager::MonitorIcc> get_x11_icc(){
@@ -57,33 +59,31 @@ using namespace std;
 			if( i > 0 )
 				name += ( "_" + QString::number( i ) ).toUtf8().constData();
 			
-			x_mon mon;
-			mon.atom_cookie = xcb_intern_atom( conn, 1, name.size(), name.c_str() );
-			x_mons.push_back( mon );
+			x_mons.emplace_back( xcb_intern_atom( conn, 1, name.size(), name.c_str() ) );
 		}
 		
 		//Get atoms
-		for( int i=0; i<monitor_amount; i++ ){
-			xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply( conn, x_mons[i].atom_cookie, NULL );
+		for( auto& x_mon : x_mons ){
+			auto reply = xcb_intern_atom_reply( conn, x_mon.atom_cookie, nullptr );
 			if( reply ){
-				x_mons[i].atom = reply->atom;
+				x_mon.atom = reply->atom;
 				free( reply );
 			}
 			else
-				x_mons[i].atom = XCB_NONE;
+				x_mon.atom = XCB_NONE;
 		}
 		
 		//Get property cookies
-		for( int i=0; i<monitor_amount; i++ )
-			x_mons[i].prop_cookie = xcb_get_property( conn, 0, window, x_mons[i].atom, XCB_ATOM_CARDINAL, 0, UINT_MAX );
+		for( auto& x_mon : x_mons )
+			x_mon.prop_cookie = xcb_get_property( conn, 0, window, x_mon.atom, XCB_ATOM_CARDINAL, 0, UINT_MAX );
 		
 		//Load profiles
 		vector<colorManager::MonitorIcc> iccs;
 		iccs.reserve( monitor_amount );
-		for( int i=0; i<monitor_amount; i++ ){
-			xcb_get_property_reply_t *reply = xcb_get_property_reply( conn, x_mons[i].prop_cookie, NULL );
+		for( auto& x_mon : x_mons ){
+			auto reply = xcb_get_property_reply( conn, x_mon.prop_cookie, nullptr );
 			
-			colorManager::MonitorIcc icc( NULL );
+			colorManager::MonitorIcc icc( nullptr );
 			if( reply ){
 				icc.profile = cmsOpenProfileFromMem( xcb_get_property_value( reply ), reply->length );
 				free( reply );
@@ -106,20 +106,20 @@ colorManager::colorManager(){
 	DISPLAY_DEVICE disp;
 	DWORD index = 0;
 	disp.cb = sizeof(DISPLAY_DEVICE);
-	while( EnumDisplayDevices( NULL, index++, &disp, 0 ) != 0 ){
+	while( EnumDisplayDevices( nullptr, index++, &disp, 0 ) != 0 ){
 		//Temporaries for converting
 		DWORD size = 250;
 		wchar_t icc_path[size];
 		char path_ancii[size*2];
 		
 		//Get profile
-		HDC hdc = CreateDC( NULL, disp.DeviceName, icc_path, NULL ); //TODO: what is icc_path used here for?
+		HDC hdc = CreateDC( nullptr, disp.DeviceName, icc_path, nullptr ); //TODO: what is icc_path used here for?
 		GetICMProfile( hdc, &size, icc_path );
 		DeleteDC( hdc );
 		
 		//Read and add
 		wcstombs( path_ancii, icc_path, size*2 );
-		monitors.push_back( MonitorIcc( cmsOpenProfileFromFile( path_ancii, "r") ) );
+		monitors.emplace_back( cmsOpenProfileFromFile( path_ancii, "r") );
 	}
 #else
 	#ifdef Q_OS_UNIX
@@ -133,31 +133,26 @@ colorManager::colorManager(){
 #endif
 	
 	//Create default transforms
-	for( unsigned i=0; i<monitors.size(); ++i ){
-		MonitorIcc &icc( monitors[i] );
+	for( auto& monitor : monitors )
 		//If there is a profile, make a default transform.
-		if( icc.profile ){
-			icc.transform_srgb = cmsCreateTransform(
+		if( monitor.profile )
+			monitor.transform_srgb = cmsCreateTransform(
 					p_srgb
 				,	TYPE_BGRA_8	//This might be incorrect on some systems???
-				,	icc.profile
+				,	monitor.profile
 				,	TYPE_BGRA_8
 				,	INTENT_PERCEPTUAL
 				,	0
 				);
-		}
-		else
-			icc.transform_srgb = NULL;
-	}
 }
 colorManager::~colorManager(){
 	//Delete profiles and transforms
 	cmsCloseProfile( p_srgb );
-	for( unsigned i=0; i<monitors.size(); ++i ){
-		if( monitors[i].profile )
-			cmsCloseProfile( monitors[i].profile );
-		if( monitors[i].transform_srgb )
-			cmsDeleteTransform( monitors[i].transform_srgb );
+	for( auto& monitor : monitors ){
+		if( monitor.profile )
+			cmsCloseProfile( monitor.profile );
+		if( monitor.transform_srgb )
+			cmsDeleteTransform( monitor.transform_srgb );
 	}
 }
 
@@ -181,7 +176,7 @@ cmsHTRANSFORM colorManager::get_transform( cmsHPROFILE in, unsigned monitor ) co
 			);
 	}
 	else
-		return NULL;
+		return nullptr;
 }
 
 void colorManager::do_transform( QImage& img, unsigned monitor, cmsHTRANSFORM transform ) const{
