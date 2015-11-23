@@ -44,7 +44,7 @@ class imageCache: public QObject{
 		
 		bool animate{ false };
 		std::vector<int> frame_delays;
-		int loop_amount;	//Amount of times the loop should continue looping
+		int loop_amount{ 0 };	//Amount of times the loop should continue looping
 		
 		long memory_size{ 0 };
 		

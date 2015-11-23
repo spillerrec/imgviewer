@@ -37,19 +37,20 @@ using namespace std;
 	#include <string>
 	#include <vector>
 
-	struct x_mon{
-		xcb_atom_t atom;
-		xcb_intern_atom_cookie_t atom_cookie;
-		xcb_get_property_cookie_t prop_cookie;
-		
-		x_mon( xcb_intern_atom_cookie_t atom_cookie ) : atom_cookie(atom_cookie) { }
-	};
 	
 	vector<colorManager::MonitorIcc> get_x11_icc(){
 		xcb_connection_t *conn = QX11Info::connection();
 		xcb_window_t window = QX11Info::appRootWindow();
 		int monitor_amount = QApplication::desktop()->screenCount();
 		
+		//xcb stuff for each monitor connected to the system
+		struct x_mon{
+			xcb_atom_t atom;
+			xcb_intern_atom_cookie_t atom_cookie;
+			xcb_get_property_cookie_t prop_cookie;
+			
+			x_mon( xcb_intern_atom_cookie_t atom_cookie ) : atom_cookie(atom_cookie) { }
+		};
 		vector<x_mon> x_mons;
 		x_mons.reserve( monitor_amount );
 		
