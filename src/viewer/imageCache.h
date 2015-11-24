@@ -18,12 +18,13 @@
 #ifndef IMAGECACHE_H
 #define IMAGECACHE_H
 
+#include "colorManager.h"
+
 #include <QObject>
 #include <QImage>
 #include <QStringList>
 #include <QUrl>
 #include <vector>
-#include <lcms2.h>
 
 class colorManager;
 
@@ -36,7 +37,7 @@ class imageCache: public QObject{
 		
 	private:
 	//Variables containing info about the image(s)
-		cmsHPROFILE profile{ nullptr };
+		ColorProfile profile;
 		
 		int frame_amount{ 0 };
 		std::vector<QImage> frames;
@@ -82,17 +83,13 @@ class imageCache: public QObject{
 			add_frame( img, 0 );
 			set_fully_loaded();
 		}
-		~imageCache(){
-			if( profile )
-				cmsCloseProfile( profile );
-		}
 		
-		void set_profile( cmsHPROFILE profile );
+		void set_profile( ColorProfile&& profile );
 		void set_info( unsigned total_frames, bool is_animated=false, int loops=0 );
 		void add_frame( QImage frame, unsigned delay );
 		void set_fully_loaded();
 		
-		cmsHPROFILE get_profile() const{ return profile; }
+		const ColorProfile& get_profile() const{ return profile; }
 		colorManager* get_manager() const{ return manager; }
 		long get_memory_size() const{ return memory_size; }	//Notice, this is a rough number, not accurate!
 		

@@ -355,10 +355,7 @@ void imageViewer::paintEvent( QPaintEvent* ){
 		frame = image_cache->frame( current_frame );
 		
 		//Transform colors to current monitor profile
-		colorManager* manager = image_cache->get_manager();
-		cmsHTRANSFORM transform = manager->get_transform( image_cache->get_profile(), current_monitor );
-		manager->do_transform( frame, current_monitor, transform );
-		manager->delete_transform( transform );
+		image_cache->get_manager()->doTransform( frame, image_cache->get_profile(), current_monitor );
 		
 		converted = frame;
 		converted_monitor = current_monitor;

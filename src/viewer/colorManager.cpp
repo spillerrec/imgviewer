@@ -38,7 +38,7 @@ using namespace std;
 	#include <vector>
 
 	
-	vector<colorManager::MonitorIcc> get_x11_icc(){
+	vector<ColorProfile> get_x11_icc(){
 		xcb_connection_t *conn = QX11Info::connection();
 		xcb_window_t window = QX11Info::appRootWindow();
 		int monitor_amount = QApplication::desktop()->screenCount();
@@ -79,17 +79,17 @@ using namespace std;
 			x_mon.prop_cookie = xcb_get_property( conn, 0, window, x_mon.atom, XCB_ATOM_CARDINAL, 0, UINT_MAX );
 		
 		//Load profiles
-		vector<colorManager::MonitorIcc> iccs;
+		vector<ColorProfile> iccs;
 		iccs.reserve( monitor_amount );
 		for( auto& x_mon : x_mons ){
 			auto reply = xcb_get_property_reply( conn, x_mon.prop_cookie, nullptr );
 			
-			colorManager::MonitorIcc icc( nullptr );
 			if( reply ){
-				icc.profile = cmsOpenProfileFromMem( xcb_get_property_value( reply ), reply->length );
+				iccs.emplace_back( ColorProfile::fromMem( xcb_get_property_value( reply ), reply->length ) );
 				free( reply );
 			}
-			iccs.push_back( icc );
+			else
+				iccs.emplace_back();
 		}
 		
 		return iccs;
@@ -99,9 +99,6 @@ using namespace std;
 
 
 colorManager::colorManager(){
-	//Init default profiles
-	p_srgb = cmsCreate_sRGBProfile();
-	
 #ifdef Q_OS_WIN
 	//Try to grab it from the Windows APIs
 	DISPLAY_DEVICE disp;
@@ -120,94 +117,53 @@ colorManager::colorManager(){
 		
 		//Read and add
 		wcstombs( path_ancii, icc_path, size*2 );
-		monitors.emplace_back( cmsOpenProfileFromFile( path_ancii, "r") );
+		monitors.emplace_back( ColorProfile::fromFile( path_ancii, "r") );
 	}
 #else
 	#ifdef Q_OS_UNIX
 		monitors = get_x11_icc();
 	#else
 		QString app_path = QApplication::applicationDirPath();
-		monitors.push_back( MonitorIcc( cmsOpenProfileFromFile( (app_path + "/1.icc").toLocal8Bit().constData(), "r") ) );
+		monitors.emplace_back( ColorProfile::fromFile( (app_path + "/1.icc").toLocal8Bit().constData(), "r") ) );
 		qDebug( "Warning, no proper support for color management on this platform" );
 	//TODO:
 	#endif
 #endif
+}
+
+void colorManager::doTransform( QImage& img, const ColorProfile& in, unsigned monitor ) const{
+	//Fallback to sRGB if there is no input profile
+	auto& from = in ? in : p_srgb;
 	
-	//Create default transforms
-	for( auto& monitor : monitors )
-		//If there is a profile, make a default transform.
-		if( monitor.profile )
-			monitor.transform_srgb = cmsCreateTransform(
-					p_srgb
-				,	TYPE_BGRA_8	//This might be incorrect on some systems???
-				,	monitor.profile
-				,	TYPE_BGRA_8
-				,	INTENT_PERCEPTUAL
-				,	0
-				);
-}
-colorManager::~colorManager(){
-	//Delete profiles and transforms
-	cmsCloseProfile( p_srgb );
-	for( auto& monitor : monitors ){
-		if( monitor.profile )
-			cmsCloseProfile( monitor.profile );
-		if( monitor.transform_srgb )
-			cmsDeleteTransform( monitor.transform_srgb );
-	}
-}
-
-
-//Load a profile from memory and get its transform
-cmsHTRANSFORM colorManager::get_transform( cmsHPROFILE in, unsigned monitor ) const{
-	if( in && monitors.size() > monitor ){
-		//Get monitor profile, or fall-back to sRGB
-		cmsHPROFILE use = monitors[monitor].profile;
-		if( !use )
-			use = p_srgb;
-			
-		//Create transform
-		return cmsCreateTransform(
-				in
-			,	TYPE_BGRA_8
-			,	use
-			,	TYPE_BGRA_8
-			,	INTENT_PERCEPTUAL
-			,	0
-			);
-	}
-	else
-		return nullptr;
-}
-
-void colorManager::do_transform( QImage& img, unsigned monitor, cmsHTRANSFORM transform ) const{
-	if( !transform && monitors.size() > monitor )
-		transform = monitors[monitor].transform_srgb;
+	//Fallback to sRGB if there is no profile for the requested monitor
+	auto has_monitor_profile = monitor < monitors.size() && monitors[monitor];
+	auto& output = has_monitor_profile ? monitors[monitor] : p_srgb;
 	
-	if( transform ){
-		//Make sure the image is in the correct pixel format
-		QImage::Format format = img.format();
-		//qDebug( "Format: %d", (int)format );
+	//Create the transform
+	//TODO: BRRA_8 is not gurantied!
+	//TODO: is perceptual intent what we want? Would there be any need to allow configuation here?
+	auto transform = from.transformTo( output, TYPE_BGRA_8, TYPE_BGRA_8, INTENT_PERCEPTUAL );
+	if( !transform )
+		return;
 		
-		//For indexed images, we only need to transform the color table
-		if( format == QImage::Format_Indexed8 ){
-			auto colors = img.colorTable();
-			cmsDoTransform( transform, colors.data(), colors.data(), colors.size() );
-			img.setColorTable( colors );
-			return;
-		}
-		
-		//Make sure the image is in a format we support
-		if( format != QImage::Format_RGB32 && format != QImage::Format_ARGB32 )
-			img = img.convertToFormat( QImage::Format_ARGB32 );
-		
-		//Convert
-		vector<char*> lines;
-		for( int i=0; i < img.height(); i++ )
-			lines.push_back( (char*)img.scanLine( i ) );
-		QtConcurrent::blockingMap( lines.begin(), lines.end()
-			,	[&]( char* line ){ cmsDoTransform( transform, line, line, img.width() ); }
-			);
+	//For indexed images, we only need to transform the color table
+	if( img.format() == QImage::Format_Indexed8 ){
+		auto colors = img.colorTable();
+		transform.execute( colors.data(), colors.data(), colors.size() );
+		img.setColorTable( colors );
+		return;
 	}
+	
+	//Make sure the image is in a format we support
+	if( img.format() != QImage::Format_RGB32 && img.format() != QImage::Format_ARGB32 )
+		img = img.convertToFormat( QImage::Format_ARGB32 );
+	
+	//Convert
+	vector<char*> lines;
+	for( int i=0; i < img.height(); i++ )
+		lines.push_back( (char*)img.scanLine( i ) );
+	QtConcurrent::blockingMap( lines.begin(), lines.end()
+		,	[&]( char* line ){ transform.execute( line, line, img.width() ); }
+		);
 }
 

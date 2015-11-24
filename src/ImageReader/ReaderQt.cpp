@@ -64,7 +64,7 @@ AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned len
 		unsigned len;
 		unsigned char *data = rotation.get_icc( len );
 		if( data )
-			cache.set_profile( cache.get_manager()->get_profile( data, len ) );
+			cache.set_profile( ColorProfile::fromMem( data, len ) );
 		
 		//Read first image
 		QImage frame;
