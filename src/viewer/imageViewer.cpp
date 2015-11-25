@@ -49,39 +49,25 @@ using namespace std;
 
 
 imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget( parent ), settings( settings ){
-	image_cache = NULL;
-	frame_amount = 0;
-	current_frame = 0;
-	loop_counter = 0;
-	continue_animating = false;
-	waiting_on_frame = -1;
-	start_zoom = 1.0;
-	clear_converted();
+	//User settings
+	auto_aspect_ratio   = settings.value( "viewer/aspect_ratio",   true  ).toBool();
+	auto_downscale_only = settings.value( "viewer/downscale",      true  ).toBool();
+	auto_upscale_only   = settings.value( "viewer/upscale",        false ).toBool();
 	
-	//Auto scale default settings
-	auto_scale_on = true;
-	auto_aspect_ratio = settings.value( "viewer/aspect_ratio", true ).toBool();
-	auto_downscale_only = settings.value( "viewer/downscale", true ).toBool();
-	auto_upscale_only = settings.value( "viewer/upscale", false ).toBool();
+	restrict_viewpoint  = settings.value( "viewer/restrict",       true  ).toBool();
+	initial_resize      = settings.value( "viewer/initial_resize", true  ).toBool();
+	keep_resize         = settings.value( "viewer/keep_resize",    false ).toBool();
 	
-	restrict_viewpoint = settings.value( "viewer/restrict", true ).toBool();
-	initial_resize = settings.value( "viewer/initial_resize", true ).toBool();
-	keep_resize = settings.value( "viewer/keep_resize", false ).toBool();
-	
-	button_rleft = translate_button( "mouse/rocker-left", 'L' );
-	button_rright = translate_button( "mouse/rocker-right", 'R' );
-	button_drag = translate_button( "mouse/dragging", 'L' );
-	button_double = translate_button( "mouse/double-click", 'L' );
+	button_rleft   = translate_button( "mouse/rocker-left",  'L' );
+	button_rright  = translate_button( "mouse/rocker-right", 'R' );
+	button_drag    = translate_button( "mouse/dragging",     'L' );
+	button_double  = translate_button( "mouse/double-click", 'L' );
 	button_scaling = translate_button( "mouse/cycle-scales", 'M' );
 	button_context = translate_button( "mouse/context-menu", 'R' );
 	
 	time = new QTimer( this );
 	time->setSingleShot( true );
 	connect( time, SIGNAL( timeout() ), this, SLOT( next_frame() ) );
-	
-	mouse_active = Qt::NoButton;
-	multi_button = false;
-	is_zooming = false;
 	
 	setContextMenuPolicy( Qt::PreventContextMenu );
 }
