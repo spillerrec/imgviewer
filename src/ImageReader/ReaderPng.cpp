@@ -124,6 +124,7 @@ static void readRgb( PngInfo& info, unsigned width, unsigned height, bool update
 	info.read( width, height, format, update );
 }
 
+#if QT_VERSION >= 0x050500
 static void readGray( PngInfo& info, unsigned width, unsigned height, bool update ){
 	Q_ASSERT( info.isGray() );
 	
@@ -136,6 +137,7 @@ static void readGray( PngInfo& info, unsigned width, unsigned height, bool updat
 		info.read( width, height, QImage::Format_Grayscale8, update );
 	}
 }
+#endif
 
 static void readPaletted( PngInfo& info, unsigned width, unsigned height, bool update ){
 	Q_ASSERT( info.isPalette() );
@@ -148,8 +150,10 @@ static void readPaletted( PngInfo& info, unsigned width, unsigned height, bool u
 static void readImage( PngInfo& info, unsigned width, unsigned height, bool update=true ){
 	if( info.isPalette() )
 		readPaletted( info, width, height, update );
+#if QT_VERSION >= 0x050500
 	else if( info.isGray() )
 		readGray( info, width, height, update );
+#endif
 	else
 		readRgb( info, width, height, update );
 }
