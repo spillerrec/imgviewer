@@ -2,7 +2,7 @@ TEMPLATE = app
 TARGET = imgviewer
 DEPENDPATH += . debug src src/resources
 INCLUDEPATH += .
-LIBS += -lexif -llcms2 -lpng -lz
+LIBS += -lexif -llcms2 -lpng -lz -ljpeg
 win32{
 	LIBS += -lgdi32
 	DEFINES += PORTABLE
@@ -53,10 +53,12 @@ SOURCES += src/viewer/colorManager.cpp \
 #ImageReader
 HEADERS += src/ImageReader/ImageReader.hpp \
            src/ImageReader/AReader.hpp \
+           src/ImageReader/ReaderJpeg.hpp \
            src/ImageReader/ReaderPng.hpp \
            src/ImageReader/ReaderQt.hpp
 SOURCES += src/ImageReader/ImageReader.cpp \
            src/ImageReader/AReader.cpp \
+           src/ImageReader/ReaderJpeg.cpp \
            src/ImageReader/ReaderPng.cpp \
            src/ImageReader/ReaderQt.cpp
 

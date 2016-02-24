@@ -20,10 +20,12 @@
 #include <QFile>
 #include <QFileInfo>
 #include "ReaderPng.hpp"
+#include "ReaderJpeg.hpp"
 #include "ReaderQt.hpp"
 
 ImageReader::ImageReader(){
 	add_reader( new ReaderPng );
+	add_reader( new ReaderJpeg );
 	add_reader( new ReaderQt );
 }
 ImageReader::~ImageReader(){
