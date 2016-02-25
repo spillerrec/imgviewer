@@ -32,6 +32,7 @@ class meta{
 		
 		int get_orientation();
 		uint8_t* get_icc( unsigned &len);
+		class QImage get_thumbnail();
 };
 
 

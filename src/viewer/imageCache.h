@@ -71,6 +71,7 @@ class imageCache: public QObject{
 		
 		void reset();
 		
+		QImage thumbnail;
 		QStringList error_msgs;
 		
 	public:

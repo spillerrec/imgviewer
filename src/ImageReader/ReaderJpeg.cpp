@@ -145,6 +145,11 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned l
 					,	marker->data_length - EXIF_META_TEST.length
 					);
 				qDebug( "Jpeg orientation: %d", exif.get_orientation() );
+				
+				//Read thumbnail
+				cache.thumbnail = exif.get_thumbnail();
+				//TODO: We actually want to read this BEFORE the full image ;)
+				
 				//TODO: Actually do something with this info. Perhaps check for a profile as well!
 			}
 			/* Save data to file for debugging

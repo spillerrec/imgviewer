@@ -16,6 +16,8 @@
 */
 
 #include "meta.h"
+#include "ImageReader/ReaderJpeg.hpp"
+#include "viewer/imageCache.h"
 
 #include <libexif/exif-loader.h>
 #include <libexif/exif-utils.h>
@@ -51,6 +53,16 @@ unsigned char* meta::get_icc( unsigned &len ){
 	}
 	
 	return 0;
+}
+
+QImage meta::get_thumbnail(){
+	if( data && data->data ){
+		imageCache image;
+		ReaderJpeg().read( image, reinterpret_cast<const char*>(data->data), data->size, "jpg" );
+		if( image.frame_count() >= 1 )
+			return image.frame( 0 );
+	}
+	return {};
 }
 
 
