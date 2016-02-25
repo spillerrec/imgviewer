@@ -20,7 +20,28 @@
 #include "jpeglib.h"
 
 #include <QImage>
+#include <QFile>
 #include <memory>
+#include <cstring>
+
+struct MetaTest{
+	unsigned marker_id;
+	const uint8_t* prefix;
+	unsigned check_length;
+	unsigned length;
+
+	bool validate( jpeg_marker_struct* marker ) const{
+		if( marker->marker != marker_id )
+			return false;
+		if( marker->data_length < length )
+			return false;
+		return std::memcmp( marker->data, prefix, length ) == 0;
+	}
+};
+static const uint8_t ICC_META_PREFIX[]
+	= {'I', 'C', 'C', '_', 'P', 'R', 'O', 'F', 'I', 'L', 'E', 0u, 1u, 1u};
+	//TODO: don't know if the last two should check
+static const MetaTest ICC_META_TEST = { JPEG_APP0+2, ICC_META_PREFIX, 12, 14 };
 
 bool ReaderJpeg::can_read( const char* data, unsigned lenght, QString ) const{
 	return true;//png_sig_cmp( (unsigned char*)data, 0, std::min( 8u, lenght ) ) == 0;
@@ -39,6 +60,10 @@ class JpegDecompress{
 		}
 		~JpegDecompress(){ jpeg_destroy_decompress( &cinfo ); }
 		
+		void saveMarker( const MetaTest& meta )
+			{ jpeg_save_markers( &cinfo, meta.marker_id, 0xFFFF ); }
+			//Marker lengths are only 16 bits, so 0xFFFF is max size
+		
 		void readHeader( bool what=true )
 			{ jpeg_read_header( &cinfo, what ); }
 		
@@ -48,16 +73,19 @@ class JpegDecompress{
 
 
 AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned lenght, QString format ) const{
-	//jpeg_save_markers(cinfo, marker_code, length_limit)
-	//JPEG_APP0+n
-	//If you want to save all the data, set length_limit to 0xFFFF; that is enough since marker lengths are only 16 bits.
-	//jpeg_save_markers(cinfo, JPEG_APP0+1, 0xFFFF)
-	
 	if( !can_read( data, lenght, format ) )
 		return ERROR_TYPE_UNKNOWN;
 	
-	
 	JpegDecompress jpeg( data, lenght );
+	
+	//Save application data, we are interested in ICC profiles and EXIF metadata
+	jpeg.saveMarker( ICC_META_TEST );
+	/* READ EVERYTHING!
+	jpeg_save_markers( &jpeg.cinfo, JPEG_COM, 0xFFFF );
+	for( unsigned i=0; i<16; i++ )
+		jpeg_save_markers( &jpeg.cinfo, JPEG_APP0+i, 0xFFFF );
+	//*/
+	
 	jpeg.readHeader();
 	
 	
@@ -76,6 +104,22 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned l
 		
 		for( unsigned ix=0; ix<frame.width(); ix++ )
 			out[ix] = qRgb( buffer[ix*3+0], buffer[ix*3+1], buffer[ix*3+2] );
+	}
+	
+	//Check all 
+	for( auto marker = jpeg.cinfo.marker_list; marker; marker = marker->next ){
+		//Check for and read ICC profile
+		if( ICC_META_TEST.validate( marker ) ){
+			cache.set_profile( ColorProfile::fromMem(
+					marker->data        + ICC_META_TEST.length
+				,	marker->data_length - ICC_META_TEST.length
+				) );
+		}
+		/* Save data to file for debugging
+		QFile f( "Jpeg marker " + QString::number(marker->marker-JPEG_APP0) + ".bin" );
+		f.open( QIODevice::WriteOnly );
+		f.write( (char*)marker->data, marker->data_length );
+		//*/
 	}
 	jpeg_finish_decompress( &jpeg.cinfo );
 	
