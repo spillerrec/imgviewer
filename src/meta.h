@@ -24,7 +24,6 @@
 
 class meta{
 	private:
-		QString file;
 		ExifData *data;
 	
 	public:

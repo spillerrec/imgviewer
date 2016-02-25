@@ -16,6 +16,7 @@
 */
 
 #include "ReaderJpeg.hpp"
+#include "../meta.h"
 
 #include "jpeglib.h"
 #include "jerror.h"
@@ -34,7 +35,7 @@ struct MetaTest{
 	bool validate( jpeg_marker_struct* marker ) const{
 		if( marker->marker != marker_id )
 			return false;
-		if( marker->data_length < length )
+		if( marker->data_length < std::max( check_length, length ) )
 			return false;
 		return std::memcmp( marker->data, prefix, length ) == 0;
 	}
@@ -43,6 +44,10 @@ static const uint8_t ICC_META_PREFIX[]
 	= {'I', 'C', 'C', '_', 'P', 'R', 'O', 'F', 'I', 'L', 'E', 0u, 1u, 1u};
 	//TODO: don't know if the last two should check
 static const MetaTest ICC_META_TEST = { JPEG_APP0+2, ICC_META_PREFIX, 12, 14 };
+
+static const uint8_t EXIF_META_PREFIX[]
+	= {'E', 'x', 'i', 'f', 0u, 0u};
+static const MetaTest EXIF_META_TEST = { JPEG_APP0+1, EXIF_META_PREFIX, 6, 0 };
 
 //Error handlers
 static void output_message( j_common_ptr cinfo ){
@@ -61,7 +66,7 @@ static const uint8_t JPEG_MAGIC[] = { 0xff, 0xd8, 0xff };
 bool ReaderJpeg::can_read( const char* data, unsigned length, QString ) const{
 	if( length < 3 )
 		return false;
-	return std::memcmp( JPEG_MAGIC, data, 3 );
+	return std::memcmp( JPEG_MAGIC, data, 3 ) == 0;
 }
 
 class JpegDecompress{
@@ -101,6 +106,7 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned l
 		
 		//Save application data, we are interested in ICC profiles and EXIF metadata
 		jpeg.saveMarker( ICC_META_TEST );
+		jpeg.saveMarker( EXIF_META_TEST );
 		/* READ EVERYTHING!
 		jpeg_save_markers( &jpeg.cinfo, JPEG_COM, 0xFFFF );
 		for( unsigned i=0; i<16; i++ )
@@ -109,11 +115,11 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned l
 		
 		//Read header and set-up image
 		jpeg.readHeader();
+		jpeg_start_decompress( &jpeg.cinfo );
 		cache.set_info( 1 );
 		QImage frame( jpeg.cinfo.output_width, jpeg.cinfo.output_height, QImage::Format_RGB32 );
 		
 		//Read image
-		jpeg_start_decompress( &jpeg.cinfo );
 		auto buffer = std::make_unique<JSAMPLE[]>( jpeg.bytesPerLine() );
 		JSAMPLE* arr[1] = { buffer.get() };
 		while( jpeg.cinfo.output_scanline < jpeg.cinfo.output_height ){
@@ -132,6 +138,14 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned l
 						marker->data        + ICC_META_TEST.length
 					,	marker->data_length - ICC_META_TEST.length
 					) );
+			}
+			if( EXIF_META_TEST.validate( marker ) ){
+				meta exif(
+						marker->data        + EXIF_META_TEST.length
+					,	marker->data_length - EXIF_META_TEST.length
+					);
+				qDebug( "Jpeg orientation: %d", exif.get_orientation() );
+				//TODO: Actually do something with this info. Perhaps check for a profile as well!
 			}
 			/* Save data to file for debugging
 			QFile f( "Jpeg marker " + QString::number(marker->marker-JPEG_APP0) + ".bin" );
