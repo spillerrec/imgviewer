@@ -44,6 +44,7 @@ static const uint8_t ICC_META_PREFIX[]
 	//TODO: don't know if the last two should check
 static const MetaTest ICC_META_TEST = { JPEG_APP0+2, ICC_META_PREFIX, 12, 14 };
 
+//Error handlers
 static void output_message( j_common_ptr cinfo ){
 	char buf[JMSG_LENGTH_MAX];
 	(*cinfo->err->format_message)( cinfo, buf );
@@ -56,8 +57,11 @@ static void error_exit( j_common_ptr cinfo ){
 	throw cinfo->err->msg_code;
 }
 
-bool ReaderJpeg::can_read( const char* data, unsigned lenght, QString ) const{
-	return true;//png_sig_cmp( (unsigned char*)data, 0, std::min( 8u, lenght ) ) == 0;
+static const uint8_t JPEG_MAGIC[] = { 0xff, 0xd8, 0xff };
+bool ReaderJpeg::can_read( const char* data, unsigned length, QString ) const{
+	if( length < 3 )
+		return false;
+	return std::memcmp( JPEG_MAGIC, data, 3 );
 }
 
 class JpegDecompress{
@@ -66,9 +70,9 @@ class JpegDecompress{
 		jpeg_error_mgr jerr;
 		
 	public:
-		JpegDecompress( const char* data, unsigned lenght ) {
+		JpegDecompress( const unsigned char* data, unsigned lenght ) {
 			jpeg_create_decompress( &cinfo );
-			jpeg_mem_src( &cinfo, (unsigned char*)data, lenght );
+			jpeg_mem_src( &cinfo, const_cast<unsigned char*>(data), lenght );
 			cinfo.err = jpeg_std_error( &jerr );
 			cinfo.err->error_exit = error_exit;
 			cinfo.err->output_message = output_message;
@@ -92,7 +96,7 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned l
 		return ERROR_TYPE_UNKNOWN;
 	
 	try{
-		JpegDecompress jpeg( data, lenght );
+		JpegDecompress jpeg( reinterpret_cast<const unsigned char*>(data), lenght );
 		jpeg.cinfo.client_data = &cache;
 		
 		//Save application data, we are interested in ICC profiles and EXIF metadata
@@ -103,27 +107,24 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned l
 			jpeg_save_markers( &jpeg.cinfo, JPEG_APP0+i, 0xFFFF );
 		//*/
 		
+		//Read header and set-up image
 		jpeg.readHeader();
-		
-		
-		jpeg_start_decompress( &jpeg.cinfo );
-		
-		//TODO: Check details of jpeg image?
 		cache.set_info( 1 );
-		//TODO: on failure: return ERROR_INITIALIZATION;
 		QImage frame( jpeg.cinfo.output_width, jpeg.cinfo.output_height, QImage::Format_RGB32 );
 		
+		//Read image
+		jpeg_start_decompress( &jpeg.cinfo );
 		auto buffer = std::make_unique<JSAMPLE[]>( jpeg.bytesPerLine() );
 		JSAMPLE* arr[1] = { buffer.get() };
 		while( jpeg.cinfo.output_scanline < jpeg.cinfo.output_height ){
 			auto out = (QRgb*)frame.scanLine( jpeg.cinfo.output_scanline );
 			jpeg_read_scanlines( &jpeg.cinfo, arr, 1 );
 			
-			for( unsigned ix=0; ix<frame.width(); ix++ )
+			for( unsigned ix=0; ix<jpeg.cinfo.output_width; ix++ )
 				out[ix] = qRgb( buffer[ix*3+0], buffer[ix*3+1], buffer[ix*3+2] );
 		}
 		
-		//Check all 
+		//Check all markers
 		for( auto marker = jpeg.cinfo.marker_list; marker; marker = marker->next ){
 			//Check for and read ICC profile
 			if( ICC_META_TEST.validate( marker ) ){
@@ -139,8 +140,6 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned l
 			//*/
 		}
 		jpeg_finish_decompress( &jpeg.cinfo );
-		
-		//TODO: on error: return ERROR_FILE_BROKEN;
 		
 		cache.add_frame( frame, 0 );
 		
