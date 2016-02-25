@@ -36,7 +36,7 @@ AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned len
 	
 	if( image_reader.canRead() ){
 		//Try to get orientation info
-		meta rotation( data, lenght );
+		meta rotation( reinterpret_cast<const uint8_t*>(data), lenght );
 		int rot = rotation.get_orientation();
 		QTransform trans;
 		//Rotate image

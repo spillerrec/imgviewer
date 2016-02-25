@@ -28,11 +28,11 @@ class meta{
 		ExifData *data;
 	
 	public:
-		meta( const char* file_data, unsigned lenght );
+		meta( const uint8_t* file_data, unsigned lenght );
 		~meta();
 		
 		int get_orientation();
-		unsigned char* get_icc( unsigned &len);
+		uint8_t* get_icc( unsigned &len);
 };
 
 

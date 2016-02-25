@@ -40,7 +40,7 @@ struct MemStream{
 	}
 };
 static void read_from_mem_stream( png_structp png_ptr, png_bytep bytes_out, png_size_t lenght ){
-	MemStream& stream = *reinterpret_cast<MemStream*>( png_get_io_ptr( png_ptr ) );
+	MemStream& stream = *static_cast<MemStream*>( png_get_io_ptr( png_ptr ) );
 	if( stream.read( (char*)bytes_out, lenght ) != lenght )
 		return; //Error!
 }

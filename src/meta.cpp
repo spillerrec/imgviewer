@@ -23,10 +23,12 @@
 #include <QFile>
 #include <QByteArray>
 
-meta::meta( const char* file_data, unsigned lenght ){
+meta::meta( const uint8_t* file_data, unsigned lenght ){
 	ExifLoader *l = exif_loader_new();
 	
-	exif_loader_write( l, (unsigned char*)file_data, lenght );
+	exif_loader_write( l, const_cast<uint8_t*>(file_data), lenght );
+		//NOTE: Looking through the source of exif_loader_write() shows that it only
+		//increments the pointer and uses memcpy to copy it to its internal buffers
 	data = exif_loader_get_data(l);
 	exif_loader_unref(l);
 	l = 0;
