@@ -27,7 +27,7 @@ class meta{
 		ExifData *data;
 	
 	public:
-		meta( const uint8_t* file_data, unsigned lenght );
+		meta( const uint8_t* file_data, unsigned length );
 		~meta();
 		
 		int get_orientation();

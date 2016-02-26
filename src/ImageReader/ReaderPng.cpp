@@ -28,9 +28,9 @@
 struct MemStream{
 	unsigned pos;
 	const uint8_t* data;
-	unsigned lenght;
+	unsigned length;
 	
-	unsigned remaining() const{ return lenght-pos-1; }
+	unsigned remaining() const{ return length-pos-1; }
 	unsigned read( uint8_t* out, unsigned amount ){
 		if( amount > remaining() )
 			amount = remaining();
@@ -39,14 +39,14 @@ struct MemStream{
 		return amount;
 	}
 };
-static void read_from_mem_stream( png_structp png_ptr, png_bytep bytes_out, png_size_t lenght ){
+static void read_from_mem_stream( png_structp png_ptr, png_bytep bytes_out, png_size_t length ){
 	MemStream& stream = *static_cast<MemStream*>( png_get_io_ptr( png_ptr ) );
-	if( stream.read( bytes_out, lenght ) != lenght )
+	if( stream.read( bytes_out, length ) != length )
 		return; //Error!
 }
 
-bool ReaderPng::can_read( const uint8_t* data, unsigned lenght, QString ) const{
-	return png_sig_cmp( data, 0, std::min( 8u, lenght ) ) == 0;
+bool ReaderPng::can_read( const uint8_t* data, unsigned length, QString ) const{
+	return png_sig_cmp( data, 0, std::min( 8u, length ) ) == 0;
 }
 
 
@@ -226,8 +226,8 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 	}
 }
 
-AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned lenght, QString format ) const{
-	if( !can_read( data, lenght, format ) )
+AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned length, QString format ) const{
+	if( !can_read( data, length, format ) )
 		return ERROR_TYPE_UNKNOWN;
 	
 	// Initialize libpng
@@ -240,7 +240,7 @@ AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned
 		return ERROR_FILE_BROKEN;
 	
 	//Prepare reading
-	MemStream stream = { 8, data, lenght };
+	MemStream stream = { 8, data, length };
 	png_set_read_fn( png.png, &stream, read_from_mem_stream );
 	png_set_sig_bytes( png.png, 8 ); //Ignore the first 8 bytes
 	

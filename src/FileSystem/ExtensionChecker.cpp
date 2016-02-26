@@ -21,10 +21,10 @@ using namespace std;
 
 bool ExtensionChecker::ExtensionGroup::matches( const QString& str ) const{
 	//Must be able to contain the extension and start the extension with '.'
-	if( str.size() < lenght + 1 || str[str.size() - lenght - 1] != '.' )
+	if( str.size() < length + 1 || str[str.size() - length - 1] != '.' )
 		return false;
 	
-	return qBinaryFind( exts.begin(), exts.end(), str.right( lenght ).toLower() ) != exts.end();
+	return qBinaryFind( exts.begin(), exts.end(), str.right( length ).toLower() ) != exts.end();
 }
 
 ExtensionChecker::ExtensionChecker( QStringList exts ){
@@ -32,12 +32,12 @@ ExtensionChecker::ExtensionChecker( QStringList exts ){
 	
 	int pos=0;
 	while( pos<exts.count() ){
-		int lenght = exts[pos].size();
+		int length = exts[pos].size();
 		vector<QString> exts_group;
 		
-		for( ; pos<exts.count() && exts[pos].size() == lenght; pos++ )
+		for( ; pos<exts.count() && exts[pos].size() == length; pos++ )
 			exts_group.push_back( exts[pos] );
 		
-		groups.emplace_back( lenght, std::move(exts_group) );
+		groups.emplace_back( length, std::move(exts_group) );
 	}
 }

@@ -200,8 +200,8 @@ void fileManager::loading_handler(){
 	if( current_file == -1 )
 		return;
 	
-	int loading_lenght = settings.value( "loading/length", 2 ).toInt();
-	for( int i=0; i<=loading_lenght; i++ ){
+	int loading_length = settings.value( "loading/length", 2 ).toInt();
+	for( int i=0; i<=loading_length; i++ ){
 		int next = move( i );
 		if( has_file(next) && !files[next].cache ){
 			load_image( next );
@@ -216,8 +216,8 @@ void fileManager::loading_handler(){
 	}
 	
 	// Unload everything after loading length
-	int last = move( loading_lenght+1 );
-	int first = move( -loading_lenght-1 );
+	int last = move( loading_length+1 );
+	int first = move( -loading_length-1 );
 	if( last > first ){
 		for( int i=last; i<files.size(); i++ )
 			unload_image( i );

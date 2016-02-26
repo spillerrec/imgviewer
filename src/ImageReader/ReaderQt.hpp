@@ -25,8 +25,8 @@ class ReaderQt: public AReader{
 	
 	public:
 		QList<QString> extensions() const;
-		virtual Error read( imageCache &cache, const uint8_t* data, unsigned lenght, QString format ) const;
-		virtual bool can_read( const uint8_t* data, unsigned lenght, QString format ) const;
+		virtual Error read( imageCache &cache, const uint8_t* data, unsigned length, QString format ) const;
+		virtual bool can_read( const uint8_t* data, unsigned length, QString format ) const;
 	
 };
 

@@ -29,11 +29,11 @@ class ExtensionChecker{
 	private:
 		class ExtensionGroup{
 			private:
-				int lenght;
+				int length;
 				std::vector<QString> exts;
 				
 			public:
-				ExtensionGroup( int lenght, std::vector<QString>&& exts ) : lenght(lenght), exts(exts)
+				ExtensionGroup( int length, std::vector<QString>&& exts ) : length(length), exts(exts)
 					{ std::sort( this->exts.begin(), this->exts.end() ); }
 				
 				bool matches( const QString& str ) const;

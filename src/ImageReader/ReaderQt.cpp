@@ -32,14 +32,14 @@ QList<QString> ReaderQt::extensions() const{
 static QByteArray fromData( const uint8_t* data, unsigned length )
 	{ return QByteArray( reinterpret_cast<const char*>( data ), length ); }
 
-AReader::Error ReaderQt::read( imageCache &cache, const uint8_t* data, unsigned lenght, QString format ) const{
-	QByteArray byte_data = fromData( data, lenght );
+AReader::Error ReaderQt::read( imageCache &cache, const uint8_t* data, unsigned length, QString format ) const{
+	QByteArray byte_data = fromData( data, length );
 	QBuffer buffer( &byte_data );
 	QImageReader image_reader( &buffer, format.toLocal8Bit() );
 	
 	if( image_reader.canRead() ){
 		//Try to get orientation info
-		meta rotation( data, lenght );
+		meta rotation( data, length );
 		int rot = rotation.get_orientation();
 		QTransform trans;
 		//Rotate image
@@ -113,8 +113,8 @@ AReader::Error ReaderQt::read( imageCache &cache, const uint8_t* data, unsigned 
 	return ERROR_NONE;
 }
 
-bool ReaderQt::can_read( const uint8_t* data, unsigned lenght, QString format ) const{
-	QByteArray byte_data = fromData( data, lenght );
+bool ReaderQt::can_read( const uint8_t* data, unsigned length, QString format ) const{
+	QByteArray byte_data = fromData( data, length );
 	QBuffer buffer( &byte_data );
 	QImageReader image_reader( &buffer, format.toLocal8Bit() );
 	return image_reader.canRead();
