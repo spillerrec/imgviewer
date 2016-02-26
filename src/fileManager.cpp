@@ -92,20 +92,16 @@ void fileManager::set_files( QFileInfo file ){
 		dir_modified();
 	else{
 		//Start loading image instantly
-		auto img = new imageCache();
-		if( !loader.load_image( img, file.absoluteFilePath() ) ){
-			delete img;
-			img = nullptr;
-		}
+		auto img = loader.load_image( file.absoluteFilePath() );
 		
 		load_files( file );
 		
 		current_file = index_of( {	recursive ? file.filePath() : file.fileName(), collator });
-		files[current_file].cache = img;
+		files[current_file].cache = std::move(img);
 		emit position_changed();
 		emit file_changed();
 		
-		if( !img )
+		if( !files[current_file].cache )
 			load_image( current_file );
 		loading_handler();
 	}
@@ -158,14 +154,9 @@ void fileManager::load_image( int pos ){
 		}
 	
 	//Load image
-	imageCache *img = new imageCache();
-	if( loader.load_image( img, file( pos ) ) ){
-		files[pos].cache = img;
-		if( pos == current_file )
-			emit file_changed();
-	}
-	else
-		delete img;	//If it is already loading an image
+	files[pos].cache = loader.load_image( file( pos ) );
+	if( files[pos].cache )
+		emit file_changed();
 }
 
 int fileManager::move( int offset ) const{
@@ -198,14 +189,11 @@ void fileManager::unload_image( int index ){
 		return;
 	
 	//Save cache in buffer
-	buffer << files[index];
-	files[index].cache = nullptr;
+	buffer << std::move( files[index] );
 	
 	//Remove if there becomes too many
-	while( (unsigned)buffer.size() > buffer_max ){
+	while( (unsigned)buffer.size() > buffer_max )
 		auto buf = buffer.takeFirst();
-		loader.delete_image( buf.cache );
-	}
 }
 
 void fileManager::loading_handler(){

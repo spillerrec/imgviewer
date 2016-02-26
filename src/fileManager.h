@@ -27,6 +27,8 @@
 #include <QLinkedList>
 #include <QCollator>
 
+#include <memory>
+
 #include "imageLoader.h"
 #include "FileSystem/ExtensionChecker.hpp"
 
@@ -52,7 +54,7 @@ class fileManager : public QObject{
 		struct File{
 			QString name; //relative file path
 			QCollatorSortKey key;
-			imageCache* cache{ nullptr };
+			std::shared_ptr<imageCache> cache;
 			
 			File( QString name, const QCollator& c ) : name(name), key(c.sortKey( name )) { }
 			//TODO: on win8.1 in release mode, if name are equals, key::compare returns a random value
@@ -61,8 +63,6 @@ class fileManager : public QObject{
 			bool operator!=( const File& other ) const{ return !(*this == other); }
 		};
 		template<class T> void clear_files( T& files ){
-			for( auto& file : files )
-				loader.delete_image( file.cache );
 			files.clear();
 		}
 		QString dir;       //Current directory (without last '/')
@@ -107,8 +107,8 @@ class fileManager : public QObject{
 		void delete_current_file();
 		
 		QString get_dir() const{ return dir; }
-		imageCache* file() const{ qDebug( "file() : %d, %s", current_file, (has_file() ? "true" : "false" ) );
-		return has_file() ? files[current_file].cache : nullptr; }
+		std::shared_ptr<imageCache> file() const{ qDebug( "file() : %d, %s", current_file, (has_file() ? "true" : "false" ) );
+		return has_file() ? files[current_file].cache : std::shared_ptr<imageCache>(); }
 		QString file_name() const;
 		QString file_path() const{ return has_file() ? file( current_file ) : ""; }
 		

@@ -191,7 +191,6 @@ void imageContainer::load_image( QString filepath ){
 }
 
 imageContainer::~imageContainer(){
-	viewer->change_image( NULL, false );
 	delete manager;
 	delete files;
 }
@@ -199,7 +198,7 @@ imageContainer::~imageContainer(){
 
 void imageContainer::update_file(){
 	qDebug( "updating file: %s", files->file_name().toLocal8Bit().constData() );
-	viewer->change_image( files->file(), false );
+	viewer->change_image( files->file() );
 	update_controls();
 }
 

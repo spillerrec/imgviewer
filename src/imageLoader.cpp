@@ -23,48 +23,35 @@
 
 #include "ImageReader/ImageReader.hpp"
 
-imageLoader::imageLoader(){
-	image = NULL;
-	loading = NULL;
-	delete_after_load = false;
-}
-
 void imageLoader::run(){
 	mutex.lock();
 	while( image ){
 		//Load data
-		imageCache *img = loading = image;
 		QString filepath = file;
-		image = NULL;
+		auto loading = std::move( image );
 		
 		mutex.unlock();
 		emit image_fetched();
 		
 		ImageReader reader; //TODO: initialize in constructor?
-		reader.read( *img, filepath );
+		reader.read( *loading, filepath );
+		emit image_loaded( loading.get() );
 		
 		mutex.lock();	//Make sure to lock it again, as wee need it at the while loop check
-		loading = NULL;
-		if( delete_after_load ){
-			delete img;
-			delete_after_load = false;
-		}
-		else
-			emit image_loaded( img );
 	}
 	mutex.unlock(); //Make sure to lock it when the while loop exits
 }
 
 /* Attempts to start loading an image. Returns true on success, false on failure. */
-bool imageLoader::load_image( imageCache *img, QString filepath ){
+std::shared_ptr<imageCache> imageLoader::load_image( QString filepath ){
 	mutex.lock();
 	if( image ){
 		//An image is already in the queue, can't add this one
 		mutex.unlock();
-		return false;
+		return {};
 	}
 	
-	image = img;
+	image = std::make_shared<imageCache>();
 	file = filepath;
 	
 	mutex.unlock();
@@ -72,37 +59,7 @@ bool imageLoader::load_image( imageCache *img, QString filepath ){
 	if( !isRunning() )
 		start();
 	
-	return true;
-}
-
-
-/*	Deletes [img] safely. If [img] is about to be loaded, prevent this
-	and delete [img].	If [img] is being loaded, make sure it is deleted
-	as soon as this is completed. Otherwise [img] is just deleted.
-	[img] will be NULL when this function returns, however the actual
-	delete might not have been performed yet.
-*/
-void imageLoader::delete_image( imageCache *&img ){
-	if( !img )
-		return;
-	
-	QMutexLocker locker( &mutex );
-	
-	if( img == image ){
-		delete image;
-		img = image = nullptr;
-		return;
-	}
-	
-	if( img == loading ){
-		delete_after_load = true;
-		img = nullptr;
-		return;
-	}
-	
-	//img isn't affected by this loader, delete
-	delete img;
-	img = nullptr;
+	return image;
 }
 
 

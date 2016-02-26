@@ -23,6 +23,8 @@
 #include <QSettings>
 #include <QContextMenuEvent>
 
+#include <memory>
+
 #include "ZoomBox.hpp"
 
 class imageCache;
@@ -33,7 +35,7 @@ class imageViewer: public QWidget{
 	Q_OBJECT
 	
 	private:
-		imageCache *image_cache{ nullptr };
+		std::shared_ptr<imageCache> image_cache;
 		int frame_amount{ 0 };
 		int current_frame{ 0 };
 		int loop_counter{ 0 };
@@ -127,7 +129,7 @@ class imageViewer: public QWidget{
 	public:
 		explicit imageViewer( const QSettings& settings, QWidget* parent = 0 );
 		
-		void change_image( imageCache *new_image, bool delete_old = true );
+		void change_image( std::shared_ptr<imageCache> new_image );
 		
 		Qt::MouseButton get_context_button() const{ return button_context; }
 		void create_context_event( const QMouseEvent& event );

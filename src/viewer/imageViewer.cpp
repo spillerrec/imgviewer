@@ -238,18 +238,10 @@ void imageViewer::init_size(){
 }
 
 
-void imageViewer::change_image( imageCache *new_image, bool delete_old ){
+void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
 	time->stop(); //Prevent previous animation to interfere
 	
-	//TODO: Delete old cache even used?
-	if( image_cache ){
-		if( delete_old )
-			delete image_cache;
-		else
-			disconnect( image_cache, 0, this, 0 );
-	}
-	
-	image_cache = new_image;
+	image_cache = std::move(new_image);
 	waiting_on_frame = -1;
 	current_frame = 0;
 	frame_amount = 0;
@@ -261,14 +253,14 @@ void imageViewer::change_image( imageCache *new_image, bool delete_old ){
 			
 			//TODO: remove those connections again
 			case imageCache::EMPTY:
-					connect( image_cache, SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
-					connect( image_cache, SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
+					connect( image_cache.get(), SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
+					connect( image_cache.get(), SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
 				break;
 			
 			case imageCache::INFO_READY:
 			case imageCache::FRAMES_READY:
-					connect( image_cache, SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
-					connect( image_cache, SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
+					connect( image_cache.get(), SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
+					connect( image_cache.get(), SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
 					read_info();
 				break;
 			

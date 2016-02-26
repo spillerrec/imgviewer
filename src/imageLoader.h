@@ -36,6 +36,7 @@
 
 #include <QThread>
 #include <QMutex>
+#include <memory>
 
 class imageCache;
 
@@ -44,18 +45,15 @@ class imageLoader: public QThread{
 	
 	private:
 		QMutex mutex;
-		imageCache *image;
-		imageCache *loading;
-		bool delete_after_load;
+		std::shared_ptr<imageCache> image;
 		QString file;	//Path to file which shall be loaded
 	
 	protected:
 		void run();
 	
 	public:
-		explicit imageLoader();
-		bool load_image( imageCache *img, QString filepath );
-		void delete_image( imageCache *&img );
+		explicit imageLoader() { };
+		std::shared_ptr<imageCache> load_image( QString filepath );
 		
 	signals:
 		void image_fetched();
