@@ -63,7 +63,7 @@ static void error_exit( j_common_ptr cinfo ){
 }
 
 static const uint8_t JPEG_MAGIC[] = { 0xff, 0xd8, 0xff };
-bool ReaderJpeg::can_read( const char* data, unsigned length, QString ) const{
+bool ReaderJpeg::can_read( const uint8_t* data, unsigned length, QString ) const{
 	if( length < 3 )
 		return false;
 	return std::memcmp( JPEG_MAGIC, data, 3 ) == 0;
@@ -75,9 +75,9 @@ class JpegDecompress{
 		jpeg_error_mgr jerr;
 		
 	public:
-		JpegDecompress( const unsigned char* data, unsigned lenght ) {
+		JpegDecompress( const uint8_t* data, unsigned lenght ) {
 			jpeg_create_decompress( &cinfo );
-			jpeg_mem_src( &cinfo, const_cast<unsigned char*>(data), lenght );
+			jpeg_mem_src( &cinfo, const_cast<uint8_t*>(data), lenght );
 			cinfo.err = jpeg_std_error( &jerr );
 			cinfo.err->error_exit = error_exit;
 			cinfo.err->output_message = output_message;
@@ -96,12 +96,12 @@ class JpegDecompress{
 };
 
 
-AReader::Error ReaderJpeg::read( imageCache &cache, const char* data, unsigned lenght, QString format ) const{
+AReader::Error ReaderJpeg::read( imageCache &cache, const uint8_t* data, unsigned lenght, QString format ) const{
 	if( !can_read( data, lenght, format ) )
 		return ERROR_TYPE_UNKNOWN;
 	
 	try{
-		JpegDecompress jpeg( reinterpret_cast<const unsigned char*>(data), lenght );
+		JpegDecompress jpeg( data, lenght );
 		jpeg.cinfo.client_data = &cache;
 		
 		//Save application data, we are interested in ICC profiles and EXIF metadata

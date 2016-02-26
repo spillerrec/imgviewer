@@ -25,8 +25,8 @@ class ReaderJpeg: public AReader{
 	
 	public:
 		QList<QString> extensions() const{ return QStringList() << "jpg" << "jpeg"; }
-		virtual Error read( imageCache &cache, const char* data, unsigned lenght, QString format ) const;
-		virtual bool can_read( const char* data, unsigned lenght, QString format ) const;
+		virtual Error read( imageCache &cache, const uint8_t* data, unsigned lenght, QString format ) const;
+		virtual bool can_read( const uint8_t* data, unsigned lenght, QString format ) const;
 	
 };
 

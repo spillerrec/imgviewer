@@ -29,14 +29,17 @@ QList<QString> ReaderQt::extensions() const{
 	return exts;
 }
 
-AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned lenght, QString format ) const{
-	QByteArray byte_data( data, lenght );
+static QByteArray fromData( const uint8_t* data, unsigned length )
+	{ return QByteArray( reinterpret_cast<const char*>( data ), length ); }
+
+AReader::Error ReaderQt::read( imageCache &cache, const uint8_t* data, unsigned lenght, QString format ) const{
+	QByteArray byte_data = fromData( data, lenght );
 	QBuffer buffer( &byte_data );
 	QImageReader image_reader( &buffer, format.toLocal8Bit() );
 	
 	if( image_reader.canRead() ){
 		//Try to get orientation info
-		meta rotation( reinterpret_cast<const uint8_t*>(data), lenght );
+		meta rotation( data, lenght );
 		int rot = rotation.get_orientation();
 		QTransform trans;
 		//Rotate image
@@ -62,7 +65,7 @@ AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned len
 		
 		//ICC
 		unsigned len;
-		unsigned char *data = rotation.get_icc( len );
+		uint8_t *data = rotation.get_icc( len );
 		if( data )
 			cache.set_profile( ColorProfile::fromMem( data, len ) );
 		
@@ -110,8 +113,8 @@ AReader::Error ReaderQt::read( imageCache &cache, const char* data, unsigned len
 	return ERROR_NONE;
 }
 
-bool ReaderQt::can_read( const char* data, unsigned lenght, QString format ) const{
-	QByteArray byte_data( data, lenght );
+bool ReaderQt::can_read( const uint8_t* data, unsigned lenght, QString format ) const{
+	QByteArray byte_data = fromData( data, lenght );
 	QBuffer buffer( &byte_data );
 	QImageReader image_reader( &buffer, format.toLocal8Bit() );
 	return image_reader.canRead();

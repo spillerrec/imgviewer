@@ -58,7 +58,7 @@ unsigned char* meta::get_icc( unsigned &len ){
 QImage meta::get_thumbnail(){
 	if( data && data->data ){
 		imageCache image;
-		ReaderJpeg().read( image, reinterpret_cast<const char*>(data->data), data->size, "jpg" );
+		ReaderJpeg().read( image, data->data, data->size, "jpg" );
 		if( image.frame_count() >= 1 )
 			return image.frame( 0 );
 	}

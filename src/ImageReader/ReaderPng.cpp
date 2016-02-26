@@ -27,11 +27,11 @@
 
 struct MemStream{
 	unsigned pos;
-	const char* data;
+	const uint8_t* data;
 	unsigned lenght;
 	
 	unsigned remaining() const{ return lenght-pos-1; }
-	unsigned read( char* out, unsigned amount ){
+	unsigned read( uint8_t* out, unsigned amount ){
 		if( amount > remaining() )
 			amount = remaining();
 		std::memcpy( out, data+pos, amount );
@@ -41,12 +41,12 @@ struct MemStream{
 };
 static void read_from_mem_stream( png_structp png_ptr, png_bytep bytes_out, png_size_t lenght ){
 	MemStream& stream = *static_cast<MemStream*>( png_get_io_ptr( png_ptr ) );
-	if( stream.read( (char*)bytes_out, lenght ) != lenght )
+	if( stream.read( bytes_out, lenght ) != lenght )
 		return; //Error!
 }
 
-bool ReaderPng::can_read( const char* data, unsigned lenght, QString ) const{
-	return png_sig_cmp( (unsigned char*)data, 0, std::min( 8u, lenght ) ) == 0;
+bool ReaderPng::can_read( const uint8_t* data, unsigned lenght, QString ) const{
+	return png_sig_cmp( data, 0, std::min( 8u, lenght ) ) == 0;
 }
 
 
@@ -226,7 +226,7 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 	}
 }
 
-AReader::Error ReaderPng::read( imageCache &cache, const char* data, unsigned lenght, QString format ) const{
+AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned lenght, QString format ) const{
 	if( !can_read( data, lenght, format ) )
 		return ERROR_TYPE_UNKNOWN;
 	
