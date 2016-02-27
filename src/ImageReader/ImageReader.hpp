@@ -21,18 +21,16 @@
 #include <QString>
 #include <vector>
 #include <map>
+#include <memory>
 #include "AReader.hpp"
 
 class ImageReader{
 	protected:
-		std::vector<AReader*> readers;
+		std::vector<std::unique_ptr<AReader>> readers;
 		std::map<QString,AReader*> formats;
-		
-		void add_reader( AReader* reader );
 		
 	public:
 		ImageReader();
-		~ImageReader();
 		
 		AReader::Error read( imageCache &cache, QString filepath ) const;
 		

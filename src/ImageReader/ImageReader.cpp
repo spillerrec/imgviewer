@@ -24,19 +24,13 @@
 #include "ReaderQt.hpp"
 
 ImageReader::ImageReader(){
-	add_reader( new ReaderPng );
-	add_reader( new ReaderJpeg );
-	add_reader( new ReaderQt );
-}
-ImageReader::~ImageReader(){
-	for( unsigned i=0; i<readers.size(); ++i )
-		delete readers[i];
-}
-
-void ImageReader::add_reader( AReader* reader ){
-	readers.push_back( reader );
-	for( auto ext : reader->extensions() )
-		formats.insert( std::make_pair( ext.toLower(), reader ) );
+	readers.push_back( std::make_unique<ReaderPng>() );
+	readers.push_back( std::make_unique<ReaderJpeg>() );
+	readers.push_back( std::make_unique<ReaderQt>() );
+	
+	for( auto& reader : readers )
+		for( auto ext : reader->extensions() )
+			formats.insert( std::make_pair( ext.toLower(), reader.get() ) );
 }
 
 AReader::Error ImageReader::read( imageCache &cache, QString filepath ) const{
@@ -68,7 +62,7 @@ AReader::Error ImageReader::read( imageCache &cache, QString filepath ) const{
 		//TODO: we should check for the error more specifically
 		//Reading failed, lets try all the others and see if they can
 		cache.reset();
-		for( auto r : readers ){
+		for( auto& r : readers ){
 			if( !r->can_read( u_data, data.size(), "" ) )
 				continue;
 			
