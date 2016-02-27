@@ -18,6 +18,7 @@
 #include "meta.h"
 #include "ImageReader/ReaderJpeg.hpp"
 #include "viewer/imageCache.h"
+#include "viewer/Orientation.hpp"
 
 #include <libexif/exif-loader.h>
 #include <libexif/exif-utils.h>
@@ -33,14 +34,27 @@ meta::~meta(){
 		exif_data_unref( data );
 }
 
-int meta::get_orientation(){
+static const Orientation exif_orientations[] = {
+		{ 0, false, false } // top-row is top,    left-side is left
+	,	{ 0, false, true  } // top-row is top,    left-side is right
+	,	{ 0, true,  true  } // top-row is bottom, left-side is right
+	,	{ 0, true,  false } // top-row is bottom, left-side is left
+	,	{ 1, false, true  } // top-row is left,   left-side is top    //Rotate left, top-row is right, left-side is top
+	,	{ 1, false, false } // top-row is right,  left-side is top
+	,	{ 1, true,  false } // top-row is right,  left-side is bottom
+	,	{ 1, true,  true  } // top-row is left,   left-side is bottom
+};
+Orientation meta::get_orientation(){
 	if( data ){
 		ExifEntry *orientation = exif_content_get_entry( data->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION ); //TODO: [0]!
-		if( orientation )
-			return exif_get_short( orientation->data, exif_data_get_byte_order( data ) );
+		if( orientation ){
+			auto id = exif_get_short( orientation->data, exif_data_get_byte_order( data ) );
+			if( id >= 1 && id <= 8 )
+				return exif_orientations[ id-1 ];
+		}
 	}
 	
-	return 1;
+	return {};
 }
 
 unsigned char* meta::get_icc( unsigned &len ){

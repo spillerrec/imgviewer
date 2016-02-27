@@ -15,25 +15,22 @@
 	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef META_H
-#define META_H
+#ifndef ORIENTATION_HPP
+#define ORIENTATION_HPP
 
-#include <QString>
-
-#include <libexif/exif-data.h>
-
-class meta{
-	private:
-		ExifData *data;
+struct Orientation{
+	int8_t rotation{ 0 };
+	bool flip_ver{ false };
+	bool flip_hor{ false };
 	
-	public:
-		meta( const uint8_t* file_data, unsigned length );
-		~meta();
-		
-		class Orientation get_orientation();
-		uint8_t* get_icc( unsigned &len);
-		class QImage get_thumbnail();
+	Orientation difference( Orientation other ) const{
+		return {
+				int8_t(other.rotation - rotation)
+			,	other.flip_ver != flip_ver
+			,	other.flip_hor != flip_hor
+			};
+	}
 };
 
-
 #endif
+

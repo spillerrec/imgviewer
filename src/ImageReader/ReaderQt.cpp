@@ -38,37 +38,6 @@ AReader::Error ReaderQt::read( imageCache &cache, const uint8_t* data, unsigned 
 	QImageReader image_reader( &buffer, format.toLocal8Bit() );
 	
 	if( image_reader.canRead() ){
-		//Try to get orientation info
-		meta rotation( data, length );
-		int rot = rotation.get_orientation();
-		QTransform trans;
-		//Rotate image
-		switch( rot ){
-			case 3:
-			case 4:
-					//Flip upside down
-					trans.rotate( 180 );
-				break;
-			
-			case 5:
-			case 6:
-					//90 degs to the left
-					trans.rotate( 90 );
-				break;
-			
-			case 7:
-			case 8:
-					//90 degs to the right
-					trans.rotate( -90 );
-				break;
-		}
-		
-		//ICC
-		unsigned len;
-		uint8_t *data = rotation.get_icc( len );
-		if( data )
-			cache.set_profile( ColorProfile::fromMem( data, len ) );
-		
 		//Read first image
 		QImage frame;
 		if( !image_reader.read( &frame ) )
@@ -80,22 +49,6 @@ AReader::Error ReaderQt::read( imageCache &cache, const uint8_t* data, unsigned 
 		
 		int current_frame = 1;
 		do{
-			//Orient image
-			if( rot != 1 ){
-				//Mirror
-				switch( rot ){
-					case 2:
-					case 4:
-					case 5:
-					case 7:
-							frame = frame.mirrored();
-						break;
-				}
-				
-				if( rot > 2 ) //1 and 2 is not rotated, all others are
-					frame = frame.transformed( trans );
-			}
-			
 			cache.add_frame( frame, image_reader.nextImageDelay() );
 			if( frame_amount > 0 && current_frame >= frame_amount )
 				break;

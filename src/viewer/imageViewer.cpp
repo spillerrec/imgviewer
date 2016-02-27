@@ -28,6 +28,7 @@ using namespace std;
 
 #include <QPainter>
 #include <QImage>
+#include <QTransform>
 #include <QStaticText>
 #include <QBrush>
 #include <QPen>
@@ -73,10 +74,29 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 }
 
 
-QImage imageViewer::get_frame() const{
-	if( image_cache && image_cache->loaded() >= current_frame )
-		return image_cache->frame( current_frame );
-	return QImage();
+QImage imageViewer::get_frame(){
+	if( !image_cache || current_frame >= image_cache->loaded() )
+		return {};
+	
+	int current_monitor = QApplication::desktop()->screenNumber( this );
+	if( converted_monitor != current_monitor ){
+		//Cache invalid, refresh
+		converted = image_cache->frame( current_frame );
+		
+		//Transform colors to current monitor profile
+		image_cache->get_manager()->doTransform( converted, image_cache->get_profile(), current_monitor );
+		
+		auto orientation = image_cache->get_orientation();
+		if( orientation.rotation != 0 ){
+			QTransform transform;
+			transform.rotate( orientation.rotation * 90 );
+			converted = converted.transformed( transform );
+		}
+		converted = converted.mirrored( orientation.flip_hor, orientation.flip_ver );
+		converted_monitor = current_monitor;
+	}
+	
+	return converted;
 }
 
 bool imageViewer::can_animate() const{
@@ -326,26 +346,11 @@ void imageViewer::paintEvent( QPaintEvent* ){
 	
 	
 	//Everything went fine, start drawing the image
-	QImage frame;
-	int current_monitor = QApplication::desktop()->screenNumber( this );
-	if( converted_monitor != current_monitor ){
-		//Cache invalid, refresh
-		frame = image_cache->frame( current_frame );
-		
-		//Transform colors to current monitor profile
-		image_cache->get_manager()->doTransform( frame, image_cache->get_profile(), current_monitor );
-		
-		converted = frame;
-		converted_monitor = current_monitor;
-	}
-	else
-		frame = converted;
-	
 	QPainter painter( this );
 	if( zoom.scale() <= 1.5 )
 		painter.setRenderHints( QPainter::SmoothPixmapTransform, true );
 	
-	painter.drawImage( zoom.area(), frame );
+	painter.drawImage( zoom.area(), get_frame() );
 }
 
 QSize imageViewer::sizeHint() const{

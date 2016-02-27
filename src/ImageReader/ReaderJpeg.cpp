@@ -101,6 +101,7 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const uint8_t* data, unsigne
 		return ERROR_TYPE_UNKNOWN;
 	
 	try{
+		cache.set_info( 1 );
 		JpegDecompress jpeg( data, length );
 		jpeg.cinfo.client_data = &cache;
 		
@@ -116,7 +117,6 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const uint8_t* data, unsigne
 		//Read header and set-up image
 		jpeg.readHeader();
 		jpeg_start_decompress( &jpeg.cinfo );
-		cache.set_info( 1 );
 		QImage frame( jpeg.cinfo.output_width, jpeg.cinfo.output_height, QImage::Format_RGB32 );
 		
 		//Read image
@@ -144,7 +144,8 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const uint8_t* data, unsigne
 						marker->data        + EXIF_META_TEST.length
 					,	marker->data_length - EXIF_META_TEST.length
 					);
-				qDebug( "Jpeg orientation: %d", exif.get_orientation() );
+				
+				cache.set_orientation( exif.get_orientation() );
 				
 				//Read thumbnail
 				cache.thumbnail = exif.get_thumbnail();
