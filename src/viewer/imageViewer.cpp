@@ -73,6 +73,21 @@ imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget(
 	setContextMenuPolicy( Qt::PreventContextMenu );
 }
 
+void imageViewer::updateOrientation( Orientation wanted, Orientation current ){
+	auto orientation = current.difference( wanted ).normalized();
+	if( orientation.rotation != 0 ){
+		QTransform transform;
+		transform.rotate( orientation.rotation * 90 );
+		converted = converted.transformed( transform );
+	}
+	converted = converted.mirrored( orientation.flip_hor, orientation.flip_ver );
+}
+
+void imageViewer::rotate( int8_t amount ){
+	auto transform = orientation.rotate( amount );
+	updateOrientation( transform, orientation );
+	orientation = transform;
+}
 
 QImage imageViewer::get_frame(){
 	if( !image_cache || current_frame >= image_cache->loaded() )
@@ -85,15 +100,9 @@ QImage imageViewer::get_frame(){
 		
 		//Transform colors to current monitor profile
 		image_cache->get_manager()->doTransform( converted, image_cache->get_profile(), current_monitor );
-		
-		auto orientation = image_cache->get_orientation();
-		if( orientation.rotation != 0 ){
-			QTransform transform;
-			transform.rotate( orientation.rotation * 90 );
-			converted = converted.transformed( transform );
-		}
-		converted = converted.mirrored( orientation.flip_hor, orientation.flip_ver );
 		converted_monitor = current_monitor;
+		
+		updateOrientation( orientation.add(image_cache->get_orientation()), {} );
 	}
 	
 	return converted;

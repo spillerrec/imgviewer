@@ -25,6 +25,7 @@
 
 #include <memory>
 
+#include "Orientation.hpp"
 #include "ZoomBox.hpp"
 
 class imageCache;
@@ -59,6 +60,7 @@ class imageViewer: public QWidget{
 	//How the image is to be viewed
 	private:
 		ZoomBox zoom;
+		Orientation orientation;
 		
 	//Settings to autoscale
 	private:
@@ -91,8 +93,12 @@ class imageViewer: public QWidget{
 		void goto_prev_frame(){ goto_frame( current_frame - 1); }
 		void restart_animation();
 		bool toogle_animation();
+		void rotate( int8_t amount );
+		void rotateLeft (){ rotate( -1 ); };
+		void rotateRight(){ rotate( +1 ); };
 	
 	protected:
+		void updateOrientation( Orientation wanted, Orientation current );
 		void draw_message( QStaticText* text );
 		void paintEvent( QPaintEvent* );
 		void resizeEvent( QResizeEvent* ){

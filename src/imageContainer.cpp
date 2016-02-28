@@ -165,6 +165,9 @@ void imageContainer::create_menubar(){
 	//Actions related to the interface
 	view_menu->addAction( "&Fullscreen", this, SLOT( toogle_fullscreen() ) );
 	view_menu->addAction( "Fit window to &image", this, SLOT( resize_window() ), 400 );
+	view_menu->addAction( "Rotate Left", viewer, SLOT( rotateLeft() ) );
+	view_menu->addAction( "Rotate Right", viewer, SLOT( rotateRight() ) );
+	
 	//TODO: hide and show menubar, statusbar, ...
 }
 
