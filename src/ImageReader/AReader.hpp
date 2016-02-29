@@ -32,6 +32,7 @@ class AReader{
 			ERROR_TYPE_UNKNOWN,	//The file format is not supported
 			ERROR_FILE_BROKEN,	//Reading initially seemed to be fine, but contained errors
 			ERROR_INITIALIZATION,
+			ERROR_UNSUPPORTED, //File is using an unsupported feature
 			
 			ERROR_CUSTOM,	//Further details in QString list?
 			ERROR_UNKNOWN

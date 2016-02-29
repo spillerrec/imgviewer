@@ -117,6 +117,13 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const uint8_t* data, unsigne
 		//Read header and set-up image
 		jpeg.readHeader();
 		jpeg_start_decompress( &jpeg.cinfo );
+		
+		bool is_gray;
+		switch( jpeg.cinfo.out_color_components ){
+			case 1: is_gray = true; break;
+			case 3: is_gray = false; break;
+			default: return ERROR_UNSUPPORTED;
+		}
 		QImage frame( jpeg.cinfo.output_width, jpeg.cinfo.output_height, QImage::Format_RGB32 );
 		
 		//Read image
@@ -126,8 +133,12 @@ AReader::Error ReaderJpeg::read( imageCache &cache, const uint8_t* data, unsigne
 			auto out = (QRgb*)frame.scanLine( jpeg.cinfo.output_scanline );
 			jpeg_read_scanlines( &jpeg.cinfo, arr, 1 );
 			
-			for( unsigned ix=0; ix<jpeg.cinfo.output_width; ix++ )
-				out[ix] = qRgb( buffer[ix*3+0], buffer[ix*3+1], buffer[ix*3+2] );
+			if( is_gray )
+				for( unsigned ix=0; ix<jpeg.cinfo.output_width; ix++ )
+					out[ix] = qRgb( buffer[ix], buffer[ix], buffer[ix] );
+			else
+				for( unsigned ix=0; ix<jpeg.cinfo.output_width; ix++ )
+					out[ix] = qRgb( buffer[ix*3+0], buffer[ix*3+1], buffer[ix*3+2] );
 		}
 		
 		//Check all markers
