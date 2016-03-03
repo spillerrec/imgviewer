@@ -75,6 +75,7 @@ class imageViewer: public QWidget{
 		void restrict_view( bool force=false );
 		void change_zoom( double new_level, QPoint keep_on );
 		void auto_zoom();
+		void updateView();
 		
 	private:
 		QTimer *time;

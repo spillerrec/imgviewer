@@ -377,12 +377,16 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 		case Qt::Key_Left:
 				if( mods & Qt::ControlModifier )
 					viewer->goto_prev_frame();
+				else if( mods & Qt::ShiftModifier )
+					viewer->rotateLeft();
 				else
 					prev_file();
 			break;
 		case Qt::Key_Right:
 				if( mods & Qt::ControlModifier )
 					viewer->goto_next_frame();
+				else if( mods & Qt::ShiftModifier )
+					viewer->rotateRight();
 				else
 					next_file();
 			break;

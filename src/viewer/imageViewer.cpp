@@ -87,6 +87,9 @@ void imageViewer::rotate( int8_t amount ){
 	auto transform = orientation.rotate( amount );
 	updateOrientation( transform, orientation );
 	orientation = transform;
+	zoom.change_content(get_frame().size(), true);
+	updateView();
+	update();
 }
 
 QImage imageViewer::get_frame(){
@@ -164,12 +167,8 @@ void imageViewer::goto_frame( int index ){
 	change_frame( index );
 	
 	//Make sure it works if the new frame has different dimensions
-	if( zoom.change_content( get_frame().size(), true ) ){
-		if( auto_scale_on )
-			auto_zoom();
-		else
-			restrict_view();
-	}
+	if( zoom.change_content( get_frame().size(), true ) )
+		updateView();
 }
 
 void imageViewer::restart_animation(){
@@ -213,6 +212,13 @@ void imageViewer::auto_zoom(){
 	zoom.resize( size(), auto_downscale_only, auto_upscale_only, auto_aspect_ratio );
 		update();
 	update_cursor();
+}
+
+void imageViewer::updateView(){
+	if( auto_scale_on )
+		auto_zoom();
+	else
+		restrict_view();
 }
 
 void imageViewer::update_cursor(){
