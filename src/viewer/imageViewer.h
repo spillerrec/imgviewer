@@ -97,6 +97,9 @@ class imageViewer: public QWidget{
 		void rotate( int8_t amount );
 		void rotateLeft (){ rotate( -1 ); };
 		void rotateRight(){ rotate( +1 ); };
+		void mirror( bool hor, bool ver );
+		void mirrorHor(){ mirror( true, false ); }
+		void mirrorVer(){ mirror( false, true ); }
 	
 	protected:
 		void updateOrientation( Orientation wanted, Orientation current );

@@ -165,8 +165,10 @@ void imageContainer::create_menubar(){
 	//Actions related to the interface
 	view_menu->addAction( "&Fullscreen", this, SLOT( toogle_fullscreen() ) );
 	view_menu->addAction( "Fit window to &image", this, SLOT( resize_window() ), 400 );
-	view_menu->addAction( "Rotate Left", viewer, SLOT( rotateLeft() ) );
-	view_menu->addAction( "Rotate Right", viewer, SLOT( rotateRight() ) );
+	view_menu->addAction( "Rotate Left",         viewer, SLOT( rotateLeft()  ) );
+	view_menu->addAction( "Rotate Right",        viewer, SLOT( rotateRight() ) );
+	view_menu->addAction( "Mirror horizontally", viewer, SLOT( mirrorHor()   ) );
+	view_menu->addAction( "Mirror vertically",   viewer, SLOT( mirrorVer()   ) );
 	
 	//TODO: hide and show menubar, statusbar, ...
 }
@@ -404,6 +406,8 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 				else
 					event->ignore();
 			break;
+		case Qt::Key_H: viewer->mirrorHor(); break;
+		case Qt::Key_V: viewer->mirrorVer(); break;
 		case Qt::Key_O:
 				if( mods & Qt::ControlModifier )
 					open_file();

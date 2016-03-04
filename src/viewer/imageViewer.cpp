@@ -92,6 +92,13 @@ void imageViewer::rotate( int8_t amount ){
 	update();
 }
 
+void imageViewer::mirror( bool hor, bool ver ){
+	auto transform = orientation.mirror( hor, ver );
+	updateOrientation( transform, orientation );
+	orientation = transform;
+	update();
+}
+
 QImage imageViewer::get_frame(){
 	if( !image_cache || current_frame >= image_cache->loaded() )
 		return {};

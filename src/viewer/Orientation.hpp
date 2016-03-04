@@ -34,7 +34,7 @@ struct Orientation{
 	Orientation rotate180() const
 		{ return { rotation, !flip_ver, !flip_hor }; }
 	Orientation rotateRight() const
-		{ return { int8_t(rotation+1), flip_ver, flip_hor }; }
+		{ return { int8_t(rotation+1), flip_hor, flip_ver }; }
 	
 	Orientation rotate( int8_t amount ) const{
 		switch( normalizedRotation( amount ) ){
@@ -44,6 +44,9 @@ struct Orientation{
 			default: return *this;
 		}
 	}
+	
+	Orientation mirror( bool hor, bool ver )
+		{ return { rotation, ver?!flip_ver:flip_ver, hor?!flip_hor:flip_hor };	}
 	
 	Orientation normalized() const{
 		auto rot = normalizedRotation( rotation );
