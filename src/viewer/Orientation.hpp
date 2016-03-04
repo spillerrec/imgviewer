@@ -18,6 +18,8 @@
 #ifndef ORIENTATION_HPP
 #define ORIENTATION_HPP
 
+#include <QSize>
+
 struct Orientation{
 	int8_t rotation{ 0 };
 	bool flip_ver{ false };
@@ -43,6 +45,13 @@ struct Orientation{
 			case 3: return rotate180().rotateRight();
 			default: return *this;
 		}
+	}
+	
+	QSize finalSize( QSize before ) const{
+		if( rotation%2 == 0 )
+			return before;
+		else
+			return QSize( before.height(), before.width() );
 	}
 	
 	Orientation mirror( bool hor, bool ver )

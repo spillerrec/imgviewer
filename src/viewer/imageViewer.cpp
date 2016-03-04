@@ -87,7 +87,7 @@ void imageViewer::rotate( int8_t amount ){
 	auto transform = orientation.rotate( amount );
 	updateOrientation( transform, orientation );
 	orientation = transform;
-	zoom.change_content(get_frame().size(), true);
+	zoom.change_content(frameSize(), true);
 	updateView();
 	update();
 }
@@ -116,6 +116,11 @@ QImage imageViewer::get_frame(){
 	}
 	
 	return converted;
+}
+
+QSize imageViewer::frameSize( unsigned index ) const{
+	auto orient = orientation.add(image_cache->get_orientation());
+	return orient.finalSize( image_cache->frame(index).size() );
 }
 
 bool imageViewer::can_animate() const{
@@ -174,7 +179,7 @@ void imageViewer::goto_frame( int index ){
 	change_frame( index );
 	
 	//Make sure it works if the new frame has different dimensions
-	if( zoom.change_content( get_frame().size(), true ) )
+	if( zoom.change_content( frameSize(), true ) )
 		updateView();
 }
 
@@ -271,7 +276,7 @@ void imageViewer::init_size(){
 	initial_resize = keep_resize;
 	
 	//Only reset zoom if size differ
-	if( zoom.change_content( get_frame().size(), true ) ){
+	if( zoom.change_content( frameSize(), true ) ){
 		auto_scale_on = true; //TODO: customize?
 		auto_zoom();
 	}
@@ -381,11 +386,11 @@ QSize imageViewer::sizeHint() const{
 		
 	QSize size;
 	if( image_cache->is_animated() )
-		size = image_cache->frame( 0 ).size(); //Just return the first frame
+		size = frameSize( 0 ); //Just return the first frame
 	else{
 		//Iterate over all frames and find the largest
 		for( int i=0; i<image_cache->loaded(); i++ )
-			size = size.expandedTo( image_cache->frame( i ).size() );
+			size = size.expandedTo( frameSize( i ) );
 	}
 	
 	return size.expandedTo( zoom.size() );

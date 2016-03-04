@@ -147,6 +147,8 @@ class imageViewer: public QWidget{
 		bool auto_zoom_active() const{ return auto_scale_on; }
 		QSize sizeHint() const;
 		QImage get_frame();
+		QSize frameSize( unsigned index ) const;
+		QSize frameSize() const{ return frameSize( current_frame ); }
 	
 	signals:
 		void image_info_read();
