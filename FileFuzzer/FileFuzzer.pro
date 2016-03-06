@@ -1,0 +1,13 @@
+TEMPLATE = app
+TARGET = FileFuzzer
+QT += core testlib
+
+#Release debugging
+#QMAKE_CXXFLAGS_RELEASE = $$QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO
+#QMAKE_LFLAGS_RELEASE = $$QMAKE_LFLAGS_RELEASE_WITH_DEBUGINFO
+
+# C++14 support
+QMAKE_CXXFLAGS += -std=c++14
+
+#FileSystem
+SOURCES += main.cpp
