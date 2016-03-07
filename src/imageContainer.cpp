@@ -75,8 +75,8 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	
 	//Init components
 	viewer = new imageViewer( settings, this );
-	files = new fileManager( settings );
-	manager = new windowManager( *this );
+	files = std::make_unique<fileManager>( settings );
+	manager = std::make_unique<windowManager>( *this );
 	ui->setupUi( this );
 
 	//Add and refresh widgets
@@ -100,9 +100,12 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	connect( ui->btn_pause,    SIGNAL( pressed() ), this, SLOT( toogle_animation() ) );
 	connect( ui->btn_next,     SIGNAL( pressed() ), this, SLOT( next_file() ) );
 	connect( ui->btn_prev,     SIGNAL( pressed() ), this, SLOT( prev_file() ) );
-	connect( files, SIGNAL( file_changed() ),     this, SLOT( update_file() ) );
-	connect( files, SIGNAL( position_changed() ), this, SLOT( update_controls() ) );
+	connect( files.get(), SIGNAL( file_changed() ),     this, SLOT( update_file() ) );
+	connect( files.get(), SIGNAL( position_changed() ), this, SLOT( update_controls() ) );
 }
+
+//We just need this here to avoid including fileManager and windowManager in the header
+imageContainer::~imageContainer(){}
 
 #ifdef WIN_TOOLBAR
 void imageContainer::init_win_toolbar(){
@@ -193,11 +196,6 @@ void imageContainer::hide_menubar(){
 void imageContainer::load_image( QString filepath ){
 	files->set_files( filepath );
 	update_controls();
-}
-
-imageContainer::~imageContainer(){
-	delete manager;
-	delete files;
 }
 
 

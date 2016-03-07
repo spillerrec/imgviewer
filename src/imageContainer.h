@@ -25,6 +25,8 @@
 #include <QSettings>
 #include <QContextMenuEvent>
 
+#include <memory>
+
 #ifdef WIN_TOOLBAR
 	#include <QtWinExtras>
 #endif
@@ -40,10 +42,10 @@ class imageContainer: public QWidget{
 	
 	private:
 		imageViewer *viewer;
-		windowManager *manager;
+		std::unique_ptr<windowManager> manager;
 		Ui_controls *ui;
 		
-		fileManager *files;
+		std::unique_ptr<fileManager> files;
 		QSettings settings;
 		
 		QMenuBar* menubar;
