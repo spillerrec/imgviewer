@@ -78,6 +78,7 @@ class PngInfo{
 			
 			if( update )
 				png_read_update_info( png, info );
+			static_assert( sizeof(png_byte) == sizeof(uint8_t), "png_byte must be 8bit" );
 			png_read_image( png, row_pointers.data() );
 		}
 		
