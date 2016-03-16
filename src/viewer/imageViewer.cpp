@@ -119,8 +119,12 @@ QImage imageViewer::get_frame(){
 }
 
 QSize imageViewer::frameSize( unsigned index ) const{
-	auto orient = orientation.add(image_cache->get_orientation());
-	return orient.finalSize( image_cache->frame(index).size() );
+	if( image_cache ){
+		auto orient = orientation.add(image_cache->get_orientation());
+		return orient.finalSize( image_cache->frame(index).size() );
+	}
+	else
+		return {};
 }
 
 bool imageViewer::can_animate() const{
