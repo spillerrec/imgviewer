@@ -144,18 +144,10 @@ void imageContainer::create_menubar(){
 		menubar->hide();
 	
 	//Top-level menus
-	QMenu* file_menu = menubar->addMenu( tr( "&File" ) );
+	create_context();
+	menubar->addMenu( context );
 	anim_menu = menubar->addMenu( tr( "&Animation" ) );
 	QMenu* view_menu = menubar->addMenu( tr( "&View" ) );
-	
-	//General actions
-	file_menu->addAction( "&Open", this, SLOT( open_file() ) );
-	file_menu->addSeparator();
-	file_menu->addAction( "&Delete", this, SLOT( delete_file() ) );
-	//TODO: file_menu->addAction( "&Properties", this, SLOT( "show_properties() ) );
-	file_menu->addSeparator();
-	//TODO: file_menu->addAction( "&Settings", this, SLOT( show_settings() ) );
-	file_menu->addAction( "E&xit", qApp, SLOT( quit() ) );
 	
 	//Animation actions
 	anim_menu->addAction( "&Pause/resume",   viewer, SLOT( toogle_animation()  ) );
@@ -180,11 +172,13 @@ void imageContainer::create_context(){
 	if( context )
 		return;
 	
-	context = new QMenu();
+	context = new QMenu( tr( "&File" ) );
 	context->addAction( "&Open",      this, SLOT( open_file()      ) );
+	context->addSeparator();
 	context->addAction( "&Delete",    this, SLOT( delete_file()    ) );
 	context->addAction( "&Copy",      this, SLOT( copy_file()      ) );
 	context->addAction( "Copy &Path", this, SLOT( copy_file_path() ) );
+	context->addSeparator();
 	context->addAction( "E&xit",      qApp, SLOT( quit()           ) );
 }
 
