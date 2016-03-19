@@ -44,3 +44,6 @@ add_executable(imgviewer WIN32 ${SOURCE_CORE} ${SOURCE_IMAGE_READER} ${SOURCE_FI
 find_package(Qt5Widgets REQUIRED)
 
 target_link_libraries(imgviewer qtimgviewer Qt5::Widgets -lexif -lpng -lz -ljpeg)
+
+install(FILES resources/imgviewer.desktop DESTINATION /usr/share/applications) # TODO: This will probably fail on other systems/distributions
+install(TARGETS imgviewer RUNTIME DESTINATION bin)

@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=imgviewer
+Comment=Minimalistic Qt-based image viewer
+Type=Application
+Exec=imgviewer
+MimeType=image/jpeg;image/png;image/*;
