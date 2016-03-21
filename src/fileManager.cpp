@@ -146,7 +146,7 @@ void fileManager::load_image( int pos ){
 	QLinkedList<File>::iterator it = buffer.begin();
 	for( ; it != buffer.end(); ++it )
 		if( *it == files[pos] ){
-			files[pos] = *it;
+			files[pos] = std::move(*it);
 			buffer.erase( it );
 			if( pos == current_file )
 				emit file_changed();
@@ -190,10 +190,11 @@ void fileManager::unload_image( int index ){
 	
 	//Save cache in buffer
 	buffer << std::move( files[index] );
+	files[index].cache = {};
 	
 	//Remove if there becomes too many
 	while( (unsigned)buffer.size() > buffer_max )
-		auto buf = buffer.takeFirst();
+		buffer.removeFirst();
 }
 
 void fileManager::loading_handler(){
