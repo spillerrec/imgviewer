@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Turn on warnings
 # Qt compilers setup
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(SOURCE_CORE
@@ -34,11 +35,15 @@ set(SOURCE_FILE_SYSTEM
 	FileSystem/ExtensionChecker.cpp
 	)
 
+set(RESOURCES
+	resources/resources.qrc
+	)
+
 if( WIN32 ) # Don't use registry on windows for saving options
 	add_definitions( -DPORTABLE )
 endif( WIN32 )
 
-add_executable(imgviewer WIN32 ${SOURCE_CORE} ${SOURCE_IMAGE_READER} ${SOURCE_FILE_SYSTEM} ${extra_moc} main.cpp)
+add_executable(imgviewer WIN32 ${SOURCE_CORE} ${SOURCE_IMAGE_READER} ${SOURCE_FILE_SYSTEM} ${extra_moc} ${RESOURCES} main.cpp)
 
 # Set-up libraries
 find_package(Qt5Widgets REQUIRED)
