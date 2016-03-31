@@ -30,7 +30,7 @@ class meta{
 		meta( const uint8_t* file_data, unsigned length );
 		~meta();
 		
-		class Orientation get_orientation();
+		struct Orientation get_orientation();
 		uint8_t* get_icc( unsigned &len);
 		class QImage get_thumbnail();
 };
