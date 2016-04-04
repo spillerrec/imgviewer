@@ -472,6 +472,8 @@ void imageViewer::mouseDoubleClickEvent( QMouseEvent *event ){
 		else
 			emit double_clicked();
 	}
+	else
+		mousePressEvent( event ); //TODO: Test on windows
 }
 
 void imageViewer::mouseMoveEvent( QMouseEvent *event ){
