@@ -81,7 +81,7 @@ class fileManager : public QObject{
 		
 		void load_image( int pos );
 		
-		void load_files( QFileInfo dir );
+		void load_files( QDir dir );
 		void clear_cache();
 		
 	public:

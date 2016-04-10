@@ -75,7 +75,7 @@ int fileManager::index_of( File file ) const{
 
 void fileManager::set_files( QFileInfo file ){
 	//Stop if it does not support file
-	if( !supports_extension( file.fileName() ) ){
+	if( !file.exists() || !supports_extension( file.fileName() ) ){
 		clear_cache();
 		emit file_changed();
 		return;
@@ -94,9 +94,10 @@ void fileManager::set_files( QFileInfo file ){
 		//Start loading image instantly
 		auto img = loader.load_image( file.absoluteFilePath() );
 		
-		load_files( file );
+		load_files( file.dir() );
 		
 		current_file = index_of( {	recursive ? file.filePath() : file.fileName(), collator });
+		
 		files[current_file].cache = std::move(img);
 		emit position_changed();
 		emit file_changed();
@@ -107,21 +108,19 @@ void fileManager::set_files( QFileInfo file ){
 	}
 }
 
-void fileManager::load_files( QFileInfo file ){
-	QDir current_dir( file.dir().absolutePath() );
+void fileManager::load_files( QDir current_dir ){
 	//If hidden, include hidden files
 	QDir::Filters filters = QDir::Files;
 	if( show_hidden || force_hidden )
 		filters |= QDir::Hidden;
+	current_dir.setFilter( filters );
 	
 	//Begin caching
 	clear_cache();
 	
 	//This folder, or all sub-folders as well
-	prefix = recursive ? "" : current_dir.path() + "/";
-	QDirIterator it( current_dir.path(), {}, filters
-		,	recursive ? QDirIterator::Subdirectories : QDirIterator::NoIteratorFlags
-		);
+	auto flags = recursive ? QDirIterator::Subdirectories : QDirIterator::NoIteratorFlags;
+	QDirIterator it( current_dir, flags );
 	while( it.hasNext() ){
 		it.next();
 		auto file = recursive ? it.filePath() : it.fileName();
@@ -131,9 +130,10 @@ void fileManager::load_files( QFileInfo file ){
 	
 	qSort( files.begin(), files.end() );
 	
-	QString new_dir = current_dir.absolutePath();
-	if( new_dir != dir ){
-		dir = new_dir;
+	QString path = current_dir.absolutePath();
+	if( path != dir ){
+		prefix = recursive ? "" : path + "/";
+		dir = path;
 		watcher.addPath( dir );
 	}
 }
@@ -276,7 +276,7 @@ void fileManager::dir_modified(){
 	
 	//Prepare the QLists
 	current_file = -1; //TODO: we need this to avoid clear_cache() to notify the viewer. FIX
-	load_files( QFileInfo( file( old_file.name ) ) );
+	load_files( QFileInfo( file( old_file.name ) ).dir() ); //TODO: We shouldn't need to recalculate this
 	
 	//Restore old elements
 	for( auto& elem : old ){
