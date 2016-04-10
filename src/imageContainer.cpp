@@ -187,8 +187,8 @@ void imageContainer::hide_menubar(){
 		menubar->hide();
 }
 
-void imageContainer::load_image( QString filepath ){
-	files->set_files( filepath );
+void imageContainer::load_image( QFileInfo file ){
+	files->set_files( file );
 	update_controls();
 }
 

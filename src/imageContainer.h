@@ -19,7 +19,7 @@
 #define IMAGECONTAINER_H
 
 #include <QWidget>
-#include <QString>
+#include <QFileInfo>
 #include <QList>
 #include <QMenuBar>
 #include <QSettings>
@@ -95,7 +95,7 @@ class imageContainer: public QWidget{
 		explicit imageContainer( QWidget* parent = 0 );
 		~imageContainer();
 		
-		void load_image( QString filepath );
+		void load_image( QFileInfo filepath );
 		
 #ifdef WIN_TOOLBAR
 	private:

@@ -16,7 +16,7 @@
 */
 
 #include <QApplication>
-#include <QDir>
+#include <QUrl>
 #include <QIcon>
 
 #include "imageContainer.h"
@@ -36,8 +36,14 @@ int main( int argc, char *argv[] ){
 #endif
 	
 	if( args.size() == 2 ){
-		QDir file( args.at(1) );
-		main.load_image( file.path() );
+		QString filepath = args.at(1);
+		
+		//Convert file:// urls to normal paths
+		QUrl asUrl( filepath );
+		if( asUrl.isLocalFile() )
+			filepath = asUrl.toLocalFile();
+		
+		main.load_image( filepath );
 	}
 	
 	return a.exec();
