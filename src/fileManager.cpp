@@ -155,7 +155,7 @@ void fileManager::load_image( int pos ){
 	
 	//Load image
 	files[pos].cache = loader.load_image( file( pos ) );
-	if( files[pos].cache )
+	if( files[pos].cache && pos == current_file )
 		emit file_changed();
 }
 

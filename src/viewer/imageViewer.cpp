@@ -290,6 +290,9 @@ void imageViewer::init_size(){
 
 
 void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
+	if( new_image == image_cache )
+		return;
+	
 	time->stop(); //Prevent previous animation to interfere
 	
 	image_cache = std::move(new_image);
