@@ -30,6 +30,7 @@
 #include <QUrl>
 
 #include <QClipboard>
+#include <QDesktopServices>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QCursor>
@@ -147,7 +148,8 @@ void imageContainer::create_menubar(){
 	create_context();
 	menubar->addMenu( context );
 	anim_menu = menubar->addMenu( tr( "&Animation" ) );
-	QMenu* view_menu = menubar->addMenu( tr( "&View" ) );
+	auto view_menu = menubar->addMenu( tr( "&View" ) );
+	auto about_menu = menubar->addMenu( tr( "A&bout" ) );
 	
 	//Animation actions
 	anim_menu->addAction( "&Pause/resume",   viewer, SLOT( toogle_animation()  ) );
@@ -166,6 +168,7 @@ void imageContainer::create_menubar(){
 	view_menu->addAction( "Mirror vertically",   viewer, SLOT( mirrorVer()   ) );
 	
 	//TODO: hide and show menubar, statusbar, ...
+	about_menu->addAction( "&Help", this, SLOT( open_help() ) );
 }
 
 void imageContainer::create_context(){
@@ -244,6 +247,13 @@ void imageContainer::delete_file( bool ask ){
 	}
 	
 	files->delete_current_file();
+}
+
+void imageContainer::open_help(){
+	auto url = "https://github.com/spillerrec/imgviewer/wiki";
+	auto message = tr( "Open the online help?\n" ) + url;
+	if( QMessageBox::question( this, "Open online help", message ) == QMessageBox::Yes )
+		QDesktopServices::openUrl( QUrl( url ) );
 }
 
 void imageContainer::copy_file(){
@@ -404,9 +414,9 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 				if( mods & Qt::ControlModifier )
 					open_file();
 			break;
-		case Qt::Key_F11:
-				toogle_fullscreen();
-			break;
+			
+		case Qt::Key_F1: open_help(); break;
+		case Qt::Key_F11: toogle_fullscreen(); break;
 			
 		case Qt::Key_Delete:
 				delete_file( !(mods & Qt::ShiftModifier) );

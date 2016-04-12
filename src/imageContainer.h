@@ -90,6 +90,8 @@ class imageContainer: public QWidget{
 		void next_file();
 		void prev_file();
 		void delete_file( bool ask=true );
+		
+		void open_help();
 	
 	public:
 		explicit imageContainer( QWidget* parent = 0 );
