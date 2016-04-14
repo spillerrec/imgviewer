@@ -159,12 +159,14 @@ static void readImage( PngInfo& info, unsigned width, unsigned height, bool upda
 		readRgb( info, width, height, update );
 }
 
+#ifdef PNG_APNG_SUPPORTED
 static void readAnimated( imageCache &cache, PngInfo& png ){
 	auto width  = png.width();
 	auto height = png.height();
 	png_uint_32 x_offset=0, y_offset=0;
 	png_uint_16 delay_num=0, delay_den=0;
 	png_byte dispose_op = PNG_DISPOSE_OP_NONE, blend_op = PNG_BLEND_OP_SOURCE;
+	
 	QImage canvas( width, height, QImage::Format_ARGB32 );
 	canvas.fill( qRgba( 0,0,0,0 ) );
 	
@@ -226,6 +228,7 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 		//else dispose previous, which will discard the output
 	}
 }
+#endif
 
 AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned length, QString format ) const{
 	if( !can_read( data, length, format ) )
@@ -247,9 +250,12 @@ AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned
 	
 	//Start reading
 	png_read_info( png.png, png.info );
+#ifdef PNG_APNG_SUPPORTED
 	if( png_get_valid( png.png, png.info, PNG_INFO_acTL ) )
 		readAnimated( cache, png );
-	else{
+	else
+#endif
+	{
 		cache.set_info( 1 );
 		readImage( png, png.width(), png.height() );
 		cache.add_frame( png.frame, 0 );
