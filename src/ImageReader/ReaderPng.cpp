@@ -16,6 +16,7 @@
 */
 
 #include "ReaderPng.hpp"
+#include "AnimCombiner.hpp"
 
 #include <QImage>
 #include <QPainter>
@@ -169,6 +170,7 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 	
 	QImage canvas( width, height, QImage::Format_ARGB32 );
 	canvas.fill( qRgba( 0,0,0,0 ) );
+	AnimCombiner combiner( canvas );
 	
 	if( setjmp( png_jmpbuf( png.png ) ) )
 		return;
@@ -200,28 +202,22 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 			height = png.height();
 		}
 		
-		
 		readImage( png, width, height, i==0 );
 		
-		//Compose
-		QImage output = canvas;
-		QPainter painter( &output );
-		
-		if( blend_op == PNG_BLEND_OP_SOURCE )
-			painter.setCompositionMode( QPainter::CompositionMode_Source );
-		painter.drawImage( x_offset, y_offset, png.frame );
-		
+		//Calculate delay
 		delay_den = delay_den==0 ? 100 : delay_den;
 		unsigned delay = std::ceil( (double)delay_num / delay_den * 1000 );
 		if( delay == 0 )
 			delay = 1; //Fastest speed we support
+		
+		//Compose and add
+		auto blend_mode = blend_op == PNG_BLEND_OP_SOURCE ? BlendMode::OVERLAY : BlendMode::REPLACE;
+		QImage output = combiner.combine( png.frame, x_offset, y_offset, blend_mode );
 		cache.add_frame( output, delay );
 		
 		//Dispose
-		if( dispose_op == PNG_DISPOSE_OP_NONE )
-			canvas = output;
-		else if( dispose_op == PNG_DISPOSE_OP_BACKGROUND ){
-			QPainter canvas_painter( &canvas );
+		if( dispose_op == PNG_DISPOSE_OP_BACKGROUND ){
+			QPainter canvas_painter( &combiner.previous );
 			canvas_painter.setCompositionMode( QPainter::CompositionMode_Source );
 			canvas_painter.fillRect( x_offset, y_offset, width, height, QColor(0,0,0,0) );
 		}

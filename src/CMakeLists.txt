@@ -25,6 +25,7 @@ set(SOURCE_CORE
 	)
 
 set(SOURCE_IMAGE_READER
+	ImageReader/AnimCombiner.cpp
 	ImageReader/ImageReader.cpp
 	ImageReader/ReaderJpeg.cpp
 	ImageReader/ReaderPng.cpp
