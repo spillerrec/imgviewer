@@ -19,12 +19,24 @@
 
 #include <QPainter>
 
-QImage AnimCombiner::combine( QImage new_image, int x, int y, BlendMode mode ){
-	QPainter painter( &previous );
+QImage AnimCombiner::combine( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose ){
+	QImage output = previous;
+	QPainter painter( &output );
 	
-	if( mode == BlendMode::OVERLAY )
+	if( blend == BlendMode::OVERLAY )
 		painter.setCompositionMode( QPainter::CompositionMode_Source );
 	painter.drawImage( x, y, new_image );
 	
-	return previous;
+	switch( dispose ){
+		case DisposeMode::NONE: previous = output; break;
+		case DisposeMode::BACKGROUND:{
+				previous = output;
+				QPainter canvas_painter( &previous );
+				canvas_painter.setCompositionMode( QPainter::CompositionMode_Source );
+				canvas_painter.fillRect( x, y, new_image.width(), new_image.height(), QColor(0,0,0,0) );
+			} break;
+		case DisposeMode::REVERT: break;
+	}
+	
+	return output;
 }

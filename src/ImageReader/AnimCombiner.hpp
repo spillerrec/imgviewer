@@ -25,14 +25,19 @@ enum class BlendMode{
 	OVERLAY
 };
 
+enum class DisposeMode{
+	NONE, //Do nothing
+	BACKGROUND, //Clear the background to transparent
+	REVERT //Revert to previous frame
+};
+
 class AnimCombiner{
-	public:
-		//TODO: Extra cleanup stuff in ReaderPng
+	private:
 		QImage previous;
 		
 	public:
 		AnimCombiner( QImage previous ) : previous(previous) { }
-		QImage combine( QImage new_image, int x, int y, BlendMode mode );
+		QImage combine( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose );
 	
 };
 

@@ -212,16 +212,14 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 		
 		//Compose and add
 		auto blend_mode = blend_op == PNG_BLEND_OP_SOURCE ? BlendMode::OVERLAY : BlendMode::REPLACE;
-		QImage output = combiner.combine( png.frame, x_offset, y_offset, blend_mode );
+		auto dispose_mode = [=](){ switch( dispose_op ){
+				case PNG_DISPOSE_OP_NONE:       return DisposeMode::NONE;
+				case PNG_DISPOSE_OP_BACKGROUND: return DisposeMode::BACKGROUND;
+				case PNG_DISPOSE_OP_PREVIOUS:   return DisposeMode::REVERT;
+				default: return DisposeMode::NONE; //TODO: add error
+			} }();
+		QImage output = combiner.combine( png.frame, x_offset, y_offset, blend_mode, dispose_mode );
 		cache.add_frame( output, delay );
-		
-		//Dispose
-		if( dispose_op == PNG_DISPOSE_OP_BACKGROUND ){
-			QPainter canvas_painter( &combiner.previous );
-			canvas_painter.setCompositionMode( QPainter::CompositionMode_Source );
-			canvas_painter.fillRect( x_offset, y_offset, width, height, QColor(0,0,0,0) );
-		}
-		//else dispose previous, which will discard the output
 	}
 }
 #endif
