@@ -89,7 +89,7 @@ void fileManager::set_files( QFileInfo file ){
 	
 	//Begin caching
 	if( dir == file.dir().absolutePath() )
-		dir_modified();
+		goto_file( find_file( { file.fileName(), collator } ) );
 	else{
 		//Start loading image instantly
 		auto img = loader.load_image( file.absoluteFilePath() );
@@ -245,6 +245,12 @@ void fileManager::clear_cache(){
 	clear_files( buffer );
 }
 
+int fileManager::find_file( File file ){
+	//Set image position, using lower bound to find the closest
+	auto it = qLowerBound( files.begin(), files.end(), file );
+	return (it != files.end()) ? it - files.begin() : files.size()-1;
+}
+
 static QMutex mutex;
 void fileManager::dir_modified(){
 	//Make absolutely sure this is not called again before it finish loading
@@ -295,9 +301,8 @@ void fileManager::dir_modified(){
 		return; //TODO: can't do this!
 	}
 	
-	//Set image position, using lower bound to find the closest
-	auto it = qLowerBound( files.begin(), files.end(), old_file );
-	current_file = (it != files.end()) ? it - files.begin() : files.size()-1;
+	//Set image position to the previous position, or nearest if deleted
+	current_file = find_file( old_file );
 	qDebug( "current_file: %d", current_file );
 	emit position_changed();
 	
