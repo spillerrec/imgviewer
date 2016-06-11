@@ -62,9 +62,6 @@ class fileManager : public QObject{
 			bool operator==( const File& other ) const{ return key.compare(other.key) == 0; }
 			bool operator!=( const File& other ) const{ return !(*this == other); }
 		};
-		template<class T> void clear_files( T& files ){
-			files.clear();
-		}
 		QString dir;       //Current directory (without last '/')
 		QList<File> files;
 		int current_file;  //Index to currently used file
@@ -75,8 +72,7 @@ class fileManager : public QObject{
 		
 		//Accessors to 'files'
 		QString prefix() const{ return recursive ? "" : dir + "/"; }
-		QString file( QString f ) const{ return prefix() + f; }
-		QString file( int index ) const{ return file( files[index].name ); }
+		QString file( int index ) const{ return prefix() + files[index].name; }
 		int index_of( File file ) const;
 		
 		void load_image( int pos );

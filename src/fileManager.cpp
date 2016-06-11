@@ -68,11 +68,6 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ), ha
 	collator.setIgnorePunctuation( punctuation );
 }
 
-int fileManager::index_of( File file ) const{
-	auto it = qBinaryFind( files.begin(), files.end(), file );
-	return it != files.end() ? it - files.begin() : -1;
-}
-
 void fileManager::set_files( QFileInfo file ){
 	//Stop if it does not support file
 	if( !file.exists() || !supports_extension( file.fileName() ) ){
@@ -236,17 +231,23 @@ void fileManager::clear_cache(){
 	}
 	
 	//Delete any images in the buffer and cache
-	clear_files( files );
-	clear_files( buffer );
+	files.clear();
+	buffer.clear();
 }
 
+/** @return The index of <file> or -1 if not found */
+int fileManager::index_of( File file ) const{
+	auto it = qBinaryFind( files.begin(), files.end(), file );
+	return it != files.end() ? it - files.begin() : -1;
+}
+
+/** @return A valid index closest to <file> */
 int fileManager::find_file( File file ){
-	//Set image position, using lower bound to find the closest
 	auto it = qLowerBound( files.begin(), files.end(), file );
-	return (it != files.end()) ? it - files.begin() : files.size()-1;
+	return it != files.end() ? it - files.begin() : files.size()-1;
 }
 
-static QMutex mutex;
+static QMutex mutex; //TODO: This should be part of fileManager
 void fileManager::dir_modified(){
 	//Make absolutely sure this is not called again before it finish loading
 	disconnect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
@@ -277,7 +278,7 @@ void fileManager::dir_modified(){
 	
 	//Prepare the QLists
 	current_file = -1; //TODO: we need this to avoid clear_cache() to notify the viewer. FIX
-	load_files( QFileInfo( file( old_file.name ) ).dir() ); //TODO: We shouldn't need to recalculate this
+	load_files( dir );
 	
 	//Restore old elements
 	for( auto& elem : old ){
@@ -287,6 +288,7 @@ void fileManager::dir_modified(){
 			elem.cache = nullptr;
 		}
 	}
+	old.clear();
 	
 	if( files.size() == 0 ){
 		if( settings.value( "loading/quit-on-empty", false ).toBool() )
@@ -303,10 +305,6 @@ void fileManager::dir_modified(){
 	
 	if( files[current_file] != old_file )
 		emit file_changed();
-	
-	//Now delete images which are no longer here
-	//We can't do it earlier than emit file_changed(), as imageViewer needs to disconnect first
-	clear_files( old );
 		
 	//Start loading the new files
 	if( !files[ current_file ].cache ){
