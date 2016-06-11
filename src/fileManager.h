@@ -66,7 +66,6 @@ class fileManager : public QObject{
 			files.clear();
 		}
 		QString dir;       //Current directory (without last '/')
-		QString prefix;    //prefix for 'files' to get full path
 		QList<File> files;
 		int current_file;  //Index to currently used file
 		
@@ -75,7 +74,8 @@ class fileManager : public QObject{
 		void unload_image( int index );
 		
 		//Accessors to 'files'
-		QString file( QString f ) const{ return prefix + f; }
+		QString prefix() const{ return recursive ? "" : dir + "/"; }
+		QString file( QString f ) const{ return prefix() + f; }
 		QString file( int index ) const{ return file( files[index].name ); }
 		int index_of( File file ) const;
 		

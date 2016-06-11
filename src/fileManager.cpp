@@ -84,9 +84,6 @@ void fileManager::set_files( QFileInfo file ){
 	//If hidden, include hidden files
 	force_hidden = file.isHidden();
 	
-	//Old filename
-	QString old_name = has_file() ? files[current_file].name : "";
-	
 	//Begin caching
 	if( dir == file.dir().absolutePath() )
 		goto_file( find_file( { file.fileName(), collator } ) );
@@ -132,7 +129,6 @@ void fileManager::load_files( QDir current_dir ){
 	
 	QString path = current_dir.absolutePath();
 	if( path != dir ){
-		prefix = recursive ? "" : path + "/";
 		dir = path;
 		watcher.addPath( dir );
 	}
@@ -143,15 +139,14 @@ void fileManager::load_image( int pos ){
 		return;
 	
 	//Check buffer first
-	QLinkedList<File>::iterator it = buffer.begin();
-	for( ; it != buffer.end(); ++it )
-		if( *it == files[pos] ){
-			files[pos] = std::move(*it);
-			buffer.erase( it );
-			if( pos == current_file )
-				emit file_changed();
-			return;
-		}
+	auto it = qFind( buffer.begin(), buffer.end(), files[pos] );
+	if( it != buffer.end() ){
+		files[pos] = std::move(*it);
+		buffer.erase( it );
+		if( pos == current_file )
+			emit file_changed();
+		return;
+	}
 	
 	//Load image
 	files[pos].cache = loader.load_image( file( pos ) );
