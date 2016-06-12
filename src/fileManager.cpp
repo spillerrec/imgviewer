@@ -268,10 +268,8 @@ void fileManager::dir_modified(){
 	//Save imageCache's which might still be valid
 	QList<File> old;
 	for( auto& file : files )
-		if( file.cache ){
-			old << file;
-			file.cache = nullptr;
-		}
+		if( file.cache )
+			old << std::move( file ); //NOTE: Expects load_files to clear files
 	
 	//Keep the name of the old file, for restoring position
 	File old_file = files[current_file];
@@ -283,10 +281,8 @@ void fileManager::dir_modified(){
 	//Restore old elements
 	for( auto& elem : old ){
 		int new_index = index_of( elem );
-		if( new_index != -1 ){
-			files[new_index] = elem;
-			elem.cache = nullptr;
-		}
+		if( new_index != -1 )
+			files[new_index] = std::move( elem );
 	}
 	old.clear();
 	
@@ -300,7 +296,6 @@ void fileManager::dir_modified(){
 	
 	//Set image position to the previous position, or nearest if deleted
 	current_file = find_file( old_file );
-	qDebug( "current_file: %d", current_file );
 	emit position_changed();
 	
 	if( files[current_file] != old_file )
