@@ -53,6 +53,17 @@ class imageContainer: public QWidget{
 		QMenu* context;
 		bool menubar_autohide;
 		
+		class AnimButton{
+			private:
+				QIcon playing;
+				QIcon paused;
+				imageContainer* parent;
+				
+			public:
+				AnimButton( imageContainer* parent );
+				void setState( bool is_playing );
+		} animation;
+		
 	private:
 		bool is_fullscreen;
 		bool was_maximized{ false };
@@ -69,7 +80,8 @@ class imageContainer: public QWidget{
 		virtual void contextMenuEvent( QContextMenuEvent* event );
 		
 	private slots:
-		void update_controls();
+		void updatePosition();
+		void updateImageInfo();
 		void update_toogle_btn();
 		void hide_menubar();
 		void resize_window( bool only_upscale=false );

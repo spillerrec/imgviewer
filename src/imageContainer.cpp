@@ -39,6 +39,23 @@
 #include <QStandardPaths>
 
 
+imageContainer::AnimButton::AnimButton( imageContainer* parent )
+	:	playing( ":/main/pause.png" )
+	,	paused(  ":/main/start.png" )
+	,	parent( parent ) { }
+
+
+void imageContainer::AnimButton::setState( bool is_playing ){
+	auto icon = is_playing ? playing : paused;
+	parent->ui->btn_pause->setIcon( icon );
+	
+#ifdef WIN_TOOLBAR
+	if( parent->btn_pause )
+		parent->btn_pause->setIcon( icon );
+#endif
+}
+
+
 void imageContainer::dragEnterEvent( QDragEnterEvent *event ){
 	QList<QUrl> urls = event->mimeData()->urls();
 	
@@ -65,6 +82,7 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 #else
 	,	settings( "spillerrec", "imgviewer" )
 #endif
+	,	animation( this )
 	{
 	//Init properties
 	menubar = NULL;
@@ -83,13 +101,14 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	//Add and refresh widgets
 	create_menubar();
 	ui->viewer_layout->insertWidget( 1, viewer );
-	update_controls();
+	updateImageInfo();
+	updatePosition();
 	create_context();
 	
 	//Connect signals
 	connect( viewer, SIGNAL( clicked() ),         this, SLOT( hide_menubar() ) );
-	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( update_controls() ) );
-	connect( viewer, SIGNAL( image_changed() ),   this, SLOT( update_controls() ) );
+	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( updateImageInfo() ) );
+	connect( viewer, SIGNAL( image_changed() ),   this, SLOT( updateImageInfo() ) );
 	connect( viewer, SIGNAL( double_clicked() ),  this, SLOT( toogle_fullscreen() ) );
 	connect( viewer, SIGNAL( resize_wanted() ),  this, SLOT( resize_window() ) );
 	connect( viewer, SIGNAL( rocker_left() ),     this, SLOT( prev_file() ) );
@@ -102,7 +121,7 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	connect( ui->btn_next,     SIGNAL( pressed() ), this, SLOT( next_file() ) );
 	connect( ui->btn_prev,     SIGNAL( pressed() ), this, SLOT( prev_file() ) );
 	connect( files.get(), SIGNAL( file_changed() ),     this, SLOT( update_file() ) );
-	connect( files.get(), SIGNAL( position_changed() ), this, SLOT( update_controls() ) );
+	connect( files.get(), SIGNAL( position_changed() ), this, SLOT( updatePosition() ) );
 }
 
 //We just need this here to avoid including fileManager and windowManager in the header
@@ -192,14 +211,14 @@ void imageContainer::hide_menubar(){
 
 void imageContainer::load_image( QFileInfo file ){
 	files->set_files( file );
-	update_controls();
+	updatePosition();
 }
 
 
 void imageContainer::update_file(){
 	qDebug( "updating file: %s", files->file_name().toLocal8Bit().constData() );
 	viewer->change_image( files->file() );
-	update_controls();
+	updateImageInfo();
 }
 
 
@@ -263,7 +282,20 @@ void imageContainer::copy_file_path(){
 	QApplication::clipboard()->setText( files->file_path() );
 }
 
-void imageContainer::update_controls(){
+void imageContainer::updatePosition(){
+	setWindowTitle( files->file_name() );
+	
+	//Disable left or right buttons
+	ui->btn_next->setEnabled( files->has_next() );
+	ui->btn_prev->setEnabled( files->has_previous() );
+#ifdef WIN_TOOLBAR
+	if( btn_prev && btn_next ){
+		btn_next->setEnabled( files->has_next() );
+		btn_prev->setEnabled( files->has_previous() );
+	}
+#endif
+}
+void imageContainer::updateImageInfo(){
 	setWindowTitle( files->file_name() );
 	
 	//Show amount of frames in file
@@ -275,13 +307,6 @@ void imageContainer::update_controls(){
 			+ "/" +
 			QString::number( viewer->get_frame_amount() )
 		);
-	
-	//Disable button when animation is not playable
-	update_toogle_btn(); //Make sure the icon is correct
-	ui->btn_pause->setEnabled( viewer->can_animate() );
-	//Disable animation menu as well
-	if( menubar )
-		anim_menu->setEnabled( viewer->can_animate() );
 	
 	//Disable sub left and right buttons
 	bool frames_exists = viewer->get_frame_amount() > 1;
@@ -296,35 +321,27 @@ void imageContainer::update_controls(){
 		ui->btn_sub_prev->setEnabled( frames_exists );
 	}
 	
-	//Disable left or right buttons
-	ui->btn_next->setEnabled( files->has_next() );
-	ui->btn_prev->setEnabled( files->has_previous() );
-	
+	//Disable button when animation is not playable
+	update_toogle_btn(); //Make sure the icon is correct
+	ui->btn_pause->setEnabled( viewer->can_animate() );
+	//Disable animation menu as well
+	if( menubar )
+		anim_menu->setEnabled( viewer->can_animate() );
 	
 #ifdef WIN_TOOLBAR
-	if( btn_prev && btn_pause && btn_next ){
+	if( btn_pause )
 		btn_pause->setEnabled( viewer->can_animate() );
-		btn_next->setEnabled( files->has_next() );
-		btn_prev->setEnabled( files->has_previous() );
-	}
 #endif
 }
 
 
 void imageContainer::update_toogle_btn(){
-	QIcon icon( viewer->is_animating() ? ":/main/pause.png" : ":/main/start.png" );
-	ui->btn_pause->setIcon( icon );
-	
-#ifdef WIN_TOOLBAR
-	if( btn_pause )
-		btn_pause->setIcon( icon );
-#endif
+	animation.setState( viewer->is_animating() );
 }
 
 
 void imageContainer::toogle_animation(){
 	viewer->toogle_animation();
-	
 	update_toogle_btn();
 }
 
