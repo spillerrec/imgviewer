@@ -1,0 +1,32 @@
+/*
+	This file is part of imgviewer.
+
+	imgviewer is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	imgviewer is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with imgviewer.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef READER_GIF_HPP
+#define READER_GIF_HPP
+
+#include "AReader.hpp"
+#include <QStringList>
+
+class ReaderGif: public AReader{
+	public:
+		QList<QString> extensions() const{ return QStringList() << "gif"; }
+		virtual Error read( imageCache &cache, const uint8_t* data, unsigned length, QString format ) const;
+		virtual bool can_read( const uint8_t* data, unsigned length, QString format ) const;
+};
+
+
+#endif

@@ -19,11 +19,13 @@
 
 #include <QFile>
 #include <QFileInfo>
+#include "ReaderGif.hpp"
 #include "ReaderPng.hpp"
 #include "ReaderJpeg.hpp"
 #include "ReaderQt.hpp"
 
 ImageReader::ImageReader(){
+//	readers.push_back( std::make_unique<ReaderGif>() );
 	readers.push_back( std::make_unique<ReaderPng>() );
 	readers.push_back( std::make_unique<ReaderJpeg>() );
 	readers.push_back( std::make_unique<ReaderQt>() );
