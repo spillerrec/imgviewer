@@ -21,14 +21,18 @@ Customizable image viewer with minimalistic interface. Configuration and usage d
 - Qt 5.2
 - libexif
 - lcms2
+- zlib
 - libpng
+- libjpeg
+- libgif
 
 Linux specific libraries:
 
-- x11extras
+- x11extras (Qt5)
 - libxcb
 
 **Building**
 
-1. qmake
-2. make
+1. ``cmake src``
+2. ``make``
+3. ``make install`` (Optional)
