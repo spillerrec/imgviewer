@@ -26,6 +26,7 @@ set(SOURCE_CORE
 set(SOURCE_IMAGE_READER
 	ImageReader/AnimCombiner.cpp
 	ImageReader/ImageReader.cpp
+	ImageReader/ReaderGif.cpp
 	ImageReader/ReaderJpeg.cpp
 	ImageReader/ReaderPng.cpp
 	ImageReader/ReaderQt.cpp
@@ -48,7 +49,7 @@ add_executable(imgviewer WIN32 ${SOURCE_CORE} ${SOURCE_IMAGE_READER} ${SOURCE_FI
 # Set-up libraries
 find_package(Qt5Widgets REQUIRED)
 
-target_link_libraries(imgviewer qtimgviewer Qt5::Widgets -lexif -lpng -lz -ljpeg)
+target_link_libraries(imgviewer qtimgviewer Qt5::Widgets -lexif -lpng -lz -ljpeg -lgif)
 
 install(FILES resources/imgviewer.desktop DESTINATION /usr/share/applications) # TODO: This will probably fail on other systems/distributions
 install(TARGETS imgviewer RUNTIME DESTINATION bin)
