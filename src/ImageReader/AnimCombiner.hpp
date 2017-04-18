@@ -35,6 +35,8 @@ class AnimCombiner{
 	private:
 		QImage previous;
 		
+		QImage combineIndexed( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose );
+		
 	public:
 		AnimCombiner( QImage previous ) : previous(previous) { }
 		QImage combine( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose );

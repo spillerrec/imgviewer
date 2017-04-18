@@ -18,8 +18,58 @@
 #include "AnimCombiner.hpp"
 
 #include <QPainter>
+#include <QDebug>
+
+//True if img is paletted
+bool isIndexed( const QImage& img )
+	{ return img.format() == QImage::Format_Indexed8; }
+
+QImage AnimCombiner::combineIndexed( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose ){
+	//Bail if they are not indexed
+	if( !isIndexed( previous ) || !isIndexed( new_image ) )
+		return {};
+	
+	//Bail on different colorTables
+	if( previous.colorTable() != new_image.colorTable() )
+		return {};
+	//TODO: Try to merge them if possible
+	
+	//Merge the two images
+	auto output = previous;
+	//TODO: Limit range
+	//TODO: Do alpha blending
+	//TODO: Get alpha pixel index!
+	for( int iy=0; iy<new_image.height(); iy++ ){
+		auto in = new_image.scanLine( iy );
+		auto out = output.scanLine( iy+y );
+		for( int ix=0; ix<new_image.width(); ix++ )
+			out[ix+x] = in[ix];
+	}
+	
+	return output;
+}
 
 QImage AnimCombiner::combine( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose ){
+	if( previous.isNull() ){
+		previous = QImage( new_image.size(), new_image.format() );
+		previous.setColorTable( new_image.colorTable() );
+		previous.fill( 0 );
+	}
+	
+	//Try to see if we can merge it indexed
+	auto tryIndexed = combineIndexed( new_image, x, y, blend, dispose );
+	if( !tryIndexed.isNull() )
+		return tryIndexed;
+	qDebug( "indexed combination failed" );
+	
+	//QPainter can't handle indexed images, convert to something it can handle
+	auto fixFormat = []( QImage& img ){
+			if( isIndexed( img ) )
+				img = img.convertToFormat( QImage::Format_ARGB32 );
+		};
+	fixFormat( new_image );
+	fixFormat( previous );
+	
 	QImage output = previous;
 	QPainter painter( &output );
 	

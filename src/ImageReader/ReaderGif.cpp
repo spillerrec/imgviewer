@@ -97,11 +97,13 @@ AReader::Error ReaderGif::read( imageCache &cache, const uint8_t* data, unsigned
 	cache.set_info( gif->ImageCount, true, -1 );
 	qDebug( "Size: %dx%d", gif->SWidth, gif->SHeight );
 	
-	//TODO: 
+	//TODO:
+	AnimCombiner combiner( {} );
 	for( int i=0; i<gif->ImageCount; i++ ){
 		//qDebug( "Local color map: %p", gif->SavedImages[i].ImageDesc.ColorMap );
 		auto saved = gif->SavedImages[i];
-		cache.add_frame( convertImage( saved.ImageDesc, saved.RasterBits, gif->SColorMap ), 100 );
+		auto img = convertImage( saved.ImageDesc, saved.RasterBits, gif->SColorMap );
+		cache.add_frame( combiner.combine( img, 0, 0, BlendMode::OVERLAY, DisposeMode::NONE ), 100 );
 	}
 	
 	//Clean up
