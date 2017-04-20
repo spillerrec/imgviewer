@@ -79,6 +79,23 @@ int ReadFromReader( GifFileType* gif, GifByteType* out, int amount ){
 }
 
 
+DisposeMode gifDispose( GraphicsControlBlock* gcb ){
+	if( !gcb )
+		return DisposeMode::NONE;
+	
+	switch( gcb->DisposalMode ){
+		case 0: return DisposeMode::NONE;
+		case 1: return DisposeMode::NONE;
+		case 2: return DisposeMode::BACKGROUND;
+		case 3: return DisposeMode::REVERT;
+		
+		default:
+			qWarning( "Unspecified GIF disposal mode: %d", gcb->DisposalMode );
+			return DisposeMode::NONE;
+	}
+}
+
+
 AReader::Error ReaderGif::read( imageCache &cache, const uint8_t* data, unsigned length, QString format ) const{
 	if( !can_read( data, length, format ) )
 		return ERROR_TYPE_UNKNOWN;
@@ -103,7 +120,20 @@ AReader::Error ReaderGif::read( imageCache &cache, const uint8_t* data, unsigned
 		//qDebug( "Local color map: %p", gif->SavedImages[i].ImageDesc.ColorMap );
 		auto saved = gif->SavedImages[i];
 		auto img = convertImage( saved.ImageDesc, saved.RasterBits, gif->SColorMap );
-		cache.add_frame( combiner.combine( img, 0, 0, BlendMode::OVERLAY, DisposeMode::NONE ), 100 );
+		
+		GraphicsControlBlock gcb;
+		if( DGifSavedExtensionToGCB( gif, i, &gcb ) != GIF_OK )
+			qDebug( "Did not contain stuff" );
+		auto dispose = gifDispose( &gcb ); //TODO: If none
+		
+		auto delay = gcb.DelayTime * 10;
+		delay = (delay == 0) ? 100 : delay; //TODO: replace with constant
+		//TODO: Be 0 if no gcb
+		
+		auto transparent = gcb.TransparentColor;
+		//TODO: check for -1
+		
+		cache.add_frame( combiner.combine( img, saved.ImageDesc.Left, saved.ImageDesc.Top, BlendMode::OVERLAY, dispose, transparent ), delay );
 	}
 	
 	//Clean up

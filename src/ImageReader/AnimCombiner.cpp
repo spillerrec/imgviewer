@@ -17,39 +17,76 @@
 
 #include "AnimCombiner.hpp"
 
+#include <stdexcept>
 #include <QPainter>
 #include <QDebug>
 
 //True if img is paletted
 bool isIndexed( const QImage& img )
 	{ return img.format() == QImage::Format_Indexed8; }
+	
+static void copyIndexedImage( QImage& img_dest, int x, int y, QImage img_src ){
+	//TODO: Limit ranges
+	for( int iy=0; iy<img_src.height(); iy++ ){
+		auto in  = img_src .scanLine( iy   );
+		auto out = img_dest.scanLine( iy+y );
+		for( int ix=0; ix<img_src.width(); ix++ )
+			out[ix+x] = in[ix];
+	}
+}
+	
+static void overlayIndexedImage( QImage& img_dest, int x, int y, QImage img_src, int replace ){
+	//Just copy if replace id is out of range
+	if( replace < 0 || replace > 255 ){
+		copyIndexedImage( img_dest, x, y, img_src );
+		return;
+	}
+	
+	//TODO: Limit ranges
+	for( int iy=0; iy<img_src.height(); iy++ ){
+		auto in  = img_src .scanLine( iy   );
+		auto out = img_dest.scanLine( iy+y );
+		for( int ix=0; ix<img_src.width(); ix++ )
+			out[ix+x] = (in[ix] != replace) ? in[ix] : out[ix+x];
+	}
+}
 
-QImage AnimCombiner::combineIndexed( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose ){
+QImage AnimCombiner::combineIndexed( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose, int indexed_background ){
 	//Bail if they are not indexed
 	if( !isIndexed( previous ) || !isIndexed( new_image ) )
 		return {};
 	
 	//Bail on different colorTables
-	if( previous.colorTable() != new_image.colorTable() )
-		return {};
 	//TODO: Try to merge them if possible
+	if( previous.colorTable() != new_image.colorTable() ){
+		qDebug( "Color tables do not match, reverting to RGB mode. Send a sample to the devs so this can be optimized." );
+		return {};
+	}
 	
 	//Merge the two images
 	auto output = previous;
-	//TODO: Limit range
-	//TODO: Do alpha blending
-	//TODO: Get alpha pixel index!
-	for( int iy=0; iy<new_image.height(); iy++ ){
-		auto in = new_image.scanLine( iy );
-		auto out = output.scanLine( iy+y );
-		for( int ix=0; ix<new_image.width(); ix++ )
-			out[ix+x] = in[ix];
+	switch( blend ){
+		case BlendMode::REPLACE:    copyIndexedImage( output, x, y, new_image ); break;
+		case BlendMode::OVERLAY: overlayIndexedImage( output, x, y, new_image, indexed_background ); break;
+		default: throw std::runtime_error( "Missing blend mode" );
+	};
+	
+	//Update 'previous' image
+	switch( dispose ){
+		case DisposeMode::NONE: previous = output; break;
+		case DisposeMode::BACKGROUND:{
+				//TODO: Fill rectangle with background color
+				//TODO: We don't have the background color!!
+				qDebug( "Indexed dispose background not yet done" );
+			} break;
+		case DisposeMode::REVERT: break;
+		default: throw std::runtime_error( "Missing dispose mode" );
 	}
 	
 	return output;
 }
 
-QImage AnimCombiner::combine( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose ){
+QImage AnimCombiner::combine( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose, int indexed_background ){
 	if( previous.isNull() ){
 		previous = QImage( new_image.size(), new_image.format() );
 		previous.setColorTable( new_image.colorTable() );
@@ -57,7 +94,7 @@ QImage AnimCombiner::combine( QImage new_image, int x, int y, BlendMode blend, D
 	}
 	
 	//Try to see if we can merge it indexed
-	auto tryIndexed = combineIndexed( new_image, x, y, blend, dispose );
+	auto tryIndexed = combineIndexed( new_image, x, y, blend, dispose, indexed_background );
 	if( !tryIndexed.isNull() )
 		return tryIndexed;
 	qDebug( "indexed combination failed" );
