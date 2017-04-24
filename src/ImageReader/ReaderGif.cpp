@@ -51,7 +51,7 @@ static QVector<QRgb> convertColorMap( ColorMapObject* map ){
 	return table;
 }
 
-QImage convertImage( GifImageDesc image, GifByteType* raster, ColorMapObject* parent ){
+static QImage convertImage( GifImageDesc image, GifByteType* raster, ColorMapObject* parent ){
 	QImage img( image.Width, image.Height, QImage::Format_Indexed8 );
 	img.setColorTable( convertColorMap( image.ColorMap ? image.ColorMap : parent ) );
 	
@@ -69,7 +69,7 @@ struct Reader{
 	Reader( const uint8_t* data, unsigned remaining ) : data(data), remaining(remaining) { }
 };
 
-int ReadFromReader( GifFileType* gif, GifByteType* out, int amount ){
+static int ReadFromReader( GifFileType* gif, GifByteType* out, int amount ){
 	auto reader = static_cast<Reader*>( gif->UserData );
 	amount = std::min( amount, int(reader->remaining) );
 	std::memcpy( out, reader->data, amount );
@@ -79,7 +79,7 @@ int ReadFromReader( GifFileType* gif, GifByteType* out, int amount ){
 }
 
 
-DisposeMode gifDispose( GraphicsControlBlock* gcb ){
+static DisposeMode gifDispose( GraphicsControlBlock* gcb ){
 	if( !gcb )
 		return DisposeMode::NONE;
 	
@@ -116,6 +116,12 @@ AReader::Error ReaderGif::read( imageCache &cache, const uint8_t* data, unsigned
 	
 	//TODO:
 	AnimCombiner combiner( {} );
+	
+	//Set background color
+	auto global_palette = convertColorMap( gif->SColorMap );
+	//TODO: default color if no global map?
+	combiner.setBackgroundColor( { gif->SBackGroundColor, global_palette } );
+	
 	for( int i=0; i<gif->ImageCount; i++ ){
 		//qDebug( "Local color map: %p", gif->SavedImages[i].ImageDesc.ColorMap );
 		auto saved = gif->SavedImages[i];
@@ -130,7 +136,9 @@ AReader::Error ReaderGif::read( imageCache &cache, const uint8_t* data, unsigned
 		delay = (delay == 0) ? 100 : delay; //TODO: replace with constant
 		//TODO: Be 0 if no gcb
 		
-		auto transparent = gcb.TransparentColor;
+		//TODO: Clean up palette access
+		auto palette = convertColorMap( saved.ImageDesc.ColorMap ? saved.ImageDesc.ColorMap : gif->SColorMap );
+		auto transparent = IndexColor( gcb.TransparentColor, palette );
 		//TODO: check for -1
 		
 		cache.add_frame( combiner.combine( img, saved.ImageDesc.Left, saved.ImageDesc.Top, BlendMode::OVERLAY, dispose, transparent ), delay );

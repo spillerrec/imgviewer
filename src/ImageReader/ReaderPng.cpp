@@ -211,7 +211,7 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 			delay = 1; //Fastest speed we support
 		
 		//Compose and add
-		auto blend_mode = blend_op == PNG_BLEND_OP_SOURCE ? BlendMode::OVERLAY : BlendMode::REPLACE;
+		auto blend_mode = blend_op == PNG_BLEND_OP_SOURCE ? BlendMode::REPLACE : BlendMode::OVERLAY;
 		auto dispose_mode = [=](){ switch( dispose_op ){
 				case PNG_DISPOSE_OP_NONE:       return DisposeMode::NONE;
 				case PNG_DISPOSE_OP_BACKGROUND: return DisposeMode::BACKGROUND;

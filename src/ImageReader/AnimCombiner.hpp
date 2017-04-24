@@ -31,16 +31,35 @@ enum class DisposeMode{
 	REVERT //Revert to previous frame
 };
 
+//Maybe indexed
+class IndexColor{
+	private:
+		bool hasIndexed{ false };
+		int indexed{ -1 };
+		QRgb rgb;
+		
+	public:
+		IndexColor( QRgb rgb=qRgba(0,0,0,0) ) : rgb( rgb ) {}
+		IndexColor( int indexed, const QVector<QRgb>& table );
+		
+		bool hasIndex() const{ return hasIndexed; }
+		QRgb getRgb() const{ return rgb; }
+		int getIndexed() const;
+};
+
 class AnimCombiner{
 	private:
 		QImage previous;
+		IndexColor background_color;
 		
-		QImage combineIndexed( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose, int indexed_background );
+		QImage combineIndexed( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose, IndexColor transparent );
 		
 	public:
 		AnimCombiner( QImage previous ) : previous(previous) { }
-		QImage combine( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose, int indexed_background=-1 );
-	
+		QImage combine( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose, IndexColor transparent = {} );
+		
+		void setBackgroundColor( IndexColor background )
+			{ background_color = background; }
 };
 
 
