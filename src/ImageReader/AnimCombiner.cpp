@@ -83,30 +83,46 @@ static void fillIndexedRect( QImage& img_dest, int x, int y, QSize area, int col
 }
 
 QImage AnimCombiner::combineIndexed( QImage new_image, int x, int y, BlendMode blend, DisposeMode dispose, IndexColor transparent ){
-	//Bail if they are not indexed
-	if( !isIndexed( previous ) || !isIndexed( new_image ) )
+	//Bail if the new image is not indexed
+	if( !isIndexed( new_image ) )
 		return {};
 	
-	//Bail on different colorTables
-	//TODO: Try to merge them if possible
-	if( previous.colorTable() != new_image.colorTable() ){
-		qDebug( "Color tables do not match, reverting to RGB mode. Send a sample to the devs so this can be optimized." );
-		return {};
-	}
+//	qDebug( "Color table size: %d", new_image.colorTable().size() );
+//	qDebug( "Blend: %s, transparent id: %d", (blend == BlendMode::REPLACE ? "replace" : "overlay"), transparent.getIndexed() );
 	
-	//Merge the two images
+	//Figure out if we can merge them trivially
+	//Previous image must be indexed and color tables must be the same
+	bool mergeable = isIndexed( previous ) && previous.colorTable() == new_image.colorTable();
+	
+	//Do we need to keep contents around the new_image?
+	bool completelyOverlaps = QRect( {0, 0}, previous.size() ) == QRect( {x,y}, new_image.size() );
+	
+	//Do we need to overlay transparent areas with the previous image?
+	bool noOverlayNeeded = (blend == BlendMode::OVERLAY) && transparent.getIndexed() < 0;
+	
+	
 	auto output = previous;
-	switch( blend ){
-		case BlendMode::REPLACE:    copyIndexedImage( output, x, y, new_image ); break;
-		case BlendMode::OVERLAY: overlayIndexedImage( output, x, y, new_image, transparent.getIndexed() ); break;
-		default: throw std::runtime_error( "Missing blend mode" );
-	};
+	//Avoid any merging if the entire image gets replaced completely
+	if( completelyOverlaps && noOverlayNeeded ){
+		qDebug( "Skipping merging" );
+		output = new_image;
+	}
+	else if( mergeable ){ //Merge the two images normally
+		switch( blend ){
+			case BlendMode::REPLACE:    copyIndexedImage( output, x, y, new_image ); break;
+			case BlendMode::OVERLAY: overlayIndexedImage( output, x, y, new_image, transparent.getIndexed() ); break;
+			default: throw std::runtime_error( "Missing blend mode" );
+		};
+	}
+	else //We will have to merge these in RGB mode
+		return {};
 	
 	//Update 'previous' image
 	switch( dispose ){
 		case DisposeMode::NONE: previous = output; break;
 		case DisposeMode::BACKGROUND:
 				fillIndexedRect( previous, x, y, new_image.size(), background_color.getIndexed() );
+				//TODO: is buggy if color table changes?
 			break;
 		case DisposeMode::REVERT: break;
 		default: throw std::runtime_error( "Missing dispose mode" );
@@ -126,8 +142,6 @@ QImage AnimCombiner::combine( QImage new_image, int x, int y, BlendMode blend, D
 	auto tryIndexed = combineIndexed( new_image, x, y, blend, dispose, transparent );
 	if( !tryIndexed.isNull() )
 		return tryIndexed;
-	if( isIndexed( new_image ) )
-		qDebug( "indexed combination failed" );
 	
 	//QPainter can't handle indexed images, convert to something it can handle
 	auto fixFormat = []( QImage& img, IndexColor transparent={} ){
