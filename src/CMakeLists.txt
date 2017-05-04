@@ -39,6 +39,9 @@ set(SOURCE_FILE_SYSTEM
 set(RESOURCES
 	resources/resources.qrc
 	)
+if( WIN32 ) # Windows executable icon
+	set(RESOURCES ${RESOURCES} resources/icon.rc)
+endif( WIN32 )
 
 if( WIN32 ) # Don't use registry on windows for saving options
 	add_definitions( -DPORTABLE )
