@@ -51,7 +51,7 @@ static QVector<QRgb> convertColorMap( ColorMapObject* map ){
 	return table;
 }
 
-QImage convertImage( GifImageDesc image, GifByteType* raster, ColorMapObject* parent ){
+static QImage convertImage( GifImageDesc image, GifByteType* raster, ColorMapObject* parent ){
 	QImage img( image.Width, image.Height, QImage::Format_Indexed8 );
 	img.setColorTable( convertColorMap( image.ColorMap ? image.ColorMap : parent ) );
 	
@@ -69,13 +69,30 @@ struct Reader{
 	Reader( const uint8_t* data, unsigned remaining ) : data(data), remaining(remaining) { }
 };
 
-int ReadFromReader( GifFileType* gif, GifByteType* out, int amount ){
+static int ReadFromReader( GifFileType* gif, GifByteType* out, int amount ){
 	auto reader = static_cast<Reader*>( gif->UserData );
 	amount = std::min( amount, int(reader->remaining) );
 	std::memcpy( out, reader->data, amount );
 	reader->remaining -= amount;
 	reader->data += amount;
 	return amount;
+}
+
+
+static DisposeMode gifDispose( GraphicsControlBlock* gcb ){
+	if( !gcb )
+		return DisposeMode::NONE;
+	
+	switch( gcb->DisposalMode ){
+		case 0: return DisposeMode::NONE;
+		case 1: return DisposeMode::NONE;
+		case 2: return DisposeMode::BACKGROUND;
+		case 3: return DisposeMode::REVERT;
+		
+		default:
+			qWarning( "Unspecified GIF disposal mode: %d", gcb->DisposalMode );
+			return DisposeMode::NONE;
+	}
 }
 
 
@@ -97,11 +114,34 @@ AReader::Error ReaderGif::read( imageCache &cache, const uint8_t* data, unsigned
 	cache.set_info( gif->ImageCount, true, -1 );
 	qDebug( "Size: %dx%d", gif->SWidth, gif->SHeight );
 	
-	//TODO: 
+	//TODO:
+	AnimCombiner combiner( {} );
+	
+	//Set background color
+	auto global_palette = convertColorMap( gif->SColorMap );
+	//TODO: default color if no global map?
+	combiner.setBackgroundColor( { gif->SBackGroundColor, global_palette } );
+	
 	for( int i=0; i<gif->ImageCount; i++ ){
 		//qDebug( "Local color map: %p", gif->SavedImages[i].ImageDesc.ColorMap );
 		auto saved = gif->SavedImages[i];
-		cache.add_frame( convertImage( saved.ImageDesc, saved.RasterBits, gif->SColorMap ), 100 );
+		auto img = convertImage( saved.ImageDesc, saved.RasterBits, gif->SColorMap );
+		
+		GraphicsControlBlock gcb;
+		if( DGifSavedExtensionToGCB( gif, i, &gcb ) != GIF_OK )
+			qDebug( "Did not contain stuff" );
+		auto dispose = gifDispose( &gcb ); //TODO: If none
+		
+		auto delay = gcb.DelayTime * 10;
+		delay = (delay == 0) ? 100 : delay; //TODO: replace with constant
+		//TODO: Be 0 if no gcb
+		
+		//TODO: Clean up palette access
+		auto palette = convertColorMap( saved.ImageDesc.ColorMap ? saved.ImageDesc.ColorMap : gif->SColorMap );
+		auto transparent = IndexColor( gcb.TransparentColor, palette );
+		//TODO: check for -1
+		
+		cache.add_frame( combiner.combine( img, saved.ImageDesc.Left, saved.ImageDesc.Top, BlendMode::OVERLAY, dispose, transparent ), delay );
 	}
 	
 	//Clean up
