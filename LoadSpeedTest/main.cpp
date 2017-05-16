@@ -33,11 +33,12 @@ int main( int argc, char* argv[] ){
 	qDebug() << "Time for file loading:" << t.elapsed() << "ms";
 	qDebug() << "File in bytes:" << buffer.size();
 	
+	auto ext = QFileInfo(args[1]).suffix().toLatin1();
 	const int trials = 100;
 	double total = 0;
 	for( int i=0; i<trials; i++ ){
 		t.start();
-		auto img = QImage::fromData( buffer );
+		auto img = QImage::fromData( buffer, ext.constData() );
 		if( img.isNull() )
 			return printError("Could not decode image");
 		auto time = t.elapsed();
