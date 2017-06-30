@@ -25,6 +25,10 @@ struct Orientation{
 	bool flip_ver{ false };
 	bool flip_hor{ false };
 	
+	Orientation() {}
+	Orientation( int8_t rotation, bool flip_ver, bool flip_hor )
+		:	rotation(rotation), flip_ver(flip_ver), flip_hor(flip_hor) {}
+	
 	/** @return The rotation in the range 0-3 */
 	int8_t normalizedRotation( int8_t rotation ) const{
 		auto normalized = rotation % 4;
