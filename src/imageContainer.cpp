@@ -193,13 +193,21 @@ void imageContainer::create_menubar(){
 void imageContainer::create_context(){
 	if( context )
 		return;
-	
 	context = new QMenu( tr( "&File" ) );
+	
+	auto scaling = new QMenu( tr("&Scaling"), context );
+	auto smooth = scaling->addAction( "&Smooth scaling"
+		, [&](bool checked){ viewer->setSmoothScaling( checked ); }
+		);
+	smooth->setCheckable( true );
+	
 	context->addAction( "&Open",      this, SLOT( open_file()      ) );
 	context->addSeparator();
 	context->addAction( "&Delete",    this, SLOT( delete_file()    ) );
 	context->addAction( "&Copy",      this, SLOT( copy_file()      ) );
 	context->addAction( "Copy &Path", this, SLOT( copy_file_path() ) );
+	context->addSeparator();
+	context->addMenu( scaling );
 	context->addSeparator();
 	context->addAction( "E&xit",      qApp, SLOT( quit()           ) );
 }

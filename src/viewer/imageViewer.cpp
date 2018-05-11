@@ -381,7 +381,7 @@ void imageViewer::paintEvent( QPaintEvent* ){
 	
 	//Everything went fine, start drawing the image
 	QPainter painter( this );
-	if( zoom.scale() <= 1.5 )
+	if( zoom.scale() <= 1.5 || smooth_scaling )
 		painter.setRenderHints( QPainter::SmoothPixmapTransform, true );
 	
 	painter.drawImage( zoom.area(), get_frame() );
