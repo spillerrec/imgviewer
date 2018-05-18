@@ -65,12 +65,7 @@ class imageViewer: public QWidget{
 	//Settings to autoscale
 	private:
 		bool auto_scale_on{ true };
-		bool auto_aspect_ratio;
-		bool auto_downscale_only;
-		bool auto_upscale_only;
-		bool restrict_viewpoint;
 		bool initial_resize;
-		bool keep_resize;
 		
 		void restrict_view( bool force=false );
 		void change_zoom( double new_level, QPoint keep_on );
@@ -79,7 +74,7 @@ class imageViewer: public QWidget{
 		
 	private:
 		QTimer *time;
-		const QSettings& settings;
+		QSettings& settings;
 		void init_size();
 		
 	private slots:
@@ -139,7 +134,7 @@ class imageViewer: public QWidget{
 		void wheelEvent( QWheelEvent *event );
 	
 	public:
-		explicit imageViewer( const QSettings& settings, QWidget* parent = 0 );
+		explicit imageViewer( QSettings& settings, QWidget* parent = 0 );
 		
 		void change_image( std::shared_ptr<imageCache> new_image );
 		

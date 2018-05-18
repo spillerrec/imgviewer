@@ -19,6 +19,7 @@
 #include "imageCache.h"
 #include "qrect_extras.h"
 #include "colorManager.h"
+#include "settings/ViewerSettings.h"
 
 using namespace std;
 
@@ -49,15 +50,11 @@ using namespace std;
 #include <algorithm>
 
 
-imageViewer::imageViewer( const QSettings& settings, QWidget* parent ): QWidget( parent ), settings( settings ){
+using S = ViewerSettings;
+
+imageViewer::imageViewer( QSettings& settings, QWidget* parent ): QWidget( parent ), settings( settings ){
 	//User settings
-	auto_aspect_ratio   = settings.value( "viewer/aspect_ratio",   true  ).toBool();
-	auto_downscale_only = settings.value( "viewer/downscale",      true  ).toBool();
-	auto_upscale_only   = settings.value( "viewer/upscale",        false ).toBool();
-	
-	restrict_viewpoint  = settings.value( "viewer/restrict",       true  ).toBool();
-	initial_resize      = settings.value( "viewer/initial_resize", true  ).toBool();
-	keep_resize         = settings.value( "viewer/keep_resize",    false ).toBool();
+	initial_resize = S(settings).initial_resize();
 	
 	button_rleft   = translate_button( "mouse/rocker-left",  'L' );
 	button_rright  = translate_button( "mouse/rocker-right", 'R' );
@@ -210,7 +207,7 @@ bool imageViewer::toogle_animation(){
 }
 
 void imageViewer::restrict_view( bool force ){
-	if( restrict_viewpoint || force )
+	if( S(settings).restrict_viewpoint() || force )
 		zoom.restrict( size() );
 }
 
@@ -225,8 +222,13 @@ void imageViewer::change_zoom( double new_level, QPoint keep_on ){
 }
 
 void imageViewer::auto_zoom(){
-	zoom.resize( size(), auto_downscale_only, auto_upscale_only, auto_aspect_ratio );
-		update();
+	zoom.resize(
+			size()
+		,	S( settings ).auto_downscale_only()
+		,	S( settings ).auto_upscale_only()
+		,	S( settings ).auto_aspect_ratio()
+		);
+	update();
 	update_cursor();
 }
 
@@ -277,7 +279,7 @@ void imageViewer::init_size(){
 	//TODO: customize
 	if( initial_resize )
 		emit resize_wanted();
-	initial_resize = keep_resize;
+	initial_resize = S(settings).keep_resize();
 	
 	//Only reset zoom if size differ
 	if( zoom.change_content( frameSize(), true ) ){
