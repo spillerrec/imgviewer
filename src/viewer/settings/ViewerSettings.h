@@ -35,6 +35,8 @@ class ViewerSettings{
 		Setting<bool> initial_resize()     { return { settings, "viewer/initial_resize" , true  }; }
 		Setting<bool> keep_resize()        { return { settings, "viewer/keep_resize"    , false }; }
 		
+		Setting<bool> smooth_scaling()     { return { settings, "viewer/smooth_scaling" , true }; }
+		
 };
 
 #endif

@@ -98,8 +98,6 @@ class imageViewer: public QWidget{
 		void mirrorVer(){ mirror( false, true ); }
 	
 	protected:
-		bool smooth_scaling{ false };
-		
 		void updateOrientation( Orientation wanted, Orientation current );
 		void draw_message( QStaticText* text );
 		void paintEvent( QPaintEvent* );
@@ -142,11 +140,6 @@ class imageViewer: public QWidget{
 		QImage get_frame();
 		QSize frameSize( unsigned index ) const;
 		QSize frameSize() const{ return frameSize( current_frame ); }
-		
-		void setSmoothScaling( bool is_smooth ){
-			smooth_scaling = is_smooth;
-			update();
-		}
 	
 	signals:
 		void image_info_read();

@@ -199,10 +199,14 @@ void imageContainer::create_context(){
 	auto scaling = new QMenu( tr("&Scaling"), context );
 	
 	//Smooth scaling option
+	//Downscale viewer option
 	auto smooth = scaling->addAction( "&Smooth scaling"
-		, [&](bool checked){ viewer->setSmoothScaling( checked ); }
-		);
+		, [&](bool checked){
+				ViewerSettings(settings).smooth_scaling().set( checked );
+				viewer->updateView();
+			} );
 	smooth->setCheckable( true );
+	smooth->setChecked( ViewerSettings(settings).smooth_scaling() );
 	
 	scaling->addSeparator();
 	
