@@ -17,6 +17,7 @@
 
 #include "imageContainer.h"
 #include "ImageReader/ImageReader.hpp"
+#include "viewer/settings/ViewerSettings.h"
 #include "viewer/imageViewer.h"
 #include "viewer/imageCache.h"
 #include "fileManager.h"
@@ -196,10 +197,42 @@ void imageContainer::create_context(){
 	context = new QMenu( tr( "&File" ) );
 	
 	auto scaling = new QMenu( tr("&Scaling"), context );
+	
+	//Smooth scaling option
 	auto smooth = scaling->addAction( "&Smooth scaling"
 		, [&](bool checked){ viewer->setSmoothScaling( checked ); }
 		);
 	smooth->setCheckable( true );
+	
+	scaling->addSeparator();
+	
+	//Downscale viewer option
+	auto downscale = scaling->addAction( "Only &downscale"
+		, [&](bool checked){
+				ViewerSettings(settings).auto_downscale_only().set( checked );
+				viewer->updateView();
+			} );
+	downscale->setCheckable( true );
+	downscale->setChecked( ViewerSettings(settings).auto_downscale_only() );
+	
+	//Upscale viewer option
+	auto upscale = scaling->addAction( "Only &upscale"
+		, [&](bool checked){
+				ViewerSettings(settings).auto_upscale_only().set( checked );
+				viewer->updateView();
+			} );
+	upscale->setCheckable( true );
+	upscale->setChecked( ViewerSettings(settings).auto_upscale_only() );
+	
+	scaling->addSeparator();
+	
+	//Keep-resize viewer option
+	auto keep_resize = scaling->addAction( "&Keep resizing window"
+		, [&](bool checked){
+				ViewerSettings(settings).keep_resize().set( checked );
+			} );
+	keep_resize->setCheckable( true );
+	keep_resize->setChecked( ViewerSettings(settings).keep_resize() );
 	
 	context->addAction( "&Open",      this, SLOT( open_file()      ) );
 	context->addSeparator();

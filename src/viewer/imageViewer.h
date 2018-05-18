@@ -70,6 +70,7 @@ class imageViewer: public QWidget{
 		void restrict_view( bool force=false );
 		void change_zoom( double new_level, QPoint keep_on );
 		void auto_zoom();
+	public slots:
 		void updateView();
 		
 	private:
@@ -102,12 +103,7 @@ class imageViewer: public QWidget{
 		void updateOrientation( Orientation wanted, Orientation current );
 		void draw_message( QStaticText* text );
 		void paintEvent( QPaintEvent* );
-		void resizeEvent( QResizeEvent* ){
-			if( auto_scale_on )
-				auto_zoom();
-			else
-				restrict_view();
-		}
+		void resizeEvent( QResizeEvent* ){ updateView(); }
 	
 	//Controlling mouse actions
 	protected:
