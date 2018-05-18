@@ -22,8 +22,8 @@
 #include <QVariant>
 
 
-template<typename T> T QVariantTo( QVariant value );
-template<> bool QVariantTo( QVariant value ){ return value.toBool(); }
+template<typename T> inline T QVariantTo( QVariant value );
+template<> inline bool QVariantTo( QVariant value ){ return value.toBool(); }
 
 template<typename T>
 class Setting{
@@ -39,7 +39,7 @@ class Setting{
 		void set( T value )
 			{ settings.setValue( id, value ); }
 			
-		bool get() const{ return QVariantTo<bool>( settings.value( id ) ); }
+		bool get() const{ return QVariantTo<bool>( settings.value( id, default_value ) ); }
 		operator bool() const{ return get(); }
 };
 
