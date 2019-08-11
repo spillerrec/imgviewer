@@ -62,7 +62,7 @@ fileManager::fileManager( const QSettings& settings ) : settings( settings ), ha
 	
 	//Set collation settings
 	collator.setNumericMode( settings.value( "loading/natural-number-order", false ).toBool() );
-	bool case_sensitivity = settings.value( "loading/case-sensitive", false ).toBool();
+	bool case_sensitivity = settings.value( "loading/case-sensitive", true ).toBool();
 	collator.setCaseSensitivity( case_sensitivity ? Qt::CaseSensitive : Qt::CaseInsensitive );
 	bool punctuation = settings.value( "loading/ignore-punctuation", collator.ignorePunctuation() ).toBool();
 	collator.setIgnorePunctuation( punctuation );
