@@ -25,7 +25,7 @@
 #include <QCoreApplication>
 #include <QTime>
 #include <QDirIterator>
-#include <QtAlgorithms>
+#include <algorithm>
 
 #include <QMutex>
 #include <QMutexLocker>
@@ -120,7 +120,7 @@ void fileManager::load_files( QDir current_dir ){
 			files.push_back( {file, collator} );
 	}
 	
-	qSort( files.begin(), files.end() );
+	std::sort( files.begin(), files.end() );
 	
 	QString path = current_dir.absolutePath();
 	if( path != dir ){
@@ -134,7 +134,7 @@ void fileManager::load_image( int pos ){
 		return;
 	
 	//Check buffer first
-	auto it = qFind( buffer.begin(), buffer.end(), files[pos] );
+	auto it = std::find( buffer.begin(), buffer.end(), files[pos] );
 	if( it != buffer.end() ){
 		files[pos] = std::move(*it);
 		buffer.erase( it );
@@ -237,13 +237,15 @@ void fileManager::clear_cache(){
 
 /** @return The index of <file> or -1 if not found */
 int fileManager::index_of( File file ) const{
-	auto it = qBinaryFind( files.begin(), files.end(), file );
-	return it != files.end() ? it - files.begin() : -1;
+	auto pos = find_file( file );
+	if( pos != -1 && files.at(pos) == file )
+		return pos;
+	return -1;
 }
 
 /** @return A valid index closest to <file> */
-int fileManager::find_file( File file ){
-	auto it = qLowerBound( files.begin(), files.end(), file );
+int fileManager::find_file( File file ) const{
+	auto it = std::lower_bound( files.begin(), files.end(), file );
 	return it != files.end() ? it - files.begin() : files.size()-1;
 }
 

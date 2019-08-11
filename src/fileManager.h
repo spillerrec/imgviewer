@@ -80,7 +80,7 @@ class fileManager : public QObject{
 		void load_files( QDir dir );
 		void clear_cache();
 		
-		int find_file( File file );
+		int find_file( File file ) const;
 		
 	public:
 		explicit fileManager( const QSettings& settings );
