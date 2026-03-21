@@ -17,23 +17,23 @@
 
 #include "ExtensionChecker.hpp"
 
-using namespace std;
+#include <algorithm>
 
 bool ExtensionChecker::ExtensionGroup::matches( const QString& str ) const{
 	//Must be able to contain the extension and start the extension with '.'
 	if( str.size() < length + 1 || str[str.size() - length - 1] != '.' )
 		return false;
 	
-	return qBinaryFind( exts.begin(), exts.end(), str.right( length ).toLower() ) != exts.end();
+	return std::binary_search( exts.begin(), exts.end(), str.right( length ).toLower() );
 }
 
 ExtensionChecker::ExtensionChecker( QStringList exts ){
-	sort( exts.begin(), exts.end(), []( QString a, QString b ){ return a.size() < b.size(); } );
+	std::sort( exts.begin(), exts.end(), []( QString a, QString b ){ return a.size() < b.size(); } );
 	
 	int pos=0;
 	while( pos<exts.count() ){
 		int length = exts[pos].size();
-		vector<QString> exts_group;
+		std::vector<QString> exts_group;
 		
 		for( ; pos<exts.count() && exts[pos].size() == length; pos++ )
 			exts_group.push_back( exts[pos] );
