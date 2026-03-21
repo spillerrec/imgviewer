@@ -9,6 +9,9 @@ add_subdirectory(viewer)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall") # Turn on warnings
 
+#Reduce executable size
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s -fmerge-constants -fno-ident")
+
 # Qt compilers setup
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
