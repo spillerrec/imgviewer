@@ -23,82 +23,12 @@
 
 #include <lcms2.h>
 #include <QApplication>
+#include <QGuiApplication>
 #include <QtConcurrent>
 #include <QImage>
 using namespace std;
 
 #include <qglobal.h>
-#ifdef Q_OS_WIN
-#else
-	#include <QDesktopWidget>
-	#include <QX11Info>
-
-	#include <xcb/xcb.h>
-	#include <xcb/xproto.h>
-	#include <xcb/xcb_atom.h>
-
-	#include <string>
-	#include <vector>
-
-	
-	vector<ColorProfile> get_x11_icc(){
-		xcb_connection_t *conn = QX11Info::connection();
-		xcb_window_t window = QX11Info::appRootWindow();
-		int monitor_amount = QApplication::desktop()->screenCount();
-		
-		//xcb stuff for each monitor connected to the system
-		struct x_mon{
-			xcb_atom_t atom;
-			xcb_intern_atom_cookie_t atom_cookie;
-			xcb_get_property_cookie_t prop_cookie;
-			
-			x_mon( xcb_intern_atom_cookie_t atom_cookie ) : atom_cookie(atom_cookie) { }
-		};
-		vector<x_mon> x_mons;
-		x_mons.reserve( monitor_amount );
-		
-		//Get cookies for atoms
-		for( int i=0; i<monitor_amount; i++ ){
-			string name = "_ICC_PROFILE";
-			if( i > 0 )
-				name += ( "_" + QString::number( i ) ).toUtf8().constData();
-			
-			x_mons.emplace_back( xcb_intern_atom( conn, 1, name.size(), name.c_str() ) );
-		}
-		
-		//Get atoms
-		for( auto& x_mon : x_mons ){
-			auto reply = xcb_intern_atom_reply( conn, x_mon.atom_cookie, nullptr );
-			if( reply ){
-				x_mon.atom = reply->atom;
-				free( reply );
-			}
-			else
-				x_mon.atom = XCB_NONE;
-		}
-		
-		//Get property cookies
-		for( auto& x_mon : x_mons )
-			x_mon.prop_cookie = xcb_get_property( conn, 0, window, x_mon.atom, XCB_ATOM_CARDINAL, 0, UINT_MAX );
-		
-		//Load profiles
-		vector<ColorProfile> iccs;
-		iccs.reserve( monitor_amount );
-		for( auto& x_mon : x_mons ){
-			auto reply = xcb_get_property_reply( conn, x_mon.prop_cookie, nullptr );
-			
-			if( reply ){
-				iccs.emplace_back( ColorProfile::fromMem( xcb_get_property_value( reply ), reply->length ) );
-				free( reply );
-			}
-			else
-				iccs.emplace_back();
-		}
-		
-		return iccs;
-	}
-
-#endif
 
 
 colorManager::colorManager(){
@@ -127,13 +57,11 @@ colorManager::colorManager(){
 	}
 #else
 	#ifdef Q_OS_UNIX
-		monitors = get_x11_icc();
-	#else
+		qDebug( "Warning, X11 support for color management has been removed when porting this app to QT6. Refer to the QT5 code if you want to restore it." );
+	#endif
 		QString app_path = QApplication::applicationDirPath();
 		monitors.emplace_back( ColorProfile::fromFile( (app_path + "/1.icc").toLocal8Bit().constData(), "r") ) );
 		qDebug( "Warning, no proper support for color management on this platform" );
-	//TODO:
-	#endif
 #endif
 }
 
