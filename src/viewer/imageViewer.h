@@ -51,10 +51,10 @@ class imageViewer: public QWidget{
 	//Color managed cache
 	private:
 		QImage converted;
-		int converted_monitor{ -1 };
+		QScreen* converted_monitor{ nullptr };
 		void clear_converted(){
 			converted = QImage();
-			converted_monitor = -1;
+			converted_monitor = nullptr;
 		}
 	
 	//How the image is to be viewed

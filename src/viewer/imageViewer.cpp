@@ -41,7 +41,7 @@ using namespace std;
 #include <QWheelEvent>
 
 #include <QApplication>
-#include <QDesktopWidget>
+#include <QScreen>
 
 #include <QDrag>
 #include <QMimeData>
@@ -100,7 +100,7 @@ QImage imageViewer::get_frame(){
 	if( !image_cache || current_frame >= image_cache->loaded() )
 		return {};
 	
-	int current_monitor = QApplication::desktop()->screenNumber( this );
+	QScreen* current_monitor = screen();
 	if( converted_monitor != current_monitor ){
 		//Cache invalid, refresh
 		converted = image_cache->frame( current_frame );

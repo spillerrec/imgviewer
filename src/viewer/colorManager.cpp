@@ -102,6 +102,9 @@ using namespace std;
 
 
 colorManager::colorManager(){
+	for (auto* screen : QGuiApplication::screens())
+		screens.push_back(screen);
+	
 #ifdef Q_OS_WIN
 	//Try to grab it from the Windows APIs
 	DISPLAY_DEVICE disp;
@@ -134,12 +137,13 @@ colorManager::colorManager(){
 #endif
 }
 
-void colorManager::doTransform( QImage& img, const ColorProfile& in, unsigned monitor ) const{
+void colorManager::doTransform( QImage& img, const ColorProfile& in, QScreen* screen ) const{
 	//Fallback to sRGB if there is no input profile
 	auto& from = in ? in : p_srgb;
 	
 	//Fallback to sRGB if there is no profile for the requested monitor
-	auto has_monitor_profile = monitor < monitors.size() && monitors[monitor];
+	auto monitor = std::find(screens.begin(), screens.end(), screen) - screens.begin();
+	auto has_monitor_profile = monitor < (int)monitors.size() && monitors[monitor];
 	auto& output = has_monitor_profile ? monitors[monitor] : p_srgb;
 	
 	//Create the transform

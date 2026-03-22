@@ -23,6 +23,8 @@
 #include <memory>
 #include <vector>
 
+class QScreen;
+
 
 //TODO: see if we can safely use std::unique_ptr to handle it, or make our own class
 class ColorTransform{
@@ -79,8 +81,9 @@ class ColorProfile{
 };
 
 class colorManager{
-	public:
+	private:
 		std::vector<ColorProfile> monitors;
+		std::vector<QScreen*> screens;
 		
 		ColorProfile p_srgb{ ColorProfile::sRgb() };
 		
@@ -88,7 +91,7 @@ class colorManager{
 	public:
 		colorManager();
 		
-		void doTransform( class QImage& img, const ColorProfile& in, unsigned monitor ) const;
+		void doTransform( class QImage& img, const ColorProfile& in, QScreen* screen ) const;
 };
 
 
