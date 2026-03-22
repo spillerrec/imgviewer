@@ -65,7 +65,7 @@ imageViewer::imageViewer( QSettings& settings, QWidget* parent ): QWidget( paren
 	
 	time = new QTimer( this );
 	time->setSingleShot( true );
-	connect( time, SIGNAL( timeout() ), this, SLOT( next_frame() ) );
+	connect( time, &QTimer::timeout, this, &imageViewer::next_frame );
 	
 	setContextMenuPolicy( Qt::PreventContextMenu );
 }
@@ -309,14 +309,14 @@ void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
 			
 			//TODO: remove those connections again
 			case imageCache::EMPTY:
-					connect( image_cache.get(), SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
-					connect( image_cache.get(), SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
+					connect( image_cache.get(), &imageCache::info_loaded, this, &imageViewer::read_info );
+					connect( image_cache.get(), &imageCache::frame_loaded, this, &imageViewer::check_frame );
 				break;
 			
 			case imageCache::INFO_READY:
 			case imageCache::FRAMES_READY:
-					connect( image_cache.get(), SIGNAL( info_loaded() ), this, SLOT( read_info() ) );
-					connect( image_cache.get(), SIGNAL( frame_loaded(unsigned int) ), this, SLOT( check_frame(unsigned int) ) );
+					connect( image_cache.get(), &imageCache::info_loaded, this, &imageViewer::read_info );
+					connect( image_cache.get(), &imageCache::frame_loaded, this, &imageViewer::check_frame );
 					read_info();
 				break;
 			
@@ -551,12 +551,13 @@ void imageViewer::mouseReleaseEvent( QMouseEvent *event ){
 }
 
 void imageViewer::create_context_event( const QMouseEvent& event ){
-	emit context_menu( QContextMenuEvent(
+	QContextMenuEvent new_event(
 			QContextMenuEvent::Mouse
 		,	event.pos()
 		,	event.globalPos()
 		,	event.modifiers()
-		) );
+		);
+	emit context_menu( new_event );
 }
 
 void imageViewer::wheelEvent( QWheelEvent *event ){

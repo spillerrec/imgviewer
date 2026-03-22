@@ -84,10 +84,11 @@ class imageContainer: public QWidget{
 		void updateImageInfo();
 		void update_toogle_btn();
 		void hide_menubar();
-		void resize_window( bool only_upscale=false );
+		void resize_window( bool only_upscale );
+		void resize_window_normal(){ resize_window(false); }
 		
 		void update_file();
-		void context_menu( QContextMenuEvent event ){
+		void context_menu( QContextMenuEvent& event ){
 			contextMenuEvent( &event );
 		}
 		void copy_file();

@@ -38,8 +38,8 @@
 
 
 fileManager::fileManager( const QSettings& settings ) : settings( settings ), have_ext( ImageReader().supportedExtensions() ){
-	connect( &loader, SIGNAL( image_fetched() ), this, SLOT( loading_handler() ) );
-	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
+	connect( &loader, &imageLoader::image_fetched, this, &fileManager::loading_handler );
+	connect( &watcher, &QFileSystemWatcher::directoryChanged, this, &fileManager::dir_modified );
 	
 	bool hidden_default = false;
 	bool extension_default = false;
@@ -252,7 +252,7 @@ int fileManager::find_file( File file ) const{
 static QMutex mutex; //TODO: This should be part of fileManager
 void fileManager::dir_modified(){
 	//Make absolutely sure this is not called again before it finish loading
-	disconnect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
+	disconnect( &watcher, &QFileSystemWatcher::directoryChanged, this, &fileManager::dir_modified );
 	QMutexLocker locker(&mutex);
 	
 	//Wait shortly to ensure files have been updated
@@ -261,7 +261,7 @@ void fileManager::dir_modified(){
 	while( QTime::currentTime() < wait )
 		QCoreApplication::processEvents( QEventLoop::AllEvents, 100 );
 	
-	connect( &watcher, SIGNAL( directoryChanged( QString ) ), this, SLOT( dir_modified() ) );
+	connect( &watcher, &QFileSystemWatcher::directoryChanged, this, &fileManager::dir_modified );
 	
 	//processEvents can modify this object, so check this afterwards
 	if( !has_file() )

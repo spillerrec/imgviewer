@@ -38,6 +38,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QStandardPaths>
+#include <QPushButton>
 
 
 imageContainer::AnimButton::AnimButton( imageContainer* parent )
@@ -107,22 +108,21 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	create_context();
 	
 	//Connect signals
-	connect( viewer, SIGNAL( clicked() ),         this, SLOT( hide_menubar() ) );
-	connect( viewer, SIGNAL( image_info_read() ), this, SLOT( updateImageInfo() ) );
-	connect( viewer, SIGNAL( image_changed() ),   this, SLOT( updateImageInfo() ) );
-	connect( viewer, SIGNAL( double_clicked() ),  this, SLOT( toogle_fullscreen() ) );
-	connect( viewer, SIGNAL( resize_wanted() ),  this, SLOT( resize_window() ) );
-	connect( viewer, SIGNAL( rocker_left() ),     this, SLOT( prev_file() ) );
-	connect( viewer, SIGNAL( rocker_right() ),    this, SLOT( next_file() ) );
-	connect( viewer, SIGNAL( context_menu(QContextMenuEvent) )
-	       , this,     SLOT( context_menu(QContextMenuEvent) ) );
-	connect( ui->btn_sub_next, SIGNAL( pressed() ), viewer, SLOT( goto_next_frame() ) );
-	connect( ui->btn_sub_prev, SIGNAL( pressed() ), viewer, SLOT( goto_prev_frame() ) );
-	connect( ui->btn_pause,    SIGNAL( pressed() ), this, SLOT( toogle_animation() ) );
-	connect( ui->btn_next,     SIGNAL( pressed() ), this, SLOT( next_file() ) );
-	connect( ui->btn_prev,     SIGNAL( pressed() ), this, SLOT( prev_file() ) );
-	connect( files.get(), SIGNAL( file_changed() ),     this, SLOT( update_file() ) );
-	connect( files.get(), SIGNAL( position_changed() ), this, SLOT( updatePosition() ) );
+	connect( viewer, &imageViewer::clicked,         this, &imageContainer::hide_menubar );
+	connect( viewer, &imageViewer::image_info_read, this, &imageContainer::updateImageInfo );
+	connect( viewer, &imageViewer::image_changed,   this, &imageContainer::updateImageInfo );
+	connect( viewer, &imageViewer::double_clicked,  this, &imageContainer::toogle_fullscreen );
+	connect( viewer, &imageViewer::resize_wanted,   this, &imageContainer::resize_window_normal );
+	connect( viewer, &imageViewer::rocker_left,     this, &imageContainer::prev_file );
+	connect( viewer, &imageViewer::rocker_right,    this, &imageContainer::next_file );
+	connect( viewer, &imageViewer::context_menu,    this, &imageContainer::context_menu );
+	connect( ui->btn_sub_next, &QPushButton::pressed,  viewer, &imageViewer::goto_next_frame );
+	connect( ui->btn_sub_prev, &QPushButton::pressed,  viewer, &imageViewer::goto_prev_frame );
+	connect( ui->btn_pause,    &QPushButton::pressed,  this, &imageContainer::toogle_animation );
+	connect( ui->btn_next,     &QPushButton::pressed,  this, &imageContainer::next_file );
+	connect( ui->btn_prev,     &QPushButton::pressed,  this, &imageContainer::prev_file );
+	connect( files.get(), &fileManager::file_changed,     this, &imageContainer::update_file );
+	connect( files.get(), &fileManager::position_changed, this, &imageContainer::updatePosition );
 }
 
 //We just need this here to avoid including fileManager and windowManager in the header
@@ -160,7 +160,7 @@ void imageContainer::create_menubar(){
 	ui->viewer_layout->insertWidget( 0, menubar );
 	
 	//Init auto-hide
-	connect( menubar, SIGNAL( triggered(QAction*) ), this, SLOT( hide_menubar() ) );
+	connect( menubar, &QMenuBar::triggered, this, &imageContainer::hide_menubar );
 	if( menubar_autohide )
 		menubar->hide();
 	
@@ -172,23 +172,23 @@ void imageContainer::create_menubar(){
 	auto about_menu = menubar->addMenu( tr( "A&bout" ) );
 	
 	//Animation actions
-	anim_menu->addAction( "&Pause/resume",   viewer, SLOT( toogle_animation()  ) );
-	anim_menu->addAction( "&Restart",        viewer, SLOT( restart_animation() ) );
+	addAction(anim_menu->addAction( "&Pause/resume",   viewer, &imageViewer::toogle_animation ));
+	anim_menu->addAction( "&Restart",        viewer, &imageViewer::restart_animation );
 	anim_menu->addSeparator();
-	anim_menu->addAction( "&Next frame",     viewer, SLOT( goto_next_frame()   ) );
-	anim_menu->addAction( "Pre&vious frame", viewer, SLOT( goto_prev_frame()   ) );
+	anim_menu->addAction( "&Next frame",     viewer, &imageViewer::goto_next_frame );
+	anim_menu->addAction( "Pre&vious frame", viewer, &imageViewer::goto_prev_frame );
 	//TODO: goto a specific frame
 	
 	//Actions related to the interface
-	view_menu->addAction( "&Fullscreen", this, SLOT( toogle_fullscreen() ) );
-	view_menu->addAction( "Fit window to &image", this, SLOT( resize_window() ), 400 );
-	view_menu->addAction( "Rotate Left",         viewer, SLOT( rotateLeft()  ) );
-	view_menu->addAction( "Rotate Right",        viewer, SLOT( rotateRight() ) );
-	view_menu->addAction( "Mirror horizontally", viewer, SLOT( mirrorHor()   ) );
-	view_menu->addAction( "Mirror vertically",   viewer, SLOT( mirrorVer()   ) );
+	addAction(view_menu->addAction( "&Fullscreen",          this, &imageContainer::toogle_fullscreen, QKeySequence(Qt::Key_F11) ));
+	addAction(view_menu->addAction( "Fit window to &image", this, &imageContainer::resize_window, QKeySequence(Qt::CTRL | Qt::Key_A) ));
+	addAction(view_menu->addAction( "Rotate Left",          viewer, &imageViewer::rotateLeft ));
+	addAction(view_menu->addAction( "Rotate Right",         viewer, &imageViewer::rotateRight ));
+	addAction(view_menu->addAction( "Mirror horizontally",  viewer, &imageViewer::mirrorHor, QKeySequence(Qt::Key_H) ));
+	addAction(view_menu->addAction( "Mirror vertically",    viewer, &imageViewer::mirrorVer, QKeySequence(Qt::Key_V) ));
 	
 	//TODO: hide and show menubar, statusbar, ...
-	about_menu->addAction( "&Help", this, SLOT( open_help() ) );
+	addAction(about_menu->addAction( "&Help", this, &imageContainer::open_help, QKeySequence(Qt::Key_F1) ));
 }
 
 void imageContainer::create_context(){
@@ -238,15 +238,15 @@ void imageContainer::create_context(){
 	keep_resize->setCheckable( true );
 	keep_resize->setChecked( ViewerSettings(settings).keep_resize() );
 	
-	context->addAction( "&Open",      this, SLOT( open_file()      ) );
+	addAction(context->addAction( "&Open", this, &imageContainer::open_file, QKeySequence(Qt::CTRL | Qt::Key_O) ));
 	context->addSeparator();
-	context->addAction( "&Delete",    this, SLOT( delete_file()    ) );
-	context->addAction( "&Copy",      this, SLOT( copy_file()      ) );
-	context->addAction( "Copy &Path", this, SLOT( copy_file_path() ) );
+	context->addAction( "&Delete",    this, &imageContainer::delete_file    );
+	context->addAction( "&Copy",      this, &imageContainer::copy_file      );
+	context->addAction( "Copy &Path", this, &imageContainer::copy_file_path );
 	context->addSeparator();
 	context->addMenu( scaling );
 	context->addSeparator();
-	context->addAction( "E&xit",      qApp, SLOT( quit()           ) );
+	addAction(context->addAction( "E&xit", qApp, &QCoreApplication::quit, QKeySequence(Qt::Key_Escape) ));
 }
 
 void imageContainer::hide_menubar(){
@@ -433,7 +433,6 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 	hide_menubar();
 	
 	switch( event->key() ){
-		case Qt::Key_Escape: close(); break;
 		case Qt::Key_Alt:
 				if( menubar )
 					menubar->show();
@@ -464,21 +463,6 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 				else
 					toogle_animation();
 			break;
-		case Qt::Key_A:
-				if( mods & Qt::ControlModifier )
-					resize_window( mods & Qt::ShiftModifier );
-				else
-					event->ignore();
-			break;
-		case Qt::Key_H: viewer->mirrorHor(); break;
-		case Qt::Key_V: viewer->mirrorVer(); break;
-		case Qt::Key_O:
-				if( mods & Qt::ControlModifier )
-					open_file();
-			break;
-			
-		case Qt::Key_F1: open_help(); break;
-		case Qt::Key_F11: toogle_fullscreen(); break;
 			
 		case Qt::Key_Delete:
 				delete_file( !(mods & Qt::ShiftModifier) );

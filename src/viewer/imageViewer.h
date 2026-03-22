@@ -149,7 +149,7 @@ class imageViewer: public QWidget{
 		void rocker_left();
 		void rocker_right();
 		void clicked();
-		void context_menu( QContextMenuEvent event );
+		void context_menu( QContextMenuEvent& event );
 };
 
 
