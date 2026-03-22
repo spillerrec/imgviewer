@@ -77,7 +77,10 @@ void imageViewer::updateOrientation( Orientation wanted, Orientation current ){
 		transform.rotate( orientation.rotation * 90 );
 		converted = converted.transformed( transform );
 	}
-	converted = converted.mirrored( orientation.flip_hor, orientation.flip_ver );
+	if (orientation.flip_hor)
+		converted = converted.flipped(Qt::Horizontal);
+	if (orientation.flip_ver)
+		converted = converted.flipped(Qt::Vertical);
 }
 
 void imageViewer::rotate( int8_t amount ){
@@ -410,7 +413,7 @@ Qt::MouseButton imageViewer::translate_button( const char* name, char fallback )
 	QString s = settings.value( name ).toString();
 	
 	QChar c( fallback );
-	if( s.count() > 0 )
+	if( s.size() > 0 )
 		c = s[0];
 	
 	switch( c.unicode() ){

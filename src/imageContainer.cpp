@@ -180,15 +180,15 @@ void imageContainer::create_menubar(){
 	//TODO: goto a specific frame
 	
 	//Actions related to the interface
-	addAction(view_menu->addAction( "&Fullscreen",          this, &imageContainer::toogle_fullscreen, QKeySequence(Qt::Key_F11) ));
-	addAction(view_menu->addAction( "Fit window to &image", this, &imageContainer::resize_window, QKeySequence(Qt::CTRL | Qt::Key_A) ));
+	addAction(view_menu->addAction( "&Fullscreen",          QKeySequence(Qt::Key_F11), this, &imageContainer::toogle_fullscreen ));
+	addAction(view_menu->addAction( "Fit window to &image", QKeySequence(Qt::CTRL | Qt::Key_A), this, &imageContainer::resize_window ));
 	addAction(view_menu->addAction( "Rotate Left",          viewer, &imageViewer::rotateLeft ));
 	addAction(view_menu->addAction( "Rotate Right",         viewer, &imageViewer::rotateRight ));
-	addAction(view_menu->addAction( "Mirror horizontally",  viewer, &imageViewer::mirrorHor, QKeySequence(Qt::Key_H) ));
-	addAction(view_menu->addAction( "Mirror vertically",    viewer, &imageViewer::mirrorVer, QKeySequence(Qt::Key_V) ));
+	addAction(view_menu->addAction( "Mirror horizontally",  QKeySequence(Qt::Key_H),  viewer, &imageViewer::mirrorHor ));
+	addAction(view_menu->addAction( "Mirror vertically",    QKeySequence(Qt::Key_V),  viewer, &imageViewer::mirrorVer ));
 	
 	//TODO: hide and show menubar, statusbar, ...
-	addAction(about_menu->addAction( "&Help", this, &imageContainer::open_help, QKeySequence(Qt::Key_F1) ));
+	addAction(about_menu->addAction( "&Help", QKeySequence(Qt::Key_F1), this, &imageContainer::open_help ));
 }
 
 void imageContainer::create_context(){
@@ -238,7 +238,7 @@ void imageContainer::create_context(){
 	keep_resize->setCheckable( true );
 	keep_resize->setChecked( ViewerSettings(settings).keep_resize() );
 	
-	addAction(context->addAction( "&Open", this, &imageContainer::open_file, QKeySequence(Qt::CTRL | Qt::Key_O) ));
+	addAction(context->addAction( "&Open", QKeySequence(Qt::CTRL | Qt::Key_O), this, &imageContainer::open_file ));
 	context->addSeparator();
 	context->addAction( "&Delete",    this, &imageContainer::delete_file    );
 	context->addAction( "&Copy",      this, &imageContainer::copy_file      );
@@ -246,7 +246,7 @@ void imageContainer::create_context(){
 	context->addSeparator();
 	context->addMenu( scaling );
 	context->addSeparator();
-	addAction(context->addAction( "E&xit", qApp, &QCoreApplication::quit, QKeySequence(Qt::Key_Escape) ));
+	addAction(context->addAction( "E&xit", QKeySequence(Qt::Key_Escape), qApp, &QCoreApplication::quit ));
 }
 
 void imageContainer::hide_menubar(){
