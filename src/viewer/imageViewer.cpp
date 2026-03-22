@@ -554,7 +554,7 @@ void imageViewer::create_context_event( const QMouseEvent& event ){
 	QContextMenuEvent new_event(
 			QContextMenuEvent::Mouse
 		,	event.pos()
-		,	event.globalPos()
+		,	event.globalPosition().toPoint()
 		,	event.modifiers()
 		);
 	emit context_menu( new_event );

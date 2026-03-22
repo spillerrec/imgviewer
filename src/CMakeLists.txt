@@ -53,9 +53,12 @@ endif( WIN32 )
 add_executable(imgviewer WIN32 ${SOURCE_CORE} ${SOURCE_IMAGE_READER} ${SOURCE_FILE_SYSTEM} ${extra_moc} ${RESOURCES} main.cpp)
 
 # Set-up libraries
-find_package(Qt5Widgets REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
-target_link_libraries(imgviewer qtimgviewer Qt5::Widgets -lexif -lpng -lz -ljpeg -lgif)
+qt_standard_project_setup()
+
+target_link_libraries(imgviewer qtimgviewer Qt6::Core Qt6::Widgets -lexif -lpng -lz -ljpeg -lgif)
 
 install(FILES resources/imgviewer.desktop DESTINATION /usr/share/applications) # TODO: This will probably fail on other systems/distributions
 install(TARGETS imgviewer RUNTIME DESTINATION bin)

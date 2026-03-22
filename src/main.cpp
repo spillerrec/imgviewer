@@ -43,7 +43,7 @@ int main( int argc, char *argv[] ){
 		if( asUrl.isLocalFile() )
 			filepath = asUrl.toLocalFile();
 		
-		main.load_image( filepath );
+		main.load_image( QFileInfo(filepath) );
 	}
 	
 	return a.exec();

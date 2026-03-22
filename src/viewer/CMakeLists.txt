@@ -22,11 +22,11 @@ if( WIN32 )
 endif( WIN32 )
 
 # Set-up libraries
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5Concurrent REQUIRED)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Concurrent)
 
 add_library(qtimgviewer ${SOURCE_GUI_VIEWER} )
-target_link_libraries(qtimgviewer Qt5::Gui Qt5::Widgets Qt5::Concurrent -llcms2 ${PLATFORM_LIBRARIES})
+target_link_libraries(qtimgviewer Qt6::Gui Qt6::Widgets Qt6::Concurrent -llcms2 ${PLATFORM_LIBRARIES})
 
 # Enable C++17 features
 set_property(TARGET qtimgviewer PROPERTY CXX_STANDARD 17)

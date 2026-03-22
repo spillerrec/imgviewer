@@ -71,7 +71,7 @@ void imageContainer::dropEvent( QDropEvent *event ){
 	if( event->mimeData()->hasUrls() ){
 		event->setDropAction( Qt::CopyAction );
 		
-		load_image( event->mimeData()->urls()[0].toLocalFile() );
+		load_image( QFileInfo(event->mimeData()->urls()[0].toLocalFile()) );
 		
 		event->accept();
 	}
@@ -286,7 +286,7 @@ void imageContainer::open_file(){
 	//Show open file dialog and load the file on success
 	QString file = QFileDialog::getOpenFileName( this, tr( "Open image" ), folder, filter );
 	if( !file.isEmpty() )
-		load_image( file );
+		load_image( QFileInfo(file) );
 }
 void imageContainer::next_file(){
 	if( files->has_next() )
