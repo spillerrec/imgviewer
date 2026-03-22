@@ -24,10 +24,10 @@
 #include <QFileInfoList>
 #include <QFileSystemWatcher>
 #include <QSettings>
-#include <QLinkedList>
 #include <QCollator>
 
 #include <memory>
+#include <list>
 
 #include "imageLoader.h"
 #include "FileSystem/ExtensionChecker.hpp"
@@ -67,7 +67,7 @@ class fileManager : public QObject{
 		int current_file;  //Index to currently used file
 		
 		unsigned buffer_max;
-		QLinkedList<File> buffer;
+		std::list<File> buffer;
 		void unload_image( int index );
 		
 		//Accessors to 'files'

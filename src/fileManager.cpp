@@ -179,12 +179,12 @@ void fileManager::unload_image( int index ){
 		return;
 	
 	//Save cache in buffer
-	buffer << std::move( files[index] );
+	buffer.push_back( files[index] );
 	files[index].cache = {};
 	
 	//Remove if there becomes too many
 	while( (unsigned)buffer.size() > buffer_max )
-		buffer.removeFirst();
+		buffer.pop_front();
 }
 
 void fileManager::loading_handler(){
