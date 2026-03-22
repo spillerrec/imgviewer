@@ -17,6 +17,10 @@
 
 #include "colorManager.h"
 
+#ifdef Q_OS_WIN
+	#include <Windows.h>
+#endif
+
 #include <lcms2.h>
 #include <QApplication>
 #include <QtConcurrent>
@@ -25,7 +29,6 @@ using namespace std;
 
 #include <qglobal.h>
 #ifdef Q_OS_WIN
-	#include <qt_windows.h>
 #else
 	#include <QDesktopWidget>
 	#include <QX11Info>

@@ -31,3 +31,7 @@ endif( UNIX )
 
 add_library(qtimgviewer ${SOURCE_GUI_VIEWER} )
 target_link_libraries(qtimgviewer Qt5::Gui Qt5::Widgets Qt5::Concurrent -llcms2 ${PLATFORM_LIBRARIES})
+
+# Enable C++17 features
+set_property(TARGET qtimgviewer PROPERTY CXX_STANDARD 17)
+set_property(TARGET qtimgviewer PROPERTY CXX_STANDARD_REQUIRED ON)

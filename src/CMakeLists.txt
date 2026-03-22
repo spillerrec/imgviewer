@@ -60,6 +60,6 @@ target_link_libraries(imgviewer qtimgviewer Qt5::Widgets -lexif -lpng -lz -ljpeg
 install(FILES resources/imgviewer.desktop DESTINATION /usr/share/applications) # TODO: This will probably fail on other systems/distributions
 install(TARGETS imgviewer RUNTIME DESTINATION bin)
 
-# Enable C++14 features
-set_property(TARGET imgviewer PROPERTY CXX_STANDARD 14)
+# Enable C++17 features
+set_property(TARGET imgviewer PROPERTY CXX_STANDARD 17)
 set_property(TARGET imgviewer PROPERTY CXX_STANDARD_REQUIRED ON)
