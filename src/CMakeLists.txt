@@ -4,6 +4,7 @@ project(imgviewer)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(viewer)
 
@@ -53,16 +54,21 @@ endif( WIN32 )
 add_executable(imgviewer WIN32 ${SOURCE_CORE} ${SOURCE_IMAGE_READER} ${SOURCE_FILE_SYSTEM} ${extra_moc} ${RESOURCES} main.cpp)
 
 # Set-up libraries
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBEXIF REQUIRED libexif)
+
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 qt_standard_project_setup()
+
+target_include_directories(imgviewer PRIVATE ${LIBEXIF_INCLUDE_DIRS})
 
 target_link_libraries(imgviewer qtimgviewer Qt6::Core Qt6::Widgets -lexif -lpng -lz -ljpeg -lgif)
 
 install(FILES resources/imgviewer.desktop DESTINATION /usr/share/applications) # TODO: This will probably fail on other systems/distributions
 install(TARGETS imgviewer RUNTIME DESTINATION bin)
 
-# Enable C++17 features
-set_property(TARGET imgviewer PROPERTY CXX_STANDARD 17)
+# Enable C++23 features
+set_property(TARGET imgviewer PROPERTY CXX_STANDARD 23)
 set_property(TARGET imgviewer PROPERTY CXX_STANDARD_REQUIRED ON)

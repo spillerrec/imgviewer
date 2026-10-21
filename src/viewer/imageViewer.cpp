@@ -17,7 +17,6 @@
 
 #include "imageViewer.h"
 #include "imageCache.h"
-#include "qrect_extras.h"
 #include "colorManager.h"
 #include "settings/ViewerSettings.h"
 
@@ -45,9 +44,6 @@ using namespace std;
 
 #include <QDrag>
 #include <QMimeData>
-
-#include <cmath>
-#include <algorithm>
 
 
 using S = ViewerSettings;
