@@ -22,6 +22,8 @@
 #include <QColor>
 #include <QSettings>
 #include <QContextMenuEvent>
+#include <QKeyEvent>
+#include <QVulkanWindow>
 
 #include <memory>
 #include <qnamespace.h>
@@ -32,18 +34,21 @@
 #include "QImagePainter.h"
 
 class imageCache;
+class VulkanTextureRenderer;
 
 class QStaticText;
 
-class imageViewer: public QWidget{
+class imageViewer: public QVulkanWindow{
 	Q_OBJECT
 	
 	private:
 		std::shared_ptr<imageCache> image_cache;
 		std::unique_ptr<AnimationHandler> animation_handler;
-		std::unique_ptr<QImagePainer> painter;
+		VulkanTextureRenderer *m_renderer = nullptr;
 	public:
 		AnimationHandler* animation() { return animation_handler.get(); }
+		
+		QVulkanWindowRenderer *createRenderer() override;
 	
 	//How the image is to be viewed
 	private:
@@ -61,6 +66,7 @@ class imageViewer: public QWidget{
 	private slots:
 		void read_info();
 		void on_frame_changed( int new_frame );
+		void update_draw_position();
 	public slots:
 		void rotate( int8_t amount );
 		void rotateLeft (){ rotate( -1 ); };
@@ -70,11 +76,11 @@ class imageViewer: public QWidget{
 		void mirrorVer(){ mirror( false, true ); }
 	
 	protected:
-		void paintEvent( QPaintEvent* ) override;
 		void resizeEvent( QResizeEvent* event ) override {
 			viewbox_handler->setWidgetSize( size() );
 			viewbox_handler->updateView();
 		}
+		void keyPressEvent( QKeyEvent *event ) override;
 		void update_viewbox_size();
 	
 	//Controlling mouse actions
@@ -95,7 +101,7 @@ class imageViewer: public QWidget{
 		Qt::MouseButton get_context_button() const{ return viewbox_handler->get_context_button(); }
 		
 		bool auto_zoom_active() const{ return viewbox_handler->auto_zoom_active(); }
-		QSize sizeHint() const override;
+		QSize sizeHint() const;
 		QImage get_frame();
 		
 		viewboxHandler* viewbox() { return viewbox_handler.get(); }
@@ -104,6 +110,8 @@ class imageViewer: public QWidget{
 		void image_info_read();
 		void resize_wanted();
 		void image_changed();
+		//Forwarded events for the parent widget
+		void key_press( QKeyEvent* event );
 };
 
 

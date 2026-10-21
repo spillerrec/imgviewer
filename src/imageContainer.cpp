@@ -78,7 +78,7 @@ void imageContainer::dropEvent( QDropEvent *event ){
 	}
 }
 
-imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
+imageContainer::imageContainer( QVulkanInstance* instance, QWidget* parent ) : QWidget( parent )
 	,	ui( new Ui_controls )
 #ifdef PORTABLE //Portable settings
 	,	settings( QCoreApplication::applicationDirPath() + "/settings.ini", QSettings::IniFormat )
@@ -97,13 +97,18 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	
 	//Init components
 	viewer = new imageViewer( settings, this );
+	viewer->setVulkanInstance( instance );
+	viewer->setPreferredColorFormats({VK_FORMAT_A2B10G10R10_UNORM_PACK32}); // TODO: Inside viewer ?
+	
 	files = std::make_unique<fileManager>( settings );
 	manager = std::make_unique<windowManager>( *this );
 	ui->setupUi( this );
 
 	//Add and refresh widgets
 	create_menubar();
-	ui->viewer_layout->insertWidget( 1, viewer );
+	QWidget* container = QWidget::createWindowContainer( viewer );
+	container->setAcceptDrops( true );
+	ui->viewer_layout->insertWidget( 1, container );
 	updateImageInfo();
 	updatePosition();
 	create_context();
@@ -113,6 +118,9 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	connect( viewer, &imageViewer::image_info_read, this, &imageContainer::updateImageInfo );
 	connect( viewer, &imageViewer::image_changed,   this, &imageContainer::updateImageInfo );
 	connect( viewer, &imageViewer::resize_wanted,   this, &imageContainer::resize_window_normal );
+	//Forward events from the embedded Vulkan window
+	connect( viewer, &imageViewer::key_press, [this]( QKeyEvent* e ){ keyPressEvent( e ); } );
+	container->installEventFilter( this );
 	connect( viewer->viewbox(), &viewboxHandler::clicked,         this, &imageContainer::hide_menubar );
 	connect( viewer->viewbox(), &viewboxHandler::double_clicked,  this, &imageContainer::toogle_fullscreen );
 	connect( viewer->viewbox(), &viewboxHandler::rocker_left,     this, &imageContainer::prev_file );
@@ -480,6 +488,20 @@ void imageContainer::contextMenuEvent( QContextMenuEvent* event ){
 	//TODO: keyboard...
 	if( context )
 		context->exec( event->globalPos() );
+}
+
+bool imageContainer::eventFilter( QObject* obj, QEvent* event ){
+	switch( event->type() ){
+	case QEvent::DragEnter:
+		dragEnterEvent( static_cast<QDragEnterEvent*>( event ) );
+		return false;
+	case QEvent::Drop:
+		dropEvent( static_cast<QDropEvent*>( event ) );
+		return true;
+	default:
+		break;
+	}
+	return QWidget::eventFilter( obj, event );
 }
 
 void imageContainer::mousePressEvent( QMouseEvent* event ){

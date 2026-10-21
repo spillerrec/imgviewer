@@ -19,7 +19,9 @@
 #include "AnimationHandler.h"
 #include "QImagePainter.h"
 #include "imageCache.h"
+#include "VulkanTextureRenderer.h"
 #include "settings/ViewerSettings.h"
+#include "viewboxHandler.h"
 #include <qobject.h>
 
 #include <QPoint>
@@ -30,17 +32,19 @@
 
 #include <QDrag>
 #include <QMimeData>
+#include <QKeyEvent>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 
 
 using S = ViewerSettings;
 
 
-imageViewer::imageViewer( QSettings& settings, QWidget* parent ): QWidget( parent ), settings( settings ){
+imageViewer::imageViewer( QSettings& settings, QWidget* parent ): settings( settings ){ // TODO: is parent relevant ?
 	//User settings
 	initial_resize = S(settings).initial_resize();
 	
 	animation_handler = std::make_unique<AnimationHandler>( this );
-	painter = std::make_unique<QImagePainer>( this );
 	connect( animation_handler.get(), &AnimationHandler::frame_changed, this, &imageViewer::on_frame_changed );
 	
 	viewbox_handler = std::make_unique<viewboxHandler>( settings, this );
@@ -51,25 +55,34 @@ imageViewer::imageViewer( QSettings& settings, QWidget* parent ): QWidget( paren
 	connect( viewbox_handler.get(), &viewboxHandler::create_drag_and_drop, this, &imageViewer::create_drag_and_drop );
 	connect( viewbox_handler.get(), &viewboxHandler::goto_next_frame,  animation_handler.get(), &AnimationHandler::goto_next_frame );
 	connect( viewbox_handler.get(), &viewboxHandler::goto_prev_frame,  animation_handler.get(), &AnimationHandler::goto_prev_frame );
-	connect( viewbox_handler.get(), &viewboxHandler::viewbox_changed,  this, [this]{ update(); } );
+	connect( viewbox_handler.get(), &viewboxHandler::viewbox_changed,  this, &imageViewer::update_draw_position );
 	
-	setContextMenuPolicy( Qt::PreventContextMenu );
+	//setContextMenuPolicy( Qt::PreventContextMenu );
+}
+
+QVulkanWindowRenderer* imageViewer::createRenderer() {
+	m_renderer = new VulkanTextureRenderer(this, QImage(), true); // try MSAA, when available
+	return m_renderer;
 }
 
 void imageViewer::rotate( int8_t amount ){
 	orientation = orientation.rotate( amount );
 	update_viewbox_size();
-	update();
+	requestUpdate();
 }
 
 void imageViewer::mirror( bool hor, bool ver ){
 	orientation = orientation.mirror( hor, ver );
-	update();
+	requestUpdate();
 }
 
 QImage imageViewer::get_frame(){
-	int frame_idx = animation_handler->get_current_frame();
-	return painter->get_frame( frame_idx, orientation, screen() );
+	if (image_cache) {
+		int frame_idx = animation_handler->get_current_frame();
+		if (frame_idx < image_cache->loaded())
+			return image_cache->frame(frame_idx);
+	}
+	return {};
 }
 
 void imageViewer::update_viewbox_size() {
@@ -80,6 +93,15 @@ void imageViewer::update_viewbox_size() {
 	}
 	else
 		viewbox_handler->set_new_frame_size( {} );
+	update_draw_position();
+}
+
+void imageViewer::update_draw_position() {
+	if (m_renderer && viewbox_handler)
+	{
+		m_renderer->setDrawArea(viewbox_handler->area());
+		requestUpdate();
+	}
 }
 
 void imageViewer::read_info(){
@@ -89,7 +111,15 @@ void imageViewer::read_info(){
 }
 
 void imageViewer::on_frame_changed( int new_frame ){
-	update();
+	if (image_cache && m_renderer) {
+		int frame_idx = animation_handler->get_current_frame();
+		if (frame_idx < image_cache->loaded()) {
+			QImage frame = image_cache->frame(frame_idx);
+			m_renderer->setImage(frame, image_cache->get_profile().cicp.is_bt2020pq());
+		}
+	}
+	update_viewbox_size();
+	requestUpdate();
 	emit image_changed();
 }
 
@@ -111,7 +141,7 @@ void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
 	
 	image_cache = std::move(new_image);
 	animation_handler->set_image_cache( image_cache );
-	painter->change_image( image_cache );
+	// TODO: Update renderer
 	
 	if( image_cache ){
 		switch( image_cache->get_status() ){
@@ -140,19 +170,14 @@ void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
 		if( image_cache->loaded() >= 1 )
 			init_size();
 		else
-			update();
+			requestUpdate();
 		
 		emit image_changed();
 	}
 	else
-		update();
+		requestUpdate();
 }
 
-
-void imageViewer::paintEvent( QPaintEvent* ){
-	bool smooth_scaling = viewbox_handler->scale() <= 1.5 || S(settings).smooth_scaling();
-	painter->paintEvent( this, animation_handler->get_current_frame(), viewbox_handler->area(), orientation, smooth_scaling);
-}
 
 QSize imageViewer::sizeHint() const{
 	if( !image_cache )
@@ -211,6 +236,10 @@ void imageViewer::create_drag_and_drop(){
 		drag->setMimeData( mimeData );
 		drag->exec( Qt::CopyAction | Qt::MoveAction );
 	}
+}
+
+void imageViewer::keyPressEvent( QKeyEvent *event ){
+	emit key_press( event );
 }
 
 

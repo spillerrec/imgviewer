@@ -18,15 +18,25 @@
 #include <QApplication>
 #include <QUrl>
 #include <QIcon>
+#include <QVulkanInstance>
+#include <QLoggingCategory>
 
 #include "imageContainer.h"
 
+Q_LOGGING_CATEGORY(lcVk, "qt.vulkan")
 
 int main( int argc, char *argv[] ){
 	QApplication a( argc, argv );
 	QStringList args = a.arguments();
+
+	QLoggingCategory::setFilterRules(QStringLiteral("qt.vulkan=true"));
 	
-	imageContainer main(NULL);
+	QVulkanInstance inst;
+	inst.setLayers({ "VK_LAYER_KHRONOS_validation" });
+	if (!inst.create())
+		qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
+	
+	imageContainer main(&inst, NULL);
 	main.setWindowIcon( QIcon( ":/main/appicon.png" ) );
 	main.show();
 	main.center_window();

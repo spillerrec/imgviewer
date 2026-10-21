@@ -53,6 +53,8 @@ endif( WIN32 )
 
 add_executable(imgviewer WIN32 ${SOURCE_CORE} ${SOURCE_IMAGE_READER} ${SOURCE_FILE_SYSTEM} ${extra_moc} ${RESOURCES} main.cpp)
 
+add_dependencies(imgviewer Shaders)
+
 # Set-up libraries
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBEXIF REQUIRED libexif)

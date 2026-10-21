@@ -22,11 +22,15 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+add_subdirectory(shaders)
+
 set(SOURCE_GUI_VIEWER
 	AnimationHandler.cpp
 	colorManager.cpp
 	imageCache.cpp
 	imageViewer.cpp
+	VulkanHelpers.cpp
+	VulkanTextureRenderer.cpp
 	qrect_extras.cpp
 	QImagePainter.cpp
 	viewboxHandler.cpp

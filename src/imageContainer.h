@@ -26,6 +26,7 @@
 #include <QContextMenuEvent>
 
 #include <memory>
+#include <qvulkaninstance.h>
 
 #ifdef WIN_TOOLBAR
 	#include <QtWinExtras>
@@ -72,12 +73,13 @@ class imageContainer: public QWidget{
 		void create_context();
 		
 	protected:
-		virtual void keyPressEvent( QKeyEvent *event );
-		virtual void dragEnterEvent( QDragEnterEvent *event );
-		virtual void dropEvent( QDropEvent *event );
-		virtual void focusInEvent( QFocusEvent* ){ hide_menubar(); }
-		virtual void mousePressEvent( QMouseEvent* );
-		virtual void contextMenuEvent( QContextMenuEvent* event );
+		bool eventFilter( QObject* obj, QEvent* event ) override;
+		void keyPressEvent( QKeyEvent *event ) override;
+		void dragEnterEvent( QDragEnterEvent *event ) override;
+		void dropEvent( QDropEvent *event ) override;
+		void focusInEvent( QFocusEvent* ) override { hide_menubar(); }
+		void mousePressEvent( QMouseEvent* ) override;
+		void contextMenuEvent( QContextMenuEvent* event ) override;
 		
 	private slots:
 		void updatePosition();
@@ -107,7 +109,7 @@ class imageContainer: public QWidget{
 		void open_help();
 	
 	public:
-		explicit imageContainer( QWidget* parent = 0 );
+		explicit imageContainer( QVulkanInstance* instance, QWidget* parent = 0 );
 		~imageContainer();
 		
 		void load_image( QFileInfo filepath );
