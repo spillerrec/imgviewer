@@ -17,32 +17,16 @@
 
 #include "imageViewer.h"
 #include "AnimationHandler.h"
+#include "QImagePainter.h"
 #include "imageCache.h"
-#include "colorManager.h"
 #include "settings/ViewerSettings.h"
 #include <qobject.h>
-
-using namespace std;
 
 #include <QPoint>
 #include <QSize>
 #include <QRect>
 
-#include <QPainter>
-#include <QImage>
-#include <QTransform>
-#include <QStaticText>
-#include <QBrush>
-#include <QPen>
-#include <QColor>
-
-#include <QTimer>
-
-#include <QMouseEvent>
 #include <QWheelEvent>
-
-#include <QApplication>
-#include <QScreen>
 
 #include <QDrag>
 #include <QMimeData>
@@ -56,6 +40,7 @@ imageViewer::imageViewer( QSettings& settings, QWidget* parent ): QWidget( paren
 	initial_resize = S(settings).initial_resize();
 	
 	animation_handler = std::make_unique<AnimationHandler>( this );
+	painter = std::make_unique<QImagePainer>( this );
 	connect( animation_handler.get(), &AnimationHandler::frame_changed, this, &imageViewer::on_frame_changed );
 	
 	viewbox_handler = std::make_unique<viewboxHandler>( settings, this );
@@ -71,61 +56,30 @@ imageViewer::imageViewer( QSettings& settings, QWidget* parent ): QWidget( paren
 	setContextMenuPolicy( Qt::PreventContextMenu );
 }
 
-void imageViewer::updateOrientation( Orientation wanted, Orientation current ){
-	auto orientation = current.difference( wanted ).normalized();
-	if( orientation.rotation != 0 ){
-		QTransform transform;
-		transform.rotate( orientation.rotation * 90 );
-		converted = converted.transformed( transform );
-	}
-	if (orientation.flip_hor)
-		converted = converted.flipped(Qt::Horizontal);
-	if (orientation.flip_ver)
-		converted = converted.flipped(Qt::Vertical);
-}
-
 void imageViewer::rotate( int8_t amount ){
-	auto transform = orientation.rotate( amount );
-	updateOrientation( transform, orientation );
-	orientation = transform;
-	viewbox_handler->set_new_frame_size(frameSize());
+	orientation = orientation.rotate( amount );
+	update_viewbox_size();
 	update();
 }
 
 void imageViewer::mirror( bool hor, bool ver ){
-	auto transform = orientation.mirror( hor, ver );
-	updateOrientation( transform, orientation );
-	orientation = transform;
+	orientation = orientation.mirror( hor, ver );
 	update();
 }
 
 QImage imageViewer::get_frame(){
 	int frame_idx = animation_handler->get_current_frame();
-	if( !image_cache || frame_idx >= image_cache->loaded() )
-		return {};
-	
-	QScreen* current_monitor = screen();
-	if( converted_monitor != current_monitor ){
-		//Cache invalid, refresh
-		converted = image_cache->frame( frame_idx );
-		
-		//Transform colors to current monitor profile
-		image_cache->get_manager()->doTransform( converted, image_cache->get_profile(), current_monitor );
-		converted_monitor = current_monitor;
-		
-		updateOrientation( orientation.add(image_cache->get_orientation()), {} );
-	}
-	
-	return converted;
+	return painter->get_frame( frame_idx, orientation, screen() );
 }
 
-QSize imageViewer::frameSize( unsigned index ) const{
+void imageViewer::update_viewbox_size() {
+	int index = animation_handler->get_current_frame();
 	if( image_cache && index < image_cache->loaded() ){
 		auto orient = orientation.add(image_cache->get_orientation());
-		return orient.finalSize( image_cache->frame(index).size() );
+		viewbox_handler->set_new_frame_size( orient.finalSize( image_cache->frame(index).size() ) );
 	}
 	else
-		return {};
+		viewbox_handler->set_new_frame_size( {} );
 }
 
 void imageViewer::read_info(){
@@ -135,7 +89,6 @@ void imageViewer::read_info(){
 }
 
 void imageViewer::on_frame_changed( int new_frame ){
-	clear_converted();
 	update();
 	emit image_changed();
 }
@@ -148,7 +101,7 @@ void imageViewer::init_size(){
 	
 	animation_handler->goto_frame( 0 );
 	animation_handler->restart_animation();
-	viewbox_handler->set_new_frame_size( frameSize() );
+	update_viewbox_size();
 }
 
 
@@ -158,7 +111,7 @@ void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
 	
 	image_cache = std::move(new_image);
 	animation_handler->set_image_cache( image_cache );
-	clear_converted();
+	painter->change_image( image_cache );
 	
 	if( image_cache ){
 		switch( image_cache->get_status() ){
@@ -196,56 +149,9 @@ void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
 }
 
 
-void imageViewer::draw_message( QStaticText *text ){
-	text->prepare();	//Make sure it has calculated the size
-	QSizeF txt_size = text->size();
-	int x = ( size().width() - txt_size.width() ) * 0.5;
-	int y = ( size().height() - txt_size.height() ) * 0.5;
-	
-	QPainter painter( this );
-	//Prepare drawing
-	painter.setRenderHints( QPainter::Antialiasing, true );
-	painter.setBrush( QBrush( QColor( Qt::gray ) ) );
-	painter.setPen( QPen( Qt::NoPen ) );
-	
-	//Draw the background, box and text
-	painter.drawRoundedRect( x-10,y-10, txt_size.width()+20, txt_size.height()+20, 10, 10 );
-	painter.setPen( QPen( Qt::black ) );
-	painter.drawStaticText( x,y, *text );
-}
-
-
 void imageViewer::paintEvent( QPaintEvent* ){
-	static QStaticText txt_loading( tr( "Loading" ) );
-	static QStaticText txt_no_image( tr( "No image selected" ) );
-	static QStaticText txt_invalid( tr( "Image invalid or broken!" ) );
-	
-	//Start checking for errors
-	
-	if( !image_cache || image_cache->get_status() == imageCache::EMPTY ){
-		//We have nothing to display
-		draw_message( &txt_no_image );
-		return;
-	}
-	
-	if( image_cache->get_status() == imageCache::INVALID ){
-		//Image could not be loaded
-		draw_message( &txt_invalid );
-		return;
-	}
-	if( animation_handler->get_current_frame() >= image_cache->loaded() ){
-		//Image is currently loading
-		draw_message( &txt_loading );
-		return;
-	}
-	
-	
-	//Everything went fine, start drawing the image
-	QPainter painter( this );
-	if( viewbox_handler->scale() <= 1.5 || S(settings).smooth_scaling() )
-		painter.setRenderHints( QPainter::SmoothPixmapTransform, true );
-	
-	painter.drawImage( viewbox_handler->area(), get_frame() );
+	bool smooth_scaling = viewbox_handler->scale() <= 1.5 || S(settings).smooth_scaling();
+	painter->paintEvent( this, animation_handler->get_current_frame(), viewbox_handler->area(), orientation, smooth_scaling);
 }
 
 QSize imageViewer::sizeHint() const{

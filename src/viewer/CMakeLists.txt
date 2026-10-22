@@ -28,6 +28,7 @@ set(SOURCE_GUI_VIEWER
 	imageCache.cpp
 	imageViewer.cpp
 	qrect_extras.cpp
+	QImagePainter.cpp
 	viewboxHandler.cpp
 	ZoomBox.cpp
 	)

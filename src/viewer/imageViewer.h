@@ -29,6 +29,7 @@
 #include "Orientation.hpp"
 #include "viewboxHandler.h"
 #include "AnimationHandler.h"
+#include "QImagePainter.h"
 
 class imageCache;
 
@@ -40,17 +41,9 @@ class imageViewer: public QWidget{
 	private:
 		std::shared_ptr<imageCache> image_cache;
 		std::unique_ptr<AnimationHandler> animation_handler;
+		std::unique_ptr<QImagePainer> painter;
 	public:
 		AnimationHandler* animation() { return animation_handler.get(); }
-	
-	//Color managed cache
-	private:
-		QImage converted;
-		QScreen* converted_monitor{ nullptr };
-		void clear_converted(){
-			converted = QImage();
-			converted_monitor = nullptr;
-		}
 	
 	//How the image is to be viewed
 	private:
@@ -77,13 +70,12 @@ class imageViewer: public QWidget{
 		void mirrorVer(){ mirror( false, true ); }
 	
 	protected:
-		void updateOrientation( Orientation wanted, Orientation current );
-		void draw_message( QStaticText* text );
 		void paintEvent( QPaintEvent* ) override;
 		void resizeEvent( QResizeEvent* event ) override {
 			viewbox_handler->setWidgetSize( size() );
 			viewbox_handler->updateView();
 		}
+		void update_viewbox_size();
 	
 	//Controlling mouse actions
 	protected:
@@ -101,14 +93,11 @@ class imageViewer: public QWidget{
 		void change_image( std::shared_ptr<imageCache> new_image );
 		
 		Qt::MouseButton get_context_button() const{ return viewbox_handler->get_context_button(); }
-		//void create_context_event( const QMouseEvent& event );
 		
 		bool auto_zoom_active() const{ return viewbox_handler->auto_zoom_active(); }
 		QSize sizeHint() const override;
 		QImage get_frame();
-		QSize frameSize( unsigned index ) const;
-		QSize frameSize() const{ return frameSize( animation_handler->get_current_frame() ); }
-
+		
 		viewboxHandler* viewbox() { return viewbox_handler.get(); }
 	
 	signals:
