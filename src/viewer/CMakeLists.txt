@@ -27,6 +27,7 @@ set(SOURCE_GUI_VIEWER
 	imageCache.cpp
 	imageViewer.cpp
 	qrect_extras.cpp
+	viewboxHandler.cpp
 	ZoomBox.cpp
 	)
 

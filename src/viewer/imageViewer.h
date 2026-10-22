@@ -24,9 +24,10 @@
 #include <QContextMenuEvent>
 
 #include <memory>
+#include <qnamespace.h>
 
 #include "Orientation.hpp"
-#include "ZoomBox.hpp"
+#include "viewboxHandler.h"
 
 class imageCache;
 
@@ -37,13 +38,12 @@ class imageViewer: public QWidget{
 	
 	private:
 		std::shared_ptr<imageCache> image_cache;
-		int frame_amount{ 0 };
 		int current_frame{ 0 };
 		int loop_counter{ 0 };
 		bool continue_animating{ false };
 		int waiting_on_frame{ -1 };
 	public:
-		int get_frame_amount() const{ return frame_amount; }
+		int get_frame_amount() const;
 		int get_current_frame() const{ return current_frame; }
 		bool can_animate() const;
 		bool is_animating() const{ return continue_animating; }
@@ -59,19 +59,12 @@ class imageViewer: public QWidget{
 	
 	//How the image is to be viewed
 	private:
-		ZoomBox zoom;
 		Orientation orientation;
+		std::unique_ptr<viewboxHandler> viewbox_handler;
 		
 	//Settings to autoscale
 	private:
-		bool auto_scale_on{ true };
 		bool initial_resize;
-		
-		void restrict_view( bool force=false );
-		void change_zoom( double new_level, QPoint keep_on );
-		void auto_zoom();
-	public slots:
-		void updateView();
 		
 	private:
 		QTimer *time;
@@ -100,56 +93,42 @@ class imageViewer: public QWidget{
 	protected:
 		void updateOrientation( Orientation wanted, Orientation current );
 		void draw_message( QStaticText* text );
-		void paintEvent( QPaintEvent* );
-		void resizeEvent( QResizeEvent* ){ updateView(); }
+		void paintEvent( QPaintEvent* ) override;
+		void resizeEvent( QResizeEvent* event ) override {
+			viewbox_handler->setWidgetSize( size() );
+			viewbox_handler->updateView();
+		}
 	
 	//Controlling mouse actions
 	protected:
-		Qt::MouseButtons mouse_active{ Qt::NoButton };
-		bool multi_button{ false };
-		bool is_zooming{ false };
-		double start_zoom{ 1.0 };
-		QPoint mouse_last_pos;
-		void update_cursor();
+		void mousePressEvent( QMouseEvent *event ) override;
+		void mouseMoveEvent( QMouseEvent *event ) override;
+		void mouseDoubleClickEvent( QMouseEvent *event ) override;
+		void mouseReleaseEvent( QMouseEvent *event ) override;
+		void wheelEvent( QWheelEvent *event ) override;
 		
-		Qt::MouseButton button_rleft;
-		Qt::MouseButton button_rright;
-		Qt::MouseButton button_drag;
-		Qt::MouseButton button_double;
-		Qt::MouseButton button_scaling;
-		Qt::MouseButton button_context;
-		
-		Qt::MouseButton translate_button( const char* name, char fallback ) const;
-		
-		void mousePressEvent( QMouseEvent *event );
-		void mouseMoveEvent( QMouseEvent *event );
-		void mouseDoubleClickEvent( QMouseEvent *event );
-		void mouseReleaseEvent( QMouseEvent *event );
-		void wheelEvent( QWheelEvent *event );
+		void create_drag_and_drop();
 	
 	public:
 		explicit imageViewer( QSettings& settings, QWidget* parent = 0 );
 		
 		void change_image( std::shared_ptr<imageCache> new_image );
 		
-		Qt::MouseButton get_context_button() const{ return button_context; }
-		void create_context_event( const QMouseEvent& event );
+		Qt::MouseButton get_context_button() const{ return viewbox_handler->get_context_button(); }
+		//void create_context_event( const QMouseEvent& event );
 		
-		bool auto_zoom_active() const{ return auto_scale_on; }
-		QSize sizeHint() const;
+		bool auto_zoom_active() const{ return viewbox_handler->auto_zoom_active(); }
+		QSize sizeHint() const override;
 		QImage get_frame();
 		QSize frameSize( unsigned index ) const;
 		QSize frameSize() const{ return frameSize( current_frame ); }
+
+		viewboxHandler* viewbox() { return viewbox_handler.get(); }
 	
 	signals:
 		void image_info_read();
 		void resize_wanted();
 		void image_changed();
-		void double_clicked();
-		void rocker_left();
-		void rocker_right();
-		void clicked();
-		void context_menu( QContextMenuEvent& event );
 };
 
 

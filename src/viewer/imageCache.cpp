@@ -73,4 +73,19 @@ void imageCache::set_fully_loaded(){
 	current_status = LOADED;
 }
 
+QSize imageCache::size_hint() const {
+	if( loaded() < 1 )
+		return QSize();
+		
+	QSize size;
+	if( is_animated() )
+		size = frame( 0 ).size(); //Just return the first frame
+	else{
+		//Iterate over all frames and find the largest
+		for( int i=0; i<loaded(); i++ )
+			size = size.expandedTo( frame( i ).size() );
+	}
+
+	return size;
+}
 

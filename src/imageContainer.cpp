@@ -108,14 +108,14 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	create_context();
 	
 	//Connect signals
-	connect( viewer, &imageViewer::clicked,         this, &imageContainer::hide_menubar );
 	connect( viewer, &imageViewer::image_info_read, this, &imageContainer::updateImageInfo );
 	connect( viewer, &imageViewer::image_changed,   this, &imageContainer::updateImageInfo );
-	connect( viewer, &imageViewer::double_clicked,  this, &imageContainer::toogle_fullscreen );
 	connect( viewer, &imageViewer::resize_wanted,   this, &imageContainer::resize_window_normal );
-	connect( viewer, &imageViewer::rocker_left,     this, &imageContainer::prev_file );
-	connect( viewer, &imageViewer::rocker_right,    this, &imageContainer::next_file );
-	connect( viewer, &imageViewer::context_menu,    this, &imageContainer::context_menu );
+	connect( viewer->viewbox(), &viewboxHandler::clicked,         this, &imageContainer::hide_menubar );
+	connect( viewer->viewbox(), &viewboxHandler::double_clicked,  this, &imageContainer::toogle_fullscreen );
+	connect( viewer->viewbox(), &viewboxHandler::rocker_left,     this, &imageContainer::prev_file );
+	connect( viewer->viewbox(), &viewboxHandler::rocker_right,    this, &imageContainer::next_file );
+	connect( viewer->viewbox(), &viewboxHandler::context_menu,    this, &imageContainer::context_menu );
 	connect( ui->btn_sub_next, &QPushButton::pressed,  viewer, &imageViewer::goto_next_frame );
 	connect( ui->btn_sub_prev, &QPushButton::pressed,  viewer, &imageViewer::goto_prev_frame );
 	connect( ui->btn_pause,    &QPushButton::pressed,  this, &imageContainer::toogle_animation );
@@ -203,7 +203,7 @@ void imageContainer::create_context(){
 	auto smooth = scaling->addAction( "&Smooth scaling"
 		, [&](bool checked){
 				ViewerSettings(settings).smooth_scaling().set( checked );
-				viewer->updateView();
+				viewer->viewbox()->updateView();
 			} );
 	smooth->setCheckable( true );
 	smooth->setChecked( ViewerSettings(settings).smooth_scaling() );
@@ -214,7 +214,7 @@ void imageContainer::create_context(){
 	auto downscale = scaling->addAction( "Only &downscale"
 		, [&](bool checked){
 				ViewerSettings(settings).auto_downscale_only().set( checked );
-				viewer->updateView();
+				viewer->viewbox()->updateView();
 			} );
 	downscale->setCheckable( true );
 	downscale->setChecked( ViewerSettings(settings).auto_downscale_only() );
@@ -223,7 +223,7 @@ void imageContainer::create_context(){
 	auto upscale = scaling->addAction( "Only &upscale"
 		, [&](bool checked){
 				ViewerSettings(settings).auto_upscale_only().set( checked );
-				viewer->updateView();
+				viewer->viewbox()->updateView();
 			} );
 	upscale->setCheckable( true );
 	upscale->setChecked( ViewerSettings(settings).auto_upscale_only() );
@@ -482,7 +482,7 @@ void imageContainer::mousePressEvent( QMouseEvent* event ){
 	hide_menubar();
 	
 	if( event->button() == viewer->get_context_button() )
-		viewer->create_context_event( *event );
+		viewer->viewbox()->create_context_event( *event );
 }
 
 void imageContainer::resize_window( bool only_upscale ){
