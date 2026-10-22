@@ -17,6 +17,7 @@
 
 #include "imageContainer.h"
 #include "ImageReader/ImageReader.hpp"
+#include "viewer/AnimationHandler.h"
 #include "viewer/settings/ViewerSettings.h"
 #include "viewer/imageViewer.h"
 #include "viewer/imageCache.h"
@@ -108,6 +109,7 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	create_context();
 	
 	//Connect signals
+	auto animation = viewer->animation();
 	connect( viewer, &imageViewer::image_info_read, this, &imageContainer::updateImageInfo );
 	connect( viewer, &imageViewer::image_changed,   this, &imageContainer::updateImageInfo );
 	connect( viewer, &imageViewer::resize_wanted,   this, &imageContainer::resize_window_normal );
@@ -116,8 +118,8 @@ imageContainer::imageContainer( QWidget* parent ) : QWidget( parent )
 	connect( viewer->viewbox(), &viewboxHandler::rocker_left,     this, &imageContainer::prev_file );
 	connect( viewer->viewbox(), &viewboxHandler::rocker_right,    this, &imageContainer::next_file );
 	connect( viewer->viewbox(), &viewboxHandler::context_menu,    this, &imageContainer::context_menu );
-	connect( ui->btn_sub_next, &QPushButton::pressed,  viewer, &imageViewer::goto_next_frame );
-	connect( ui->btn_sub_prev, &QPushButton::pressed,  viewer, &imageViewer::goto_prev_frame );
+	connect( ui->btn_sub_next, &QPushButton::pressed,  animation, &AnimationHandler::goto_next_frame );
+	connect( ui->btn_sub_prev, &QPushButton::pressed,  animation, &AnimationHandler::goto_prev_frame );
 	connect( ui->btn_pause,    &QPushButton::pressed,  this, &imageContainer::toogle_animation );
 	connect( ui->btn_next,     &QPushButton::pressed,  this, &imageContainer::next_file );
 	connect( ui->btn_prev,     &QPushButton::pressed,  this, &imageContainer::prev_file );
@@ -172,11 +174,12 @@ void imageContainer::create_menubar(){
 	auto about_menu = menubar->addMenu( tr( "A&bout" ) );
 	
 	//Animation actions
-	addAction(anim_menu->addAction( "&Pause/resume",   viewer, &imageViewer::toogle_animation ));
-	anim_menu->addAction( "&Restart",        viewer, &imageViewer::restart_animation );
+	auto animation = viewer->animation();
+	addAction(anim_menu->addAction( "&Pause/resume",   animation, &AnimationHandler::toggle_animation ));
+	anim_menu->addAction( "&Restart",        animation, &AnimationHandler::restart_animation );
 	anim_menu->addSeparator();
-	anim_menu->addAction( "&Next frame",     viewer, &imageViewer::goto_next_frame );
-	anim_menu->addAction( "Pre&vious frame", viewer, &imageViewer::goto_prev_frame );
+	anim_menu->addAction( "&Next frame",     animation, &AnimationHandler::goto_next_frame );
+	anim_menu->addAction( "Pre&vious frame", animation, &AnimationHandler::goto_prev_frame );
 	//TODO: goto a specific frame
 	
 	//Actions related to the interface
@@ -344,21 +347,22 @@ void imageContainer::updateImageInfo(){
 	setWindowTitle( files->file_name() );
 	
 	//Show amount of frames in file
-	int current_frame = viewer->get_current_frame() + 1;
-	if( viewer->get_frame_amount() == 0 )
+	auto animation = viewer->animation();
+	int current_frame = animation->get_current_frame() + 1;
+	if( animation->get_frame_amount() == 0 )
 		current_frame = 0;
 	ui->lbl_image_amount->setText(
 			QString::number( current_frame )
 			+ "/" +
-			QString::number( viewer->get_frame_amount() )
+			QString::number( animation->get_frame_amount() )
 		);
 	
 	//Disable sub left and right buttons
-	bool frames_exists = viewer->get_frame_amount() > 1;
-	if( frames_exists && !viewer->can_animate() ){
+	bool frames_exists = animation->get_frame_amount() > 1;
+	if( frames_exists && !animation->can_animate() ){
 		//prevent wrap on non-animated files
-		ui->btn_sub_next->setEnabled( viewer->get_current_frame() != viewer->get_frame_amount()-1 );
-		ui->btn_sub_prev->setEnabled( viewer->get_current_frame() != 0 );
+		ui->btn_sub_next->setEnabled( animation->get_current_frame() != animation->get_frame_amount()-1 );
+		ui->btn_sub_prev->setEnabled( animation->get_current_frame() != 0 );
 	}
 	else{
 		//Only one frame exists, or it is animated
@@ -368,10 +372,10 @@ void imageContainer::updateImageInfo(){
 	
 	//Disable button when animation is not playable
 	update_toogle_btn(); //Make sure the icon is correct
-	ui->btn_pause->setEnabled( viewer->can_animate() );
+	ui->btn_pause->setEnabled( animation->can_animate() );
 	//Disable animation menu as well
 	if( menubar )
-		anim_menu->setEnabled( viewer->can_animate() );
+		anim_menu->setEnabled( animation->can_animate() );
 	
 #ifdef WIN_TOOLBAR
 	if( btn_pause )
@@ -381,12 +385,12 @@ void imageContainer::updateImageInfo(){
 
 
 void imageContainer::update_toogle_btn(){
-	animation.setState( viewer->is_animating() );
+	animation.setState( viewer->animation()->is_animating() );
 }
 
 
 void imageContainer::toogle_animation(){
-	viewer->toogle_animation();
+	viewer->animation()->toggle_animation();
 	update_toogle_btn();
 }
 
@@ -441,7 +445,7 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 			break;
 		case Qt::Key_Left:
 				if( mods & Qt::ControlModifier )
-					viewer->goto_prev_frame();
+					viewer->animation()->goto_prev_frame();
 				else if( mods & Qt::ShiftModifier )
 					viewer->rotateLeft();
 				else
@@ -449,7 +453,7 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 			break;
 		case Qt::Key_Right:
 				if( mods & Qt::ControlModifier )
-					viewer->goto_next_frame();
+					viewer->animation()->goto_next_frame();
 				else if( mods & Qt::ShiftModifier )
 					viewer->rotateRight();
 				else
@@ -457,7 +461,7 @@ void imageContainer::keyPressEvent( QKeyEvent *event ){
 			break;
 		case Qt::Key_Space:
 				if( mods & Qt::ControlModifier ){
-					viewer->restart_animation();
+					viewer->animation()->restart_animation();
 					update_toogle_btn();
 				}
 				else

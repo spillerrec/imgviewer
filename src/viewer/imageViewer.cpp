@@ -16,6 +16,7 @@
 */
 
 #include "imageViewer.h"
+#include "AnimationHandler.h"
 #include "imageCache.h"
 #include "colorManager.h"
 #include "settings/ViewerSettings.h"
@@ -54,18 +55,17 @@ imageViewer::imageViewer( QSettings& settings, QWidget* parent ): QWidget( paren
 	//User settings
 	initial_resize = S(settings).initial_resize();
 	
-	time = new QTimer( this );
-	time->setSingleShot( true );
-	connect( time, &QTimer::timeout, this, &imageViewer::next_frame );
+	animation_handler = std::make_unique<AnimationHandler>( this );
+	connect( animation_handler.get(), &AnimationHandler::frame_changed, this, &imageViewer::on_frame_changed );
 	
 	viewbox_handler = std::make_unique<viewboxHandler>( settings, this );
-	connect( viewbox_handler.get(), &viewboxHandler::double_clicked, this, [this]{ goto_next_frame(); } );
-	connect( viewbox_handler.get(), &viewboxHandler::rocker_left,    this, &imageViewer::goto_prev_frame );
-	connect( viewbox_handler.get(), &viewboxHandler::rocker_right,   this, &imageViewer::goto_next_frame );
-	connect( viewbox_handler.get(), &viewboxHandler::toogle_animation, this, [this]{ toogle_animation(); } );
+	connect( viewbox_handler.get(), &viewboxHandler::double_clicked, animation_handler.get(), &AnimationHandler::goto_next_frame );
+	connect( viewbox_handler.get(), &viewboxHandler::rocker_left,    animation_handler.get(), &AnimationHandler::goto_prev_frame );
+	connect( viewbox_handler.get(), &viewboxHandler::rocker_right,   animation_handler.get(), &AnimationHandler::goto_next_frame );
+	connect( viewbox_handler.get(), &viewboxHandler::toogle_animation, animation_handler.get(),  &AnimationHandler::toggle_animation );
 	connect( viewbox_handler.get(), &viewboxHandler::create_drag_and_drop, this, &imageViewer::create_drag_and_drop );
-	connect( viewbox_handler.get(), &viewboxHandler::goto_next_frame,  this, &imageViewer::goto_next_frame );
-	connect( viewbox_handler.get(), &viewboxHandler::goto_prev_frame,  this, &imageViewer::goto_prev_frame );
+	connect( viewbox_handler.get(), &viewboxHandler::goto_next_frame,  animation_handler.get(), &AnimationHandler::goto_next_frame );
+	connect( viewbox_handler.get(), &viewboxHandler::goto_prev_frame,  animation_handler.get(), &AnimationHandler::goto_prev_frame );
 	connect( viewbox_handler.get(), &viewboxHandler::viewbox_changed,  this, [this]{ update(); } );
 	
 	setContextMenuPolicy( Qt::PreventContextMenu );
@@ -100,13 +100,14 @@ void imageViewer::mirror( bool hor, bool ver ){
 }
 
 QImage imageViewer::get_frame(){
-	if( !image_cache || current_frame >= image_cache->loaded() )
+	int frame_idx = animation_handler->get_current_frame();
+	if( !image_cache || frame_idx >= image_cache->loaded() )
 		return {};
 	
 	QScreen* current_monitor = screen();
 	if( converted_monitor != current_monitor ){
 		//Cache invalid, refresh
-		converted = image_cache->frame( current_frame );
+		converted = image_cache->frame( frame_idx );
 		
 		//Transform colors to current monitor profile
 		image_cache->get_manager()->doTransform( converted, image_cache->get_profile(), current_monitor );
@@ -119,7 +120,7 @@ QImage imageViewer::get_frame(){
 }
 
 QSize imageViewer::frameSize( unsigned index ) const{
-	if( image_cache ){
+	if( image_cache && index < image_cache->loaded() ){
 		auto orient = orientation.add(image_cache->get_orientation());
 		return orient.finalSize( image_cache->frame(index).size() );
 	}
@@ -127,113 +128,16 @@ QSize imageViewer::frameSize( unsigned index ) const{
 		return {};
 }
 
-bool imageViewer::can_animate() const{
-	return image_cache ? image_cache->is_animated() : false;
-}
-
-int imageViewer::get_frame_amount() const{ 
-	return image_cache ? image_cache->frame_count() : 0; 
-}
-
-void imageViewer::change_frame( int wanted ){
-	if( !image_cache )
-		return;
-	clear_converted();
-	
-	auto frame_amount = image_cache->frame_count();
-	//Cycle backwards
-	if( wanted < 0 )
-		wanted = frame_amount - 1;
-	
-	if( image_cache->loaded() < frame_amount && wanted >= image_cache->loaded() ){
-		//Wait for frame to be available
-		waiting_on_frame = wanted;
-		return;
-	}
-	
-	if( frame_amount < 1 )
-		return;	//Not loaded
-	
-	//Go to next frame
-	current_frame = wanted;
-	if( current_frame >= frame_amount ){
-		//Last frame reached
-		if( loop_counter > 0 ){
-			//Reduce counter by one
-			current_frame = 0;
-			loop_counter--;
-		}
-		else if( loop_counter == -1 )
-			current_frame = 0; //Repeat forever
-		else{
-			continue_animating = false;	//Stop looping
-			current_frame--;
-		}
-	}
-	
-	
-	if( continue_animating ){
-		int delay = image_cache->frame_delay( current_frame );
-		if( delay > 0 )
-			time->start( delay );
-	}
-	
-	update();
-	emit image_changed();
-}
-
-void imageViewer::goto_frame( int index ){
-	time->stop();
-	continue_animating = false;
-	change_frame( index );
-	
-	//Make sure it works if the new frame has different dimensions
-	viewbox_handler->set_new_frame_size(frameSize());
-}
-
-void imageViewer::restart_animation(){
-	continue_animating = can_animate();
-	change_frame( 0 );
-}
-
-bool imageViewer::toogle_animation(){
-	if( image_cache && image_cache->is_animated() ){
-		if( continue_animating ){
-			//TODO: check for stop on last frame
-			time->stop();
-			continue_animating = false;
-		}
-		else{
-			continue_animating = true;
-			next_frame();
-		}
-	}
-	emit image_changed();
-	
-	return continue_animating;
-}
-
-
 void imageViewer::read_info(){
-	if( !image_cache )
-		return;
-	
-	loop_counter = image_cache->loop_count();
-	continue_animating = image_cache->is_animated();
-	
+	if( !image_cache ) return;
+	animation_handler->init_from_cache();
 	emit image_info_read();
 }
-void imageViewer::check_frame( unsigned int idx ){
-	if( idx == 0 )
-		init_size();
-	
-	if( waiting_on_frame <= -1 )
-		return;
-	
-	if( idx == (unsigned int)waiting_on_frame ){
-		waiting_on_frame = -1;
-		change_frame( idx );
-	}
+
+void imageViewer::on_frame_changed( int new_frame ){
+	clear_converted();
+	update();
+	emit image_changed();
 }
 
 void imageViewer::init_size(){
@@ -242,9 +146,9 @@ void imageViewer::init_size(){
 		emit resize_wanted();
 	initial_resize = S(settings).keep_resize();
 	
+	animation_handler->goto_frame( 0 );
+	animation_handler->restart_animation();
 	viewbox_handler->set_new_frame_size( frameSize() );
-	
-	change_frame( 0 );
 }
 
 
@@ -252,11 +156,8 @@ void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
 	if( new_image == image_cache )
 		return;
 	
-	time->stop(); //Prevent previous animation to interfere
-	
 	image_cache = std::move(new_image);
-	waiting_on_frame = -1;
-	current_frame = 0;
+	animation_handler->set_image_cache( image_cache );
 	clear_converted();
 	
 	if( image_cache ){
@@ -266,13 +167,15 @@ void imageViewer::change_image( std::shared_ptr<imageCache> new_image ){
 			//TODO: remove those connections again
 			case imageCache::EMPTY:
 					connect( image_cache.get(), &imageCache::info_loaded, this, &imageViewer::read_info );
-					connect( image_cache.get(), &imageCache::frame_loaded, this, &imageViewer::check_frame );
+					connect( image_cache.get(), &imageCache::frame_loaded, animation_handler.get(), &AnimationHandler::check_frame_loaded );
+					connect( image_cache.get(), &imageCache::frame_loaded, this, [this](int idx){ if (idx==0) this->init_size(); } );
 				break;
 			
 			case imageCache::INFO_READY:
 			case imageCache::FRAMES_READY:
 					connect( image_cache.get(), &imageCache::info_loaded, this, &imageViewer::read_info );
-					connect( image_cache.get(), &imageCache::frame_loaded, this, &imageViewer::check_frame );
+					connect( image_cache.get(), &imageCache::frame_loaded, animation_handler.get(), &AnimationHandler::check_frame_loaded );
+					connect( image_cache.get(), &imageCache::frame_loaded, this, [this](int idx){ if (idx==0) this->init_size(); } );
 					read_info();
 				break;
 			
@@ -330,7 +233,7 @@ void imageViewer::paintEvent( QPaintEvent* ){
 		draw_message( &txt_invalid );
 		return;
 	}
-	if( current_frame >= image_cache->loaded() ){
+	if( animation_handler->get_current_frame() >= image_cache->loaded() ){
 		//Image is currently loading
 		draw_message( &txt_loading );
 		return;
@@ -384,7 +287,7 @@ void imageViewer::wheelEvent( QWheelEvent *event ){
 	
 	if( event->modifiers() & Qt::ControlModifier ){
 		//Change current frame
-		goto_frame( current_frame + amount );
+		animation_handler->goto_frame( animation_handler->get_current_frame() + amount );
 	}
 	else //Change zoom-level
 		viewbox_handler->change_zoom( viewbox_handler->zoom_level() + amount, event->position().toPoint() );

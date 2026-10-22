@@ -23,6 +23,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(SOURCE_GUI_VIEWER
+	AnimationHandler.cpp
 	colorManager.cpp
 	imageCache.cpp
 	imageViewer.cpp

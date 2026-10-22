@@ -28,6 +28,7 @@
 
 #include "Orientation.hpp"
 #include "viewboxHandler.h"
+#include "AnimationHandler.h"
 
 class imageCache;
 
@@ -38,15 +39,9 @@ class imageViewer: public QWidget{
 	
 	private:
 		std::shared_ptr<imageCache> image_cache;
-		int current_frame{ 0 };
-		int loop_counter{ 0 };
-		bool continue_animating{ false };
-		int waiting_on_frame{ -1 };
+		std::unique_ptr<AnimationHandler> animation_handler;
 	public:
-		int get_frame_amount() const;
-		int get_current_frame() const{ return current_frame; }
-		bool can_animate() const;
-		bool is_animating() const{ return continue_animating; }
+		AnimationHandler* animation() { return animation_handler.get(); }
 	
 	//Color managed cache
 	private:
@@ -67,22 +62,13 @@ class imageViewer: public QWidget{
 		bool initial_resize;
 		
 	private:
-		QTimer *time;
 		QSettings& settings;
 		void init_size();
 		
 	private slots:
 		void read_info();
-		void check_frame( unsigned int idx );
-	private slots:
-		void change_frame( int frame );
-		void next_frame(){ change_frame( current_frame + 1 ); }
+		void on_frame_changed( int new_frame );
 	public slots:
-		void goto_frame( int idx );
-		void goto_next_frame(){ goto_frame( current_frame + 1); }
-		void goto_prev_frame(){ goto_frame( current_frame - 1); }
-		void restart_animation();
-		bool toogle_animation();
 		void rotate( int8_t amount );
 		void rotateLeft (){ rotate( -1 ); };
 		void rotateRight(){ rotate( +1 ); };
@@ -121,7 +107,7 @@ class imageViewer: public QWidget{
 		QSize sizeHint() const override;
 		QImage get_frame();
 		QSize frameSize( unsigned index ) const;
-		QSize frameSize() const{ return frameSize( current_frame ); }
+		QSize frameSize() const{ return frameSize( animation_handler->get_current_frame() ); }
 
 		viewboxHandler* viewbox() { return viewbox_handler.get(); }
 	
