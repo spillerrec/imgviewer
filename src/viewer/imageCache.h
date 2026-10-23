@@ -102,6 +102,7 @@ class imageCache: public QObject{
 		
 		//Meta data
 		Orientation get_orientation() const{ return orientation; }
+		ColorProfile& get_profile(){ return profile; }
 		const ColorProfile& get_profile() const{ return profile; }
 		colorManager* get_manager() const{ return manager; }
 		

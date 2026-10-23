@@ -17,6 +17,7 @@
 
 #include "ReaderPng.hpp"
 #include "AnimCombiner.hpp"
+#include "../viewer/colorManager.h"
 
 #include <QImage>
 #include <QPainter>
@@ -160,6 +161,20 @@ static void readImage( PngInfo& info, unsigned width, unsigned height, bool upda
 		readRgb( info, width, height, update );
 }
 
+static CicpInfo readCicp( PngInfo& png ){
+	CicpInfo cicp;
+#ifdef PNG_cICP_SUPPORTED
+	png_byte primaries, transfer, matrix, range;
+	if( png_get_cICP( png.png, png.info, &primaries, &transfer, &matrix, &range ) & PNG_INFO_cICP ){
+		cicp.primaries = static_cast<ColorPrimaries>( primaries );
+		cicp.transfer  = static_cast<TransferFunction>( transfer );
+		cicp.matrix    = static_cast<MatrixCoefficients>( matrix );
+		cicp.full_range = range != 0;
+	}
+#endif
+	return cicp;
+}
+
 #ifdef PNG_APNG_SUPPORTED
 static void readAnimated( imageCache &cache, PngInfo& png ){
 	auto width  = png.width();
@@ -244,6 +259,9 @@ AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned
 	
 	//Start reading
 	png_read_info( png.png, png.info );
+
+	//Read cICP chunk if present
+	CicpInfo cicp = readCicp( png );
 #ifdef PNG_APNG_SUPPORTED
 	if( png_get_valid( png.png, png.info, PNG_INFO_acTL ) )
 		readAnimated( cache, png );
@@ -253,6 +271,15 @@ AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned
 		cache.set_info( 1 );
 		readImage( png, png.width(), png.height() );
 		cache.add_frame( png.frame, 0 );
+	}
+
+	//Apply cICP if present
+	if( cicp.is_valid() ){
+		auto& profile = cache.get_profile();
+		profile.cicp.primaries  = cicp.primaries;
+		profile.cicp.transfer   = cicp.transfer;
+		profile.cicp.matrix     = cicp.matrix;
+		profile.cicp.full_range = cicp.full_range;
 	}
 	
 	//Cleanup and return
