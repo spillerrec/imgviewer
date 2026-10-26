@@ -19,6 +19,8 @@
 #include "AnimCombiner.hpp"
 #include "../viewer/colorManager.h"
 
+#include <tracy/Tracy.hpp>
+
 #include <QImage>
 #include <QPainter>
 #include <png.h>
@@ -106,6 +108,7 @@ class PngInfo{
 };
 
 static void readRgb( PngInfo& info, unsigned width, unsigned height, bool update ){
+	ZoneScoped;
 	//Apply transparency information
 	bool alpha = info.isGrayAlpha() || info.isRgbAlpha();
 	if( png_get_valid( info.png, info.info, PNG_INFO_tRNS ) ){
@@ -129,6 +132,7 @@ static void readRgb( PngInfo& info, unsigned width, unsigned height, bool update
 
 #if QT_VERSION >= 0x050500
 static void readGray( PngInfo& info, unsigned width, unsigned height, bool update ){
+	ZoneScoped;
 	Q_ASSERT( info.isGray() );
 	
 	if( png_get_valid( info.png, info.info, PNG_INFO_tRNS ) ){
@@ -143,6 +147,7 @@ static void readGray( PngInfo& info, unsigned width, unsigned height, bool updat
 #endif
 
 static void readPaletted( PngInfo& info, unsigned width, unsigned height, bool update ){
+	ZoneScoped;
 	Q_ASSERT( info.isPalette() );
 	
 	//TODO: support paletted images
@@ -151,6 +156,7 @@ static void readPaletted( PngInfo& info, unsigned width, unsigned height, bool u
 }
 
 static void readImage( PngInfo& info, unsigned width, unsigned height, bool update=true ){
+	ZoneScoped;
 	if( info.isPalette() )
 		readPaletted( info, width, height, update );
 #if QT_VERSION >= 0x050500
@@ -240,6 +246,7 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 #endif
 
 AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned length, QString format ) const{
+	ZoneScoped;
 	if( !can_read( data, length, format ) )
 		return ERROR_TYPE_UNKNOWN;
 	
