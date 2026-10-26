@@ -25,6 +25,7 @@
 #include "../viewer/imageData.h"
 
 #include <cstring>
+#include <memory>
 
 extern "C"{
 #include <webp/decode.h>
@@ -52,50 +53,40 @@ AReader::Error ReaderWebp::read( imageCache &cache, const uint8_t* data, unsigne
 	webp_data.size = length;
 
 	// Create decoder for all WebPs (static or animated)
-	WebPAnimDecoder* dec = WebPAnimDecoderNew( &webp_data, nullptr );
-	if( !dec ) {
-		qDebug() << "[ReaderWebp] WebPAnimDecoderNew returned NULL";
+	struct WebPAnimDecoderDeleter {
+		void operator()( WebPAnimDecoder* dec ) const { WebPAnimDecoderDelete( dec ); }
+	};
+
+	std::unique_ptr<WebPAnimDecoder, WebPAnimDecoderDeleter> dec(WebPAnimDecoderNew( &webp_data, nullptr ));
+	if( !dec ) 
 		return ERROR_INITIALIZATION;
-	}
 
 	// Get global info (works for single-frame images too)
 	WebPAnimInfo info;
-	if( !WebPAnimDecoderGetInfo( dec, &info ) ) {
-		WebPAnimDecoderDelete( dec );
+	if( !WebPAnimDecoderGetInfo( dec.get(), &info ) )
 		return ERROR_FILE_BROKEN;
-	}
 
 	int width = static_cast<int>( info.canvas_width );
 	int height = static_cast<int>( info.canvas_height );
-	int num_frames = static_cast<int>( info.frame_count );
-	int loop_count = static_cast<int>( info.loop_count );
 
-	if( width <= 0 || height <= 0 || num_frames <= 0 ) {
-		WebPAnimDecoderDelete( dec );
+	if( width <= 0 || height <= 0 || info.frame_count <= 0 )
 		return ERROR_FILE_BROKEN;
-	}
 
-	bool is_animated = (num_frames > 1);
-
-	qDebug() << "[ReaderWebp] Detected:" << width << "x" << height << ", frames:" << num_frames << ", animated:" << is_animated << ", loop_count:" << loop_count;
-
-	cache.set_info( num_frames, is_animated, loop_count );
+	bool is_animated = (info.frame_count > 1);
+	cache.set_info( info.frame_count, is_animated, info.loop_count > 0 ? int(info.loop_count) : -1 );
 
 	int last_timestamp = 0;
-	size_t frame_size = width * height * 4; // RGBA bytes per full-canvas frame
-
-	for( int i = 0; i < num_frames; i++ ){
+	for( uint32_t i = 0; i < info.frame_count; i++ ){
 		ZoneScopedN("Frame");
 		uint8_t* rgba = nullptr;
 		int timestamp = 0;
 
-		if( !WebPAnimDecoderGetNext( dec, &rgba, &timestamp ) ) {
-			WebPAnimDecoderDelete( dec );
+		if( !WebPAnimDecoderGetNext( dec.get(), &rgba, &timestamp ) )
 			return ERROR_FILE_BROKEN;
-		}
 
 		// WebPAnimDecoder reuses an internal buffer; we must copy each frame.
-		std::unique_ptr<uint8_t[]> pixels( new uint8_t[frame_size] );
+		size_t frame_size = width * height * 4;
+		auto pixels = std::make_unique_for_overwrite<uint8_t[]>( frame_size );
 		std::memcpy( pixels.get(), rgba, frame_size );
 
 		// Convert cumulative timestamp to per-frame delay in ms
@@ -107,6 +98,5 @@ AReader::Error ReaderWebp::read( imageCache &cache, const uint8_t* data, unsigne
 		cache.add_frame( imageData( width, height, std::move(pixels) ), delay );
 	}
 
-	WebPAnimDecoderDelete( dec );
 	return ERROR_NONE;
 }
