@@ -79,11 +79,11 @@ QSize imageCache::size_hint() const {
 		
 	QSize size;
 	if( is_animated() )
-		size = frame( 0 ).size(); //Just return the first frame
+		size = frame_size( 0 ); //Just return the first frame
 	else{
 		//Iterate over all frames and find the largest
 		for( int i=0; i<loaded(); i++ )
-			size = size.expandedTo( frame( i ).size() );
+			size = size.expandedTo( frame_size( i ) );
 	}
 
 	return size;

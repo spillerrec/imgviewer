@@ -17,7 +17,6 @@
 
 #include "imageViewer.h"
 #include "AnimationHandler.h"
-#include "QImagePainter.h"
 #include "imageCache.h"
 #include "VulkanTextureRenderer.h"
 #include "settings/ViewerSettings.h"
@@ -89,7 +88,7 @@ void imageViewer::update_viewbox_size() {
 	int index = animation_handler->get_current_frame();
 	if( image_cache && index < image_cache->loaded() ){
 		auto orient = orientation.add(image_cache->get_orientation());
-		viewbox_handler->set_new_frame_size( orient.finalSize( image_cache->frame(index).size() ) );
+		viewbox_handler->set_new_frame_size( orient.finalSize( image_cache->frame_size(index) ) );
 	}
 	else
 		viewbox_handler->set_new_frame_size( {} );

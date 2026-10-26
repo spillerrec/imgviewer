@@ -32,7 +32,6 @@ set(SOURCE_GUI_VIEWER
 	VulkanHelpers.cpp
 	VulkanTextureRenderer.cpp
 	qrect_extras.cpp
-	QImagePainter.cpp
 	viewboxHandler.cpp
 	ZoomBox.cpp
 	)
@@ -47,7 +46,8 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Concurrent)
 
 add_library(qtimgviewer ${SOURCE_GUI_VIEWER} )
-target_link_libraries(qtimgviewer PRIVATE Qt6::Gui Qt6::Widgets Qt6::Concurrent -llcms2 ${PLATFORM_LIBRARIES})
+target_link_libraries(qtimgviewer PRIVATE 
+    Qt6::Gui Qt6::Widgets Qt6::Concurrent -llcms2 ${PLATFORM_LIBRARIES})
 
 if(ENABLE_TRACY)
     target_link_libraries(qtimgviewer PUBLIC TracyClient)

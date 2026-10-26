@@ -31,7 +31,6 @@
 #include "Orientation.hpp"
 #include "viewboxHandler.h"
 #include "AnimationHandler.h"
-#include "QImagePainter.h"
 
 class imageCache;
 class VulkanTextureRenderer;
