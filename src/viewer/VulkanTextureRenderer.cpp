@@ -6,6 +6,7 @@
 
 #include <QVulkanFunctions>
 #include <QFile>
+#include <tracy/Tracy.hpp>
 
 static float vertexData[] = {
 -1, +1, 0.0, 1.0, 0.0,
@@ -43,10 +44,12 @@ void VulkanTextureRenderer::setDrawArea(const QRect &area)
 		return;
 
 	m_drawArea = area.normalized();
+	m_window->requestUpdate();
 }
 
 void VulkanTextureRenderer::setImage(std::shared_ptr<imageCache> image_cache, int frame_idx)
 {
+	ZoneScoped;
 	// Store the original image; createTextureImage will handle empty/null cases
 	const imageData* m_image = image_cache ? image_cache->frame(frame_idx) : nullptr;
 	m_isBt2020 = image_cache ? image_cache->get_profile().cicp.is_bt2020pq() : false;
@@ -83,10 +86,13 @@ void VulkanTextureRenderer::setImage(std::shared_ptr<imageCache> image_cache, in
 
 		m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
 	}
+
+	m_window->requestUpdate();
 }
 
 void VulkanTextureRenderer::initResources()
 {
+	ZoneScoped;
 	VkDevice dev = m_window->device();
 	m_devFuncs = m_window->vulkanInstance()->deviceFunctions(dev);
 
@@ -334,6 +340,8 @@ void VulkanTextureRenderer::initSwapChainResources()
 	const QSize sz = m_window->swapChainImageSize();
 	m_proj.perspective(45.0f, sz.width() / (float) sz.height(), 0.01f, 100.0f);
 	m_proj.translate(0, 0, -4);
+
+	m_window->requestUpdate();
 }
 
 void VulkanTextureRenderer::releaseSwapChainResources()
@@ -343,8 +351,7 @@ void VulkanTextureRenderer::releaseSwapChainResources()
 
 void VulkanTextureRenderer::releaseResources()
 {
-	qDebug("releaseResources");
-
+	ZoneScoped;
 	VkDevice dev = m_window->device();
 
 	m_pipeline.reset();
@@ -420,6 +427,7 @@ QMatrix4x4 VulkanTextureRenderer::calculateProjection(const QSize &sz)
 
 void VulkanTextureRenderer::startNextFrame()
 {
+	ZoneScoped;
 	VkCommandBuffer cb = m_window->currentCommandBuffer();
 	const QSize sz = m_window->swapChainImageSize();
 
@@ -442,20 +450,22 @@ void VulkanTextureRenderer::startNextFrame()
 	VkCommandBuffer cmdBuf = m_window->currentCommandBuffer();
 	m_devFuncs->vkCmdBeginRenderPass(cmdBuf, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	quint8 *p;
-	VkDeviceSize offset = m_uniformBufInfo[m_window->currentFrame()].offset;
-	VkResult err = m_bufMem->Map(offset, UNIFORM_DATA_SIZE, 0, reinterpret_cast<void **>(&p));
-	if (err != VK_SUCCESS)
-		qFatal("Failed to map memory: %d", err);
-
+	QMatrix4x4 proj = calculateProjection(sz);
 	UniformData uniforms{};
 	memset(&uniforms, 0, sizeof(uniforms));
-
-	QMatrix4x4 proj = calculateProjection(sz);
 	memcpy(uniforms.m, proj.constData(), 16 * sizeof(float));
 	uniforms.isBt2020 = m_isBt2020 ? 1.f : 0.f;
-	memcpy(p, &uniforms, sizeof(uniforms));
-	m_bufMem->Unmap();
+
+	const int concurrentFrameCount = m_window->concurrentFrameCount();
+	for (int i = 0; i < concurrentFrameCount; ++i) {
+		quint8 *p;
+		VkDeviceSize offset = m_uniformBufInfo[i].offset;
+		VkResult err = m_bufMem->Map(offset, UNIFORM_DATA_SIZE, 0, reinterpret_cast<void **>(&p));
+		if (err != VK_SUCCESS)
+			qFatal("Failed to map memory: %d", err);
+		memcpy(p, &uniforms, sizeof(uniforms));
+		m_bufMem->Unmap();
+	}
 
 	m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, *m_pipeline);
 	m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
@@ -483,5 +493,4 @@ void VulkanTextureRenderer::startNextFrame()
 	m_devFuncs->vkCmdEndRenderPass(cmdBuf);
 
 	m_window->frameReady();
-	m_window->requestUpdate(); // render continuously, throttled by the presentation rate
 }
