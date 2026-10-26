@@ -37,7 +37,6 @@ bool ReaderWebp::can_read( const uint8_t* data, unsigned length, QString ) const
 	if( length < 12 )
 		return false;
 
-	return true;
 	return std::memcmp( data, "RIFF", 4 ) == 0 &&
 	       std::memcmp( data + 8, "WEBP", 4 ) == 0;
 }
@@ -48,72 +47,45 @@ AReader::Error ReaderWebp::read( imageCache &cache, const uint8_t* data, unsigne
 		return ERROR_TYPE_UNKNOWN;
 	ZoneScoped;
 
-	// Try demuxing to detect animation and get metadata
 	WebPData webp_data;
 	webp_data.bytes = data;
 	webp_data.size = length;
 
-	WebPDemuxer* demux = WebPDemux( &webp_data );
-	if( !demux )
-		return ERROR_FILE_BROKEN;
+	// Create decoder for all WebPs (static or animated)
+	WebPAnimDecoder* dec = WebPAnimDecoderNew( &webp_data, nullptr );
+	if( !dec ) {
+		qDebug() << "[ReaderWebp] WebPAnimDecoderNew returned NULL";
+		return ERROR_INITIALIZATION;
+	}
 
-	// Use iterator API since WebPDemuxer is opaque in newer libwebp
-	WebPIterator iter;
-	if( !WebPDemuxGetFrame( demux, 1, &iter ) ) {
-		WebPDemuxDelete( demux );
+	// Get global info (works for single-frame images too)
+	WebPAnimInfo info;
+	if( !WebPAnimDecoderGetInfo( dec, &info ) ) {
+		WebPAnimDecoderDelete( dec );
 		return ERROR_FILE_BROKEN;
 	}
 
-	int width = iter.width;
-	int height = iter.height;
-	int num_frames = iter.num_frames;
-	// loop_count is not exposed in the opaque API; use 0 (infinite) as default for animated WebP
-	int loop_count = 0;
-
-	WebPDemuxReleaseIterator( &iter );
+	int width = static_cast<int>( info.canvas_width );
+	int height = static_cast<int>( info.canvas_height );
+	int num_frames = static_cast<int>( info.frame_count );
+	int loop_count = static_cast<int>( info.loop_count );
 
 	if( width <= 0 || height <= 0 || num_frames <= 0 ) {
-		WebPDemuxDelete( demux );
+		WebPAnimDecoderDelete( dec );
 		return ERROR_FILE_BROKEN;
 	}
 
 	bool is_animated = (num_frames > 1);
 
-	qDebug() << "[ReaderWebp] Detected:" << width << "x" << height << ", frames:" << num_frames << ", animated:" << is_animated;
+	qDebug() << "[ReaderWebp] Detected:" << width << "x" << height << ", frames:" << num_frames << ", animated:" << is_animated << ", loop_count:" << loop_count;
 
 	cache.set_info( num_frames, is_animated, loop_count );
-
-	if( !is_animated ) {
-		// Static WebP: decode directly
-		WebPDemuxDelete( demux );
-
-		uint8_t* rgba = WebPDecodeRGBA( data, length, &width, &height );
-		if( !rgba )
-			return ERROR_FILE_BROKEN;
-
-		std::unique_ptr<uint8_t[]> pixels( rgba );
-		cache.add_frame( imageData( width, height, std::move(pixels) ), 0 );
-		return ERROR_NONE;
-	}
-
-	// Animated WebP: use the decoder for proper frame composition
-	// WebPAnimDecoder returns full-canvas composited frames with disposal already applied
-	WebPDemuxDelete( demux );
-
-	qDebug() << "[ReaderWebp] Attempting animated decode:" << width << "x" << height << num_frames << "frames, data size:" << length;
-
-	// Try with NULL options first (use defaults)
-	WebPAnimDecoder* dec = WebPAnimDecoderNew( &webp_data, nullptr );
-	if( !dec ) {
-		qDebug() << "[ReaderWebp] WebPAnimDecoderNew returned NULL even with default options";
-		return ERROR_INITIALIZATION;
-	}
 
 	int last_timestamp = 0;
 	size_t frame_size = width * height * 4; // RGBA bytes per full-canvas frame
 
 	for( int i = 0; i < num_frames; i++ ){
-		ZoneScoped;
+		ZoneScopedN("Frame");
 		uint8_t* rgba = nullptr;
 		int timestamp = 0;
 
