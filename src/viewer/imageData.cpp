@@ -10,6 +10,9 @@
 #include <tracy/TracyC.h>
 
 
+imageData::imageData( int w, int h, std::unique_ptr<uint8_t[]> pixels_arg )
+	: pixels(std::move(pixels_arg)), width(w), height(h) {}
+
 imageData::imageData( QImage image_data ) {
 	if (image_data.isNull() || image_data.size().isEmpty()) {
 		width = height = 0;

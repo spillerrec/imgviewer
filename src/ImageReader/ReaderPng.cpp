@@ -107,27 +107,33 @@ class PngInfo{
 		}
 };
 
-static void readRgb( PngInfo& info, unsigned width, unsigned height, bool update ){
-	ZoneScoped;
-	//Apply transparency information
+// Configure libpng to output RGBA8888 (with alpha if present)
+static void configurePngForRgba( PngInfo& info, bool bgr ){
 	bool alpha = info.isGrayAlpha() || info.isRgbAlpha();
 	if( png_get_valid( info.png, info.info, PNG_INFO_tRNS ) ){
 		png_set_tRNS_to_alpha( info.png );
 		alpha = true;
 	}
 	
-	//Convert Grayscale
+	//Convert Grayscale to RGB
 	if( info.isGray() || info.isGrayAlpha() )
 		png_set_gray_to_rgb( info.png );
 	
-	//Use the format BGRA
 	info.force8bit();
-	png_set_filler( info.png, 255, PNG_FILLER_AFTER );
-	png_set_bgr( info.png );
 	
-	//Initialize image
-	auto format = alpha ? QImage::Format_ARGB32 : QImage::Format_RGB32;
-	info.read( width, height, format, update );
+	//Ensure alpha channel exists (fill with opaque if missing)
+	if( !alpha )
+		png_set_filler( info.png, 255, PNG_FILLER_AFTER );
+	
+	//Convert BGR to RGB order
+	if ( bgr )
+		png_set_bgr( info.png );
+}
+
+static void readRgb( PngInfo& info, unsigned width, unsigned height, bool update ){
+	ZoneScoped;
+	configurePngForRgba( info, true );
+	info.read( width, height, QImage::Format_ARGB32, update );
 }
 
 #if QT_VERSION >= 0x050500
@@ -153,6 +159,25 @@ static void readPaletted( PngInfo& info, unsigned width, unsigned height, bool u
 	//TODO: support paletted images
 	png_set_palette_to_rgb( info.png );
 	readRgb( info, width, height, update );
+}
+
+// Read PNG directly into raw RGBA8888 pixels (no QImage)
+static std::unique_ptr<uint8_t[]> readPngRawRgba( PngInfo& info, unsigned width, unsigned height ){
+	ZoneScoped;
+	configurePngForRgba( info, false );
+	
+	const size_t row_bytes = width * 4;
+	std::vector<png_bytep> row_pointers(height);
+	row_pointers.reserve(height);
+	
+	//Allocate pixel buffer and set up row pointers
+	auto pixels = std::make_unique<uint8_t[]>(row_bytes * height);
+	for( unsigned i=0; i<height; ++i )
+		row_pointers[i] = pixels.get() + (i * row_bytes);
+	
+	static_assert( sizeof(png_byte) == sizeof(uint8_t), "png_byte must be 8bit" );
+	png_read_image( info.png, row_pointers.data() );
+	return pixels;
 }
 
 static void readImage( PngInfo& info, unsigned width, unsigned height, bool update=true ){
@@ -276,8 +301,12 @@ AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned
 #endif
 	{
 		cache.set_info( 1 );
-		readImage( png, png.width(), png.height() );
-		cache.add_frame( png.frame, 0 );
+		unsigned w = png.width();
+		unsigned h = png.height();
+		
+		//For static images: read directly into raw RGBA8888 pixels, no QImage needed
+		auto pixels = readPngRawRgba( png, w, h );
+		cache.add_frame( imageData( (int)w, (int)h, std::move(pixels) ), 0 );
 	}
 
 	//Apply cICP if present

@@ -19,6 +19,10 @@ class imageData {
 		int width, height;
 		
 	public:
+		// Construct from raw RGBA8888 pixel data (takes ownership)
+		imageData( int w, int h, std::unique_ptr<uint8_t[]> pixels );
+		
+		// Legacy constructor via QImage
 		imageData( QImage image_data );
 		static imageData black_image();
 		
