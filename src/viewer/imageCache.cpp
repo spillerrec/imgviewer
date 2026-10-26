@@ -56,9 +56,9 @@ void imageCache::set_info( unsigned total_frames, bool is_animated, int loops ){
 	emit info_loaded();
 }
 
-void imageCache::add_frame( QImage frame, unsigned delay ){
+void imageCache::add_frame( imageData frame, unsigned delay ){
 	frames_loaded++;
-	frames.push_back( frame );
+	frames.push_back( std::move(frame) );
 	frame_delays.push_back( delay );
 	current_status = FRAMES_READY;
 	

@@ -2,6 +2,7 @@
 
 #include "VulkanTextureRenderer.h"
 #include "VulkanHelpers.hpp"
+#include "imageCache.h"
 
 #include <QVulkanFunctions>
 #include <QFile>
@@ -28,8 +29,8 @@ static inline VkDeviceSize aligned(VkDeviceSize v, VkDeviceSize byteAlign)
 	return (v + byteAlign - 1) & ~(byteAlign - 1);
 }
 
-VulkanTextureRenderer::VulkanTextureRenderer(QVulkanWindow *w, const QImage &image, bool msaa)
-	: m_image(image), m_window(w), m_drawArea(0, 0, w->width(), w->height())
+VulkanTextureRenderer::VulkanTextureRenderer(QVulkanWindow *w, bool msaa)
+	: m_window(w), m_drawArea(0, 0, w->width(), w->height())
 {
 	if ( msaa )
 		SetMaxMSE(w, 16);
@@ -44,16 +45,11 @@ void VulkanTextureRenderer::setDrawArea(const QRect &area)
 	m_drawArea = area.normalized();
 }
 
-void VulkanTextureRenderer::setImage(const QImage &image, bool isBt2020)
+void VulkanTextureRenderer::setImage(std::shared_ptr<imageCache> image_cache, int frame_idx)
 {
 	// Store the original image; createTextureImage will handle empty/null cases
-	m_image = image;
-	m_isBt2020 = isBt2020;
-
-	// If resources aren't initialized yet, just store the image for later
-	if (!m_initialized) {
-		return;
-	}
+	const imageData* m_image = image_cache ? image_cache->frame(frame_idx) : nullptr;
+	m_isBt2020 = image_cache ? image_cache->get_profile().cicp.is_bt2020pq() : false;
 
 	VkDevice dev = m_window->device();
 
@@ -62,7 +58,10 @@ void VulkanTextureRenderer::setImage(const QImage &image, bool isBt2020)
 	vulkan::Queue graphicsQueue(v_device, m_window->graphicsQueue());
 
 	// Recreate texture and image view
-	m_texture = createTextureImage(m_image, v_phys_dev, v_device, graphicsQueue, m_window->graphicsCommandPool());
+	if (m_image)
+		m_texture = m_image->createTextureImage(v_phys_dev, v_device, graphicsQueue, m_window->graphicsCommandPool());
+	else
+		m_texture = imageData::black_image().createTextureImage(v_phys_dev, v_device, graphicsQueue, m_window->graphicsCommandPool());
 	m_textureImageView.reset();
 	m_textureImageView = std::make_unique<vulkan::ImageView>(v_device, *m_texture, m_texture->getFormat());
 
@@ -94,9 +93,7 @@ void VulkanTextureRenderer::initResources()
 	vulkan::Device v_device(m_window->vulkanInstance(), dev);
 	vulkan::PhysicalDevice v_phys_dev(m_window->vulkanInstance(), m_window->physicalDevice());
 	vulkan::Queue graphicsQueue(v_device, m_window->graphicsQueue());
-	m_texture = createTextureImage(m_image, v_phys_dev, v_device, graphicsQueue, m_window->graphicsCommandPool());
-	m_textureImageView = std::make_unique<vulkan::ImageView>( v_device, *m_texture, m_texture->getFormat() );
-	
+
 	VkPhysicalDeviceProperties properties{};
 	v_phys_dev.functions()->vkGetPhysicalDeviceProperties(v_phys_dev, &properties);
 	m_textureSampler = std::make_unique<vulkan::Sampler>( v_device, properties.limits.maxSamplerAnisotropy );
@@ -205,31 +202,19 @@ void VulkanTextureRenderer::initResources()
 		err = m_devFuncs->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_descSet[i]);
 		if (err != VK_SUCCESS)
 			qFatal("Failed to allocate descriptor set: %d", err);
-			
-			
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = *m_textureImageView;
-		imageInfo.sampler = *m_textureSampler;
 
-		std::array<VkWriteDescriptorSet,2> descWrite;
-		memset(descWrite.data(), 0, sizeof(VkWriteDescriptorSet)*descWrite.size());
-		descWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descWrite[0].dstSet = m_descSet[i];
-		descWrite[0].descriptorCount = 1;
-		descWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descWrite[0].pBufferInfo = &m_uniformBufInfo[i];
+		VkWriteDescriptorSet descWrite{};
+		descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descWrite.dstSet = m_descSet[i];
+		descWrite.descriptorCount = 1;
+		descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descWrite.pBufferInfo = &m_uniformBufInfo[i];
 
-		descWrite[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descWrite[1].dstSet = m_descSet[i];
-		descWrite[1].descriptorCount = 1;
-		descWrite[1].dstBinding = 1;
-		descWrite[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descWrite[1].pImageInfo = &imageInfo;
-
-
-		m_devFuncs->vkUpdateDescriptorSets(dev, descWrite.size(), descWrite.data(), 0, nullptr);
+		m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
 	}
+
+	// Create initial empty texture and update descriptor sets with image/sampler binding
+	setImage();
 
 	// Pipeline cache
 	createPipelineCache(dev, m_devFuncs, &m_pipelineCache);

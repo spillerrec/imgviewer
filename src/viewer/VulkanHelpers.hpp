@@ -17,13 +17,6 @@ namespace vulkan{
 
 bool SetMaxMSE( QVulkanWindow* w, int mse_target = 16 );
 
-std::unique_ptr<vulkan::Texture> createTextureImage(
-	const QImage &image, 
-	vulkan::PhysicalDevice physicalDevice, 
-	vulkan::Device& device, 
-	vulkan::Queue graphicsQueue, 
-	VkCommandPool commandPool);
-
 std::unique_ptr<vulkan::ShaderModule> createShader(
 	QVulkanWindow *window,
 	vulkan::Device device,

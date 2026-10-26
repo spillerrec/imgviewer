@@ -60,7 +60,7 @@ imageViewer::imageViewer( QSettings& settings, QWidget* parent ): settings( sett
 }
 
 QVulkanWindowRenderer* imageViewer::createRenderer() {
-	m_renderer = new VulkanTextureRenderer(this, QImage(), true); // try MSAA, when available
+	m_renderer = new VulkanTextureRenderer(this, true); // try MSAA, when available
 	return m_renderer;
 }
 
@@ -76,11 +76,13 @@ void imageViewer::mirror( bool hor, bool ver ){
 }
 
 QImage imageViewer::get_frame(){
+	/* TODO: Disabled, need to be reimplemented for getting image copy to work again
 	if (image_cache) {
 		int frame_idx = animation_handler->get_current_frame();
 		if (frame_idx < image_cache->loaded())
-			return image_cache->frame(frame_idx);
+			return image_cache->frame(frame_idx)->frame();
 	}
+	*/
 	return {};
 }
 
@@ -112,10 +114,8 @@ void imageViewer::read_info(){
 void imageViewer::on_frame_changed( int new_frame ){
 	if (image_cache && m_renderer) {
 		int frame_idx = animation_handler->get_current_frame();
-		if (frame_idx < image_cache->loaded()) {
-			QImage frame = image_cache->frame(frame_idx);
-			m_renderer->setImage(frame, image_cache->get_profile().cicp.is_bt2020pq());
-		}
+		if (frame_idx < image_cache->loaded()) 
+			m_renderer->setImage(image_cache, frame_idx);
 	}
 	update_viewbox_size();
 	requestUpdate();

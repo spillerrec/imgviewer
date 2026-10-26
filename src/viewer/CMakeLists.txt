@@ -28,6 +28,7 @@ set(SOURCE_GUI_VIEWER
 	AnimationHandler.cpp
 	colorManager.cpp
 	imageCache.cpp
+	imageData.cpp
 	imageViewer.cpp
 	VulkanHelpers.cpp
 	VulkanTextureRenderer.cpp

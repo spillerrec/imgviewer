@@ -19,6 +19,7 @@
 #define META_H
 
 #include <QString>
+#include <memory>
 
 #include <libexif/exif-data.h>
 
@@ -32,7 +33,7 @@ class meta{
 		
 		struct Orientation get_orientation();
 		uint8_t* get_icc( unsigned &len);
-		class QImage get_thumbnail();
+		std::unique_ptr<class imageCache> get_thumbnail();
 };
 
 

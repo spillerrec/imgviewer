@@ -14,12 +14,14 @@
 #include "vulkan/Pipeline.h"
 #include "vulkan/Sampler.h"
 
+class imageCache;
+
 class VulkanTextureRenderer : public QVulkanWindowRenderer
 {
 public:
-	VulkanTextureRenderer(QVulkanWindow *w, const QImage &image = QImage(), bool msaa = false);
+	VulkanTextureRenderer(QVulkanWindow *w, bool msaa = false);
 
-	void setImage(const QImage &image, bool isBt2020);
+	void setImage(std::shared_ptr<imageCache> cache = nullptr, int frame_idx = 0);
 	void setDrawArea(const QRect &area);
 
 	void initResources() override;
@@ -30,7 +32,6 @@ public:
 	void startNextFrame() override;
 
 protected:
-	QImage m_image;
 	bool m_isBt2020 = false;
 	bool m_initialized = false;
 

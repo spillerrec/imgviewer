@@ -69,12 +69,12 @@ unsigned char* meta::get_icc( unsigned &len ){
 	return 0;
 }
 
-QImage meta::get_thumbnail(){
+std::unique_ptr<imageCache> meta::get_thumbnail(){
 	if( data && data->data ){
-		imageCache image;
-		ReaderJpeg().read( image, data->data, data->size, "jpg" );
-		if( image.frame_count() >= 1 )
-			return image.frame( 0 );
+		auto image = std::make_unique<imageCache>();
+		ReaderJpeg().read( *image, data->data, data->size, "jpg" );
+		if( image->frame_count() >= 1 )
+			return image;
 	}
 	return {};
 }

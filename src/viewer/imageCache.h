@@ -19,6 +19,7 @@
 #define IMAGECACHE_H
 
 #include "colorManager.h"
+#include "imageData.h"
 #include "Orientation.hpp"
 
 #include <QObject>
@@ -41,7 +42,7 @@ class imageCache: public QObject{
 		ColorProfile profile;
 		
 		int frame_amount{ 0 };
-		std::vector<QImage> frames;
+		std::vector<imageData> frames;
 		int frames_loaded{ 0 };
 		
 		bool animate{ false };
@@ -74,14 +75,14 @@ class imageCache: public QObject{
 		
 		void reset();
 		
-		QImage thumbnail;
+		std::unique_ptr<imageCache> thumbnail;
 		QStringList error_msgs;
 		
 	public:
 		explicit imageCache(){
 			init();
 		}
-		explicit imageCache( QImage img ){
+		explicit imageCache( imageData img ){
 			init();
 			set_info( 1, false );
 			add_frame( img, 0 );
@@ -91,7 +92,7 @@ class imageCache: public QObject{
 		void set_profile( ColorProfile&& profile );
 		void set_info( unsigned total_frames, bool is_animated=false, int loops=0 );
 		void set_orientation( Orientation orientation ){ this->orientation = orientation; }
-		void add_frame( QImage frame, unsigned delay );
+		void add_frame( imageData frame, unsigned delay );
 		void set_fully_loaded();
 		
 		long get_memory_size() const{ return memory_size; }	//Notice, this is a rough number, not accurate!
@@ -108,7 +109,7 @@ class imageCache: public QObject{
 		
 		//Frame info
 		int frame_count() const{ return frame_amount; }
-		QImage frame( unsigned int idx ) const{ return idx < frames.size() ? frames[ idx ] : QImage(); }
+		const imageData* frame( unsigned int idx ) const{ return idx < frames.size() ? &frames[ idx ] : nullptr; }
 		QSize frame_size( unsigned int idx ) const { return idx < frames.size() ? frames[ idx ].size() : QSize(); }
 		int frame_delay( unsigned int idx ) const{ return idx < frames.size() ? frame_delays[ idx ] : 0; } //How long a frame should be shown
 

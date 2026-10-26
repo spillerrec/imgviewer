@@ -8,10 +8,6 @@
 #include "vulkan/PhysicalDevice.h"
 #include "vulkan/CommandBuffer.h"
 
-#include <cstring>
-#include <tracy/Tracy.hpp>
-#include <tracy/TracyC.h>
-
 #include <QFile>
 #include <QList>
 #include <QVulkanWindow>
@@ -27,65 +23,6 @@ bool SetMaxMSE( QVulkanWindow* w, int mse_target ) {
 	return false;
 }
 
-
-
-
-std::unique_ptr<vulkan::Texture> createTextureImage(const QImage &image, vulkan::PhysicalDevice physicalDevice, vulkan::Device& device, vulkan::Queue graphicsQueue, VkCommandPool commandPool) {
-	using namespace vulkan;
-	ZoneScoped;
-
-	// Handle empty/null images by creating a 1x1 black placeholder
-	QImage source = image;
-	if (image.isNull() || image.size().isEmpty()) {
-		qWarning("TriangleRenderer::createTextureImage: empty or null image, using black placeholder");
-		source = QImage(1, 1, QImage::Format_RGBA8888);
-		source.fill(Qt::black);
-	}
-
-	TracyCFrameMarkStart("convertToFormat"); 
-	QImage converted = source.convertToFormat(QImage::Format_RGBA8888);
-	TracyCFrameMarkEnd("convertToFormat");
-	
-	TracyCFrameMarkStart("imageData init"); 
-	auto imageData = std::make_unique<uint8_t[]>(converted.size().width() * converted.size().height() * 4);
-	auto lineWidth = converted.size().width()*4;
-	for (int y = 0; y < converted.size().height(); ++y)
-    	memcpy(&imageData[y * lineWidth], reinterpret_cast<uint8_t*>(converted.scanLine(y)), lineWidth);
-	TracyCFrameMarkEnd("imageData init");
-	
-	VkDeviceSize imageSize = lineWidth * converted.size().height();
-	vulkan::Buffer stagingBuffer( device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT );
-	
-	auto memRequirements = stagingBuffer.memRequirements();
-	
-	DeviceMemory stagingBufferMemory( device, memRequirements.size, physicalDevice.findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) );
-	
-	stagingBuffer.bindMemory(stagingBufferMemory);
-
-	TracyCFrameMarkStart("map-staging"); 
-	void* data;
-	stagingBufferMemory.Map(0, imageSize, 0, &data);
-	memcpy(data, imageData.get(), static_cast<size_t>(imageSize));
-	stagingBufferMemory.Unmap();
-	TracyCFrameMarkEnd("map-staging");
-	
-	// create image
-	auto texture = std::make_unique<Texture>( device, physicalDevice, converted.size().width(), converted.size().height(), VK_FORMAT_R8G8B8A8_UNORM );
-	
-	TracyCFrameMarkStart("gpu-work"); 
-	auto commandBuffer = std::make_unique<CommandBuffer>( device, commandPool );
-	commandBuffer->Begin();
-	
-	texture->transitionImageLayout( *commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
-	commandBuffer->CopyBufferToImage( stagingBuffer, *texture, converted.size().width(), converted.size().height() );
-	texture->transitionImageLayout( *commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-	
-	commandBuffer->End();
-	graphicsQueue.SubmitAndWait( std::move(commandBuffer) );
-	TracyCFrameMarkEnd("gpu-work");
-	
-	return texture;
-}
 
 std::unique_ptr<vulkan::ShaderModule> createShader(
 	QVulkanWindow *window,
