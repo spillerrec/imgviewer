@@ -128,7 +128,6 @@ void imageViewer::init_size(){
 		emit resize_wanted();
 	initial_resize = S(settings).keep_resize();
 	
-	animation_handler->goto_frame( 0 );
 	animation_handler->restart_animation();
 	update_viewbox_size();
 }

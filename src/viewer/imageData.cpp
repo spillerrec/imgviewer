@@ -62,7 +62,6 @@ std::unique_ptr<vulkan::Texture> imageData::createTextureImage(vulkan::PhysicalD
 	// create image
 	auto texture = std::make_unique<Texture>( device, physicalDevice, width, height, VK_FORMAT_R8G8B8A8_UNORM );
 	
-	TracyCFrameMarkStart("gpu-work"); 
 	auto commandBuffer = std::make_unique<CommandBuffer>( device, commandPool );
 	commandBuffer->Begin();
 	
@@ -71,6 +70,7 @@ std::unique_ptr<vulkan::Texture> imageData::createTextureImage(vulkan::PhysicalD
 	texture->transitionImageLayout( *commandBuffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 	
 	commandBuffer->End();
+	TracyCFrameMarkStart("gpu-work"); 
 	graphicsQueue.SubmitAndWait( std::move(commandBuffer) );
 	TracyCFrameMarkEnd("gpu-work");
 	
