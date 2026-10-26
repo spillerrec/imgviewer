@@ -3,6 +3,8 @@
 
 #include <QImage>
 #include <QVulkanFunctions>
+#include <QSize>
+#include <memory>
 
 namespace vulkan{
 	class Texture;
@@ -13,14 +15,14 @@ namespace vulkan{
 
 class imageData {
 	private:
-		QImage data;
+		std::unique_ptr<uint8_t[]> pixels;
+		int width, height;
 		
 	public:
-		imageData( QImage image_data ) : data( image_data ) { }
+		imageData( QImage image_data );
 		static imageData black_image();
 		
-		QImage frame() const { return data; }
-		QSize size() const { return data.size(); }
+		QSize size() const { return QSize(width, height); }
 		
 		std::unique_ptr<vulkan::Texture> createTextureImage(
 			vulkan::PhysicalDevice physicalDevice, 

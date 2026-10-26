@@ -85,7 +85,7 @@ class imageCache: public QObject{
 		explicit imageCache( imageData img ){
 			init();
 			set_info( 1, false );
-			add_frame( img, 0 );
+			add_frame( std::move(img), 0 );
 			set_fully_loaded();
 		}
 		
