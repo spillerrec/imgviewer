@@ -22,12 +22,14 @@
 #include "ReaderGif.hpp"
 #include "ReaderPng.hpp"
 #include "ReaderJpeg.hpp"
+#include "ReaderWebp.hpp"
 #include "ReaderQt.hpp"
 
 ImageReader::ImageReader(){
-//	readers.push_back( std::make_unique<ReaderGif>() );
+	//	readers.push_back( std::make_unique<ReaderGif>() );
 	readers.push_back( std::make_unique<ReaderPng>() );
 	readers.push_back( std::make_unique<ReaderJpeg>() );
+	readers.push_back( std::make_unique<ReaderWebp>() );
 	readers.push_back( std::make_unique<ReaderQt>() );
 	
 	for( auto& reader : readers )

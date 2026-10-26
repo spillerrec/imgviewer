@@ -19,6 +19,8 @@
 #include "../meta.h"
 #include "../viewer/colorManager.h"
 
+#include <tracy/Tracy.hpp>
+
 #include <QImageReader>
 #include <QBuffer>
 
@@ -33,6 +35,7 @@ static QByteArray fromData( const uint8_t* data, unsigned length )
 	{ return QByteArray( reinterpret_cast<const char*>( data ), length ); }
 
 AReader::Error ReaderQt::read( imageCache &cache, const uint8_t* data, unsigned length, QString format ) const{
+	ZoneScoped;
 	QByteArray byte_data = fromData( data, length );
 	QBuffer buffer( &byte_data );
 	QImageReader image_reader( &buffer, format.toLocal8Bit() );
