@@ -30,6 +30,7 @@ set(SOURCE_CORE
 set(SOURCE_IMAGE_READER
 	ImageReader/AnimCombiner.cpp
 	ImageReader/AnimCombinerRgba.cpp
+	ImageReader/AnimFrameCombinerWorker.cpp
 	ImageReader/ImageReader.cpp
 	ImageReader/ReaderGif.cpp
 	ImageReader/ReaderJpeg.cpp

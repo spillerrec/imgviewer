@@ -17,10 +17,13 @@
 
 #include "AnimCombinerRgba.hpp"
 
+#include <tracy/Tracy.hpp>
+
 #include <algorithm>
 #include <cstring>
 
 static inline void blendPixel( uint8_t* dst, const uint8_t* src ){
+	ZoneScoped;
 	const uint8_t sa = src[3];
 	if( sa == 0 ) return; // Fully transparent source pixel
 	if( sa == 255 ){ // Fully opaque source pixel
@@ -52,6 +55,7 @@ static inline void blendPixel( uint8_t* dst, const uint8_t* src ){
 AnimCombinerRgba::AnimCombinerRgba( int w, int h )
 	: width(w), height(h)
 {
+	ZoneScoped;
 	const size_t pixel_count = static_cast<size_t>(width) * height * 4;
 	canvas.resize( pixel_count );
 	previous.resize( pixel_count );
@@ -61,6 +65,7 @@ AnimCombinerRgba::AnimCombinerRgba( int w, int h )
 void AnimCombinerRgba::copyRect( const uint8_t* src, int src_stride,
                                  uint8_t* dst, int dst_stride,
                                  int w, int h, int dx, int dy ){
+    ZoneScoped;
 	for( int y = 0; y < h; ++y ){
 		const uint8_t* src_row = src + static_cast<size_t>(y) * src_stride;
 		uint8_t* dst_row = dst + static_cast<size_t>(dy + y) * dst_stride + dx * 4;
@@ -71,6 +76,7 @@ void AnimCombinerRgba::copyRect( const uint8_t* src, int src_stride,
 void AnimCombinerRgba::alphaBlendRect( const uint8_t* src, int src_stride,
                                        uint8_t* dst, int dst_stride,
                                        int w, int h, int dx, int dy ){
+    ZoneScoped;
 	for( int y = 0; y < h; ++y ){
 		const uint8_t* src_row = src + static_cast<size_t>(y) * src_stride;
 		uint8_t* dst_row = dst + static_cast<size_t>(dy + y) * dst_stride + dx * 4;
@@ -84,6 +90,7 @@ void AnimCombinerRgba::alphaBlendRect( const uint8_t* src, int src_stride,
 
 void AnimCombinerRgba::clearRect( uint8_t* dst, int stride,
                                   int x, int y, int w, int h ){
+    ZoneScoped;
 	for( int row = 0; row < h; ++row ){
 		uint8_t* dst_row = dst + static_cast<size_t>(y + row) * stride + x * 4;
 		std::memset( dst_row, 0, static_cast<size_t>(w) * 4 );
@@ -93,6 +100,7 @@ void AnimCombinerRgba::clearRect( uint8_t* dst, int stride,
 imageData AnimCombinerRgba::combine( const uint8_t* src_pixels, int src_w, int src_h,
                                      int x_offset, int y_offset,
                                      BlendMode blend, DisposeMode dispose ){
+    ZoneScoped;
 	const int canvas_stride = width * 4;
 	
 	// Clamp the source rectangle to canvas bounds
@@ -121,7 +129,10 @@ imageData AnimCombinerRgba::combine( const uint8_t* src_pixels, int src_w, int s
 	
 	// Capture the composed frame before dispose modifies previous state
 	auto output_pixels = std::make_unique<uint8_t[]>(canvas.size());
-	std::memcpy( output_pixels.get(), canvas.data(), canvas.size() );
+	{
+		ZoneScopedN("copy canvas");
+		std::memcpy( output_pixels.get(), canvas.data(), canvas.size() );
+	}
 	
 	// Apply dispose mode to prepare for next frame
 	switch( dispose ) {
@@ -136,6 +147,7 @@ imageData AnimCombinerRgba::combine( const uint8_t* src_pixels, int src_w, int s
 			
 		case DisposeMode::REVERT:
 			if( !previous.empty() ) {
+				ZoneScopedN("revert");
 				std::memcpy( canvas.data(), previous.data(), canvas.size() );
 			}
 			break;

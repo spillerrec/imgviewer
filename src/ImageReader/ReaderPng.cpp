@@ -16,7 +16,7 @@
 */
 
 #include "ReaderPng.hpp"
-#include "AnimCombinerRgba.hpp"
+#include "AnimFrameCombinerWorker.hpp"
 #include "../viewer/colorManager.h"
 
 #include <tracy/Tracy.hpp>
@@ -220,8 +220,6 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 	//Configure transforms once before the frame loop
 	configurePngForRgba( png, false );
 	
-	AnimCombinerRgba combiner( canvas_width, canvas_height );
-	
 	if( setjmp( png_jmpbuf( png.png ) ) )
 		return;
 	
@@ -235,6 +233,9 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 	}
 	
 	cache.set_info( frames, true, repeats>0 ? repeats-1 : -1 );
+	
+	//Background worker handles combining so decoding isn't blocked
+	AnimFrameCombinerWorker combiner_worker( cache, (int)canvas_width, (int)canvas_height );
 	
 	for( unsigned i=0; i < frames; ++i ){
 		png_read_frame_head( png.png, png.info );
@@ -261,19 +262,25 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 		if( delay == 0 )
 			delay = 1; //Fastest speed we support
 		
-		//Compose and add
+		//Submit to background worker (non-blocking)
 		auto blend_mode = blend_op == PNG_BLEND_OP_SOURCE ? BlendMode::REPLACE : BlendMode::OVERLAY;
 		auto dispose_mode = [=](){ switch( dispose_op ){
-				case PNG_DISPOSE_OP_NONE:       return DisposeMode::NONE;
-				case PNG_DISPOSE_OP_BACKGROUND: return DisposeMode::BACKGROUND;
-				case PNG_DISPOSE_OP_PREVIOUS:   return DisposeMode::REVERT;
-				default: return DisposeMode::NONE; //TODO: add error
+			case PNG_DISPOSE_OP_NONE:       return DisposeMode::NONE;
+			case PNG_DISPOSE_OP_BACKGROUND: return DisposeMode::BACKGROUND;
+			case PNG_DISPOSE_OP_PREVIOUS:   return DisposeMode::REVERT;
+			default: return DisposeMode::NONE; //TODO: add error
 			} }();
-		imageData output = combiner.combine( frame_pixels.get(), (int)frame_width, (int)frame_height,
-		                                      (int)x_offset, (int)y_offset,
-		                                      blend_mode, dispose_mode );
-		cache.add_frame( std::move(output), delay );
+		combiner_worker.submit( PendingFrame{
+			std::move(frame_pixels),
+			(int)frame_width, (int)frame_height,
+			(int)x_offset, (int)y_offset,
+			blend_mode, dispose_mode,
+			delay
+		} );
 	}
+	
+	//Wait for all frames to be combined before marking fully loaded
+	combiner_worker.wait_for_completion();
 }
 #endif
 
