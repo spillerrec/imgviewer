@@ -19,17 +19,7 @@
 #define ANIM_COMBINER_HPP
 
 #include <QImage>
-
-enum class BlendMode{
-	REPLACE,
-	OVERLAY
-};
-
-enum class DisposeMode{
-	NONE, //Do nothing
-	BACKGROUND, //Clear the background to transparent
-	REVERT //Revert to previous frame
-};
+#include "AnimCombinerRgba.hpp" // for BlendMode, DisposeMode
 
 //Maybe indexed
 class IndexColor{

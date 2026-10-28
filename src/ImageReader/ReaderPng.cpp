@@ -16,13 +16,11 @@
 */
 
 #include "ReaderPng.hpp"
-#include "AnimCombiner.hpp"
+#include "AnimCombinerRgba.hpp"
 #include "../viewer/colorManager.h"
 
 #include <tracy/Tracy.hpp>
 
-#include <QImage>
-#include <QPainter>
 #include <png.h>
 #include <cstring>
 #include <cmath>
@@ -110,6 +108,10 @@ class PngInfo{
 // Configure libpng to output RGBA8888 (with alpha if present)
 static void configurePngForRgba( PngInfo& info, bool bgr ){
 	bool alpha = info.isGrayAlpha() || info.isRgbAlpha();
+
+	if ( info.isPalette() )
+		png_set_palette_to_rgb( info.png ); // Expand palette to 24-bit RGB
+	
 	if( png_get_valid( info.png, info.info, PNG_INFO_tRNS ) ){
 		png_set_tRNS_to_alpha( info.png );
 		alpha = true;
@@ -128,6 +130,8 @@ static void configurePngForRgba( PngInfo& info, bool bgr ){
 	//Convert BGR to RGB order
 	if ( bgr )
 		png_set_bgr( info.png );
+	
+	png_read_update_info( info.png, info.info );
 }
 
 static void readRgb( PngInfo& info, unsigned width, unsigned height, bool update ){
@@ -162,10 +166,9 @@ static void readPaletted( PngInfo& info, unsigned width, unsigned height, bool u
 }
 
 // Read PNG directly into raw RGBA8888 pixels (no QImage)
+// Assumes configurePngForRgba has already been called
 static std::unique_ptr<uint8_t[]> readPngRawRgba( PngInfo& info, unsigned width, unsigned height ){
 	ZoneScoped;
-	configurePngForRgba( info, false );
-	
 	const size_t row_bytes = width * 4;
 	std::vector<png_bytep> row_pointers(height);
 	row_pointers.reserve(height);
@@ -208,15 +211,16 @@ static CicpInfo readCicp( PngInfo& png ){
 
 #ifdef PNG_APNG_SUPPORTED
 static void readAnimated( imageCache &cache, PngInfo& png ){
-	auto width  = png.width();
-	auto height = png.height();
+	const unsigned canvas_width  = png.width();
+	const unsigned canvas_height = png.height();
 	png_uint_32 x_offset=0, y_offset=0;
 	png_uint_16 delay_num=0, delay_den=0;
 	png_byte dispose_op = PNG_DISPOSE_OP_NONE, blend_op = PNG_BLEND_OP_SOURCE;
 	
-	QImage canvas( width, height, QImage::Format_ARGB32 );
-	canvas.fill( qRgba( 0,0,0,0 ) );
-	AnimCombiner combiner( canvas );
+	//Configure transforms once before the frame loop
+	configurePngForRgba( png, false );
+	
+	AnimCombinerRgba combiner( canvas_width, canvas_height );
 	
 	if( setjmp( png_jmpbuf( png.png ) ) )
 		return;
@@ -226,7 +230,7 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 	
 	//NOTE: We discard the frame if it is not a part of the animation
 	if( png_get_first_frame_is_hidden( png.png, png.info ) ){
-		readImage( png, width, height );
+		readImage( png, canvas_width, canvas_height );
 		--frames; //libpng appears to tell the total amount of images
 	}
 	
@@ -235,20 +239,21 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 	for( unsigned i=0; i < frames; ++i ){
 		png_read_frame_head( png.png, png.info );
 		
+		unsigned frame_width  = canvas_width;
+		unsigned frame_height = canvas_height;
+		
 		if( png_get_valid( png.png, png.info, PNG_INFO_fcTL ) ){
 			png_get_next_frame_fcTL( png.png, png.info
-				,	&width, &height
+				,	&frame_width, &frame_height
 				,	&x_offset, &y_offset
 				,	&delay_num, &delay_den
 				,	&dispose_op, &blend_op
 				);
 		}
-		else{
-			width  = png.width();
-			height = png.height();
-		}
 		
-		readImage( png, width, height, i==0 );
+		//Read frame directly into raw RGBA8 pixels (no QImage)
+		//libpng already called png_read_update_info after png_read_frame_head
+		auto frame_pixels = readPngRawRgba( png, frame_width, frame_height );
 		
 		//Calculate delay
 		delay_den = delay_den==0 ? 100 : delay_den;
@@ -264,8 +269,10 @@ static void readAnimated( imageCache &cache, PngInfo& png ){
 				case PNG_DISPOSE_OP_PREVIOUS:   return DisposeMode::REVERT;
 				default: return DisposeMode::NONE; //TODO: add error
 			} }();
-		QImage output = combiner.combine( png.frame, x_offset, y_offset, blend_mode, dispose_mode );
-		cache.add_frame( output, delay );
+		imageData output = combiner.combine( frame_pixels.get(), (int)frame_width, (int)frame_height,
+		                                      (int)x_offset, (int)y_offset,
+		                                      blend_mode, dispose_mode );
+		cache.add_frame( std::move(output), delay );
 	}
 }
 #endif
@@ -305,6 +312,7 @@ AReader::Error ReaderPng::read( imageCache &cache, const uint8_t* data, unsigned
 		unsigned h = png.height();
 		
 		//For static images: read directly into raw RGBA8888 pixels, no QImage needed
+		configurePngForRgba( png, false );
 		auto pixels = readPngRawRgba( png, w, h );
 		cache.add_frame( imageData( (int)w, (int)h, std::move(pixels) ), 0 );
 	}
