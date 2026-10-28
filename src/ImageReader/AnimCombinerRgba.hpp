@@ -40,10 +40,7 @@ class AnimCombinerRgba {
 		int width, height;
 		
 		// Current canvas (what's displayed)
-		std::vector<uint8_t> canvas;
-		
-		// Previous frame state (for REVERT dispose mode)
-		std::vector<uint8_t> previous;
+		std::unique_ptr<uint8_t[]> canvas;
 
 	public:
 		AnimCombinerRgba( int w, int h );

@@ -17,13 +17,13 @@
 
 #include "AnimCombinerRgba.hpp"
 
+#include <cstdint>
 #include <tracy/Tracy.hpp>
 
 #include <algorithm>
 #include <cstring>
 
 static inline void blendPixel( uint8_t* dst, const uint8_t* src ){
-	ZoneScoped;
 	const uint8_t sa = src[3];
 	if( sa == 0 ) return; // Fully transparent source pixel
 	if( sa == 255 ){ // Fully opaque source pixel
@@ -57,9 +57,8 @@ AnimCombinerRgba::AnimCombinerRgba( int w, int h )
 {
 	ZoneScoped;
 	const size_t pixel_count = static_cast<size_t>(width) * height * 4;
-	canvas.resize( pixel_count );
-	previous.resize( pixel_count );
-	std::memset( canvas.data(), 0, pixel_count ); // Transparent black
+	canvas = std::make_unique_for_overwrite<uint8_t[]>( pixel_count );
+	std::memset( canvas.get(), 0, pixel_count ); // Transparent black
 }
 
 void AnimCombinerRgba::copyRect( const uint8_t* src, int src_stride,
@@ -111,44 +110,60 @@ imageData AnimCombinerRgba::combine( const uint8_t* src_pixels, int src_w, int s
 	int draw_w = std::min( src_w - src_x, width - draw_x );
 	int draw_h = std::min( src_h - src_y, height - draw_y );
 	
+	auto canvas_size = width * height * 4;
+	
 	if( draw_w <= 0 || draw_h <= 0 ) {
 		// Frame is completely outside canvas; return current canvas as-is
-		auto pixels = std::make_unique<uint8_t[]>(canvas.size());
-		std::memcpy( pixels.get(), canvas.data(), canvas.size() );
+		auto pixels = std::make_unique<uint8_t[]>(canvas_size);
+		std::memcpy( pixels.get(), canvas.get(), canvas_size );
 		return imageData( width, height, std::move(pixels) );
 	}
 	
 	const uint8_t* src_row = src_pixels + static_cast<size_t>(src_y) * (src_w * 4) + src_x * 4;
 	
-	// Blend the new frame onto canvas
-	if( blend == BlendMode::REPLACE ) {
-		copyRect( src_row, src_w * 4, canvas.data(), canvas_stride, draw_w, draw_h, draw_x, draw_y );
-	} else { // OVERLAY
-		alphaBlendRect( src_row, src_w * 4, canvas.data(), canvas_stride, draw_w, draw_h, draw_x, draw_y );
+	// Previous frame state (for REVERT dispose mode)
+	std::unique_ptr<uint8_t[]> previous;
+	auto copyCanvas = [&](){
+		ZoneScopedN("copy canvas");
+		auto output_pixels = std::make_unique_for_overwrite<uint8_t[]>( canvas_size );
+		std::memcpy( output_pixels.get(), canvas.get(), canvas_size );
+		return output_pixels;
+	};
+	// Save backup BEFORE blending only if REVERT needs it
+	if( dispose == DisposeMode::REVERT ) {
+		ZoneScopedN("revert-copy");
+		previous = copyCanvas();
 	}
 	
-	// Capture the composed frame before dispose modifies previous state
-	auto output_pixels = std::make_unique<uint8_t[]>(canvas.size());
-	{
-		ZoneScopedN("copy canvas");
-		std::memcpy( output_pixels.get(), canvas.data(), canvas.size() );
+	// Blend the new frame onto canvas
+	if( blend == BlendMode::REPLACE ) {
+		copyRect( src_row, src_w * 4, canvas.get(), canvas_stride, draw_w, draw_h, draw_x, draw_y );
+	} else { // OVERLAY
+		alphaBlendRect( src_row, src_w * 4, canvas.get(), canvas_stride, draw_w, draw_h, draw_x, draw_y );
 	}
+	
+	// Capture the composed frame before dispose modifies canvas state
+	std::unique_ptr<uint8_t[]> output_pixels;
 	
 	// Apply dispose mode to prepare for next frame
 	switch( dispose ) {
 		case DisposeMode::NONE:
-			previous = canvas;
+			output_pixels = copyCanvas();
 			break;
 			
 		case DisposeMode::BACKGROUND:
-			previous = canvas;
-			clearRect( canvas.data(), canvas_stride, draw_x, draw_y, draw_w, draw_h );
+		{
+			ZoneScopedN("background");
+			output_pixels = copyCanvas();
+			clearRect( canvas.get(), canvas_stride, draw_x, draw_y, draw_w, draw_h );
 			break;
+		}
 			
 		case DisposeMode::REVERT:
-			if( !previous.empty() ) {
+			if( previous ) {
 				ZoneScopedN("revert");
-				std::memcpy( canvas.data(), previous.data(), canvas.size() );
+				std::swap( previous, canvas );
+				output_pixels = std::move(previous);
 			}
 			break;
 	}
