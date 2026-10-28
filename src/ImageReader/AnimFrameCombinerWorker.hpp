@@ -44,8 +44,8 @@ struct PendingFrame {
 class AnimFrameCombinerWorker {
 private:
 	imageCache& cache;
-	AnimCombinerRgba combiner;
-
+	int canvas_width, canvas_height; // Stored for lazy combiner init on worker thread
+	
 	std::queue<PendingFrame> queue;
 	std::mutex mtx;
 	std::condition_variable cv;

@@ -20,7 +20,7 @@
 #include <tracy/Tracy.hpp>
 
 AnimFrameCombinerWorker::AnimFrameCombinerWorker( imageCache& cache, int canvas_w, int canvas_h )
-	: cache(cache), combiner(canvas_w, canvas_h) {
+	: cache(cache), canvas_width(canvas_w), canvas_height(canvas_h) {
 	worker_thread = std::thread( &AnimFrameCombinerWorker::worker_loop, this );
 }
 
@@ -50,6 +50,8 @@ void AnimFrameCombinerWorker::wait_for_completion() {
 
 void AnimFrameCombinerWorker::worker_loop() {
 	ZoneScoped;
+	AnimCombinerRgba combiner( canvas_width, canvas_height );
+
 	while ( true ) {
 		PendingFrame frame;
 		{
