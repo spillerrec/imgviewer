@@ -60,14 +60,17 @@ add_dependencies(imgviewer Shaders)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBEXIF REQUIRED libexif)
 
+pkg_check_modules(ZLIB REQUIRED zlib-ng)
+
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 qt_standard_project_setup()
 
 target_include_directories(imgviewer PRIVATE ${LIBEXIF_INCLUDE_DIRS})
+target_include_directories(imgviewer PRIVATE ${ZLIB_INCLUDE_DIRS})
 
-target_link_libraries(imgviewer qtimgviewer Qt6::Core Qt6::Widgets -lexif -lpng -lz -ljpeg -lgif -lwebp -lwebpdemux)
+target_link_libraries(imgviewer qtimgviewer Qt6::Core Qt6::Widgets -lexif -lpng ${ZLIB_LIBRARIES} -ljpeg -lgif -lwebp -lwebpdemux)
 
 install(FILES resources/imgviewer.desktop DESTINATION /usr/share/applications) # TODO: This will probably fail on other systems/distributions
 install(TARGETS imgviewer RUNTIME DESTINATION bin)
